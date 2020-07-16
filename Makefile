@@ -19,7 +19,7 @@ run:
 
 .PHONY: call
 call:
-	MICRO_REGISTRY=consul micro call omo.msa.favorite Echo.Call '{"name":"John"}'
+	MICRO_REGISTRY=consul micro call omo.msa.favorite FavoriteService.UpdateEntities '{"uid":"5f1001480d57c9d90026b784", "entities":[{"uid":"1", "name":"r1"},{"uid":"2", "name":"r2"}]}'
 
 .PHONY: tester
 tester:

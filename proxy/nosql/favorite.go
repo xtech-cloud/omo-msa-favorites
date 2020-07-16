@@ -16,9 +16,12 @@ type Favorite struct {
 	CreatedTime time.Time          `json:"createdAt" bson:"createdAt"`
 	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
 	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
-	Cover        string              `json:"cover" bson:"cover"`
-	Remark       string `json:"remark" bson:"remark"`
-	Scene        string `json:"scene" bson:"scene"`
+	Creator     string             `json:"creator" bson:"creator"`
+	Operator    string             `json:"operator" bson:"operator"`
+	Cover       string             `json:"cover" bson:"cover"`
+	Remark      string             `json:"remark" bson:"remark"`
+	Owner       string             `json:"owner" bson:"owner"`
+	Type        uint8              `json:"type" bson:"type"`
 	Entities    []proxy.EntityInfo `json:"entities" bson:"entities"`
 }
 
@@ -45,11 +48,11 @@ func GetFavoriteFile(uid string) (*FileInfo, error) {
 	return info, err1
 }
 
-func RemoveFavorite(uid string) error {
+func RemoveFavorite(uid, operator string) error {
 	if len(uid) < 2 {
 		return errors.New("db Favorite uid is empty ")
 	}
-	_, err := removeOne(TableFavorite, uid)
+	_, err := removeOne(TableFavorite, uid, operator)
 	return err
 }
 
@@ -70,10 +73,10 @@ func GetFavorite(uid string) (*Favorite, error) {
 	return model, nil
 }
 
-func GetFavoritesByScene(scene string) ([]*Favorite, error) {
+func GetFavoritesByOwner(owner string) ([]*Favorite, error) {
 	var items = make([]*Favorite, 0, 20)
 	def := new(time.Time)
-	filter := bson.M{"scene": scene, "deleteAt": def}
+	filter := bson.M{"owner": owner, "deleteAt": def}
 	cursor, err1 := findMany(TableFavorite, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -89,32 +92,20 @@ func GetFavoritesByScene(scene string) ([]*Favorite, error) {
 	return items, nil
 }
 
-func UpdateFavoriteBase(uid string, name, remark string) error {
-	msg := bson.M{"name": name,"remark": remark, "updatedAt": time.Now()}
+func UpdateFavoriteBase(uid string, name, remark, operator string) error {
+	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
-func UpdateFavoriteCover(uid string, cover string) error {
-	msg := bson.M{"cover": cover, "updatedAt": time.Now()}
+func UpdateFavoriteCover(uid string, cover, operator string) error {
+	msg := bson.M{"cover": cover, "operator":operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
-func AppendFavoriteEntity(uid string, entity proxy.EntityInfo) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"entities": entity}
-	_, err := appendElement(TableFavorite, uid, msg)
-	return err
-}
-
-func SubtractFavoriteEntity(uid string, entity string) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"entities": bson.M{ "uid": entity }}
-	_, err := removeElement(TableFavorite, uid, msg)
+func UpdateFavoriteEntity(uid, operator string, list []proxy.EntityInfo) error {
+	msg := bson.M{"entities": list, "operator":operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }

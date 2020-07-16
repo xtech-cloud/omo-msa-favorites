@@ -7,30 +7,35 @@ import (
 	"time"
 )
 
-type SceneInfo struct {
+const (
+	OwnerTypePerson = 1
+	OwnerTypeUnit = 0
+)
+
+type OwnerInfo struct {
 	UID string
 	favorites []*FavoriteInfo
 }
 
-func AllScenes() []*SceneInfo {
-	return cacheCtx.scenes
+func AllOwners() []*OwnerInfo {
+	return cacheCtx.boxes
 }
 
-func GetScene(uid string) *SceneInfo {
-	for i := 0;i < len(cacheCtx.scenes);i += 1{
-		if cacheCtx.scenes[i].UID == uid {
-			return cacheCtx.scenes[i]
+func GetOwner(uid string) *OwnerInfo {
+	for i := 0;i < len(cacheCtx.boxes);i += 1{
+		if cacheCtx.boxes[i].UID == uid {
+			return cacheCtx.boxes[i]
 		}
 	}
-	scene := new(SceneInfo)
+	scene := new(OwnerInfo)
 	scene.initInfo(uid)
-	cacheCtx.scenes = append(cacheCtx.scenes, scene)
+	cacheCtx.boxes = append(cacheCtx.boxes, scene)
 	return scene
 }
 
-func (mine *SceneInfo)initInfo(scene string)  {
-	mine.UID = scene
-	array,err := nosql.GetFavoritesByScene(scene)
+func (mine *OwnerInfo)initInfo(owner string)  {
+	mine.UID = owner
+	array,err := nosql.GetFavoritesByOwner(owner)
 	if err == nil{
 		mine.favorites = make([]*FavoriteInfo, 0, len(array))
 		for _, value := range array {
@@ -43,11 +48,11 @@ func (mine *SceneInfo)initInfo(scene string)  {
 	}
 }
 
-func (mine *SceneInfo)Favorites() []*FavoriteInfo {
+func (mine *OwnerInfo)Favorites() []*FavoriteInfo {
 	return mine.favorites
 }
 
-func (mine *SceneInfo)CreateFavorite(info *FavoriteInfo) error {
+func (mine *OwnerInfo)CreateFavorite(info *FavoriteInfo) error {
 	db := new(nosql.Favorite)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetFavoriteNextID()
@@ -55,7 +60,10 @@ func (mine *SceneInfo)CreateFavorite(info *FavoriteInfo) error {
 	db.Cover = info.Cover
 	db.Name = info.Name
 	db.Remark = info.Remark
-	db.Scene = mine.UID
+	db.Owner = mine.UID
+	db.Type = info.Type
+	db.Creator = info.Creator
+	db.Operator = info.Operator
 	db.Entities = make([]proxy.EntityInfo, 0, 1)
 	err := nosql.CreateFavorite(db)
 	if err == nil {
@@ -65,7 +73,7 @@ func (mine *SceneInfo)CreateFavorite(info *FavoriteInfo) error {
 	return err
 }
 
-func (mine *SceneInfo)GetFavorite(uid string) *FavoriteInfo {
+func (mine *OwnerInfo)GetFavorite(uid string) *FavoriteInfo {
 	for i := 0;i < len(mine.favorites);i += 1{
 		if mine.favorites[i].UID == uid {
 			return mine.favorites[i]
@@ -74,8 +82,8 @@ func (mine *SceneInfo)GetFavorite(uid string) *FavoriteInfo {
 	return nil
 }
 
-func (mine *SceneInfo)RemoveFavorite(uid string) error {
-	err := nosql.RemoveFavorite(uid)
+func (mine *OwnerInfo)RemoveFavorite(uid, operator string) error {
+	err := nosql.RemoveFavorite(uid, operator)
 	if err == nil {
 		for i := 0;i < len(mine.favorites);i += 1{
 			if mine.favorites[i].UID == uid {

@@ -104,9 +104,6 @@ func checkConnected() bool {
 }
 
 func analyticDataStructure(table string, data []gjson.Result) error {
-	if table == TableAdmin {
-
-	}
 	return nil
 }
 
@@ -167,21 +164,6 @@ func BackupDatabase() string {
 	}
 	return timeStr*/
 	return ""
-}
-
-func RecoveryDatabase(timeStr string) error {
-	path := "db/" + timeStr + "/"
-
-	tables, _ := noSql.ListCollectionNames(context.Background(), nil)
-	for i := 0; i < len(tables); i++ {
-		if tables[i] == TableAdmin {
-			err := readFile(path, tables[i])
-			if err != nil {
-				return errors.New("recovery the table failed :: " + tables[i])
-			}
-		}
-	}
-	return nil
 }
 
 func ImportDatabase(table string, file multipart.File) error {
