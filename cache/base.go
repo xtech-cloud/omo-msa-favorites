@@ -27,5 +27,6 @@ func InitData() error {
 	cacheCtx.boxes = make([]*OwnerInfo, 0, 100)
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
+
 	return err
 }

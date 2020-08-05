@@ -17,6 +17,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Id = info.ID
 	tmp.Name = info.Name
 	tmp.Remark = info.Remark
+	tmp.Cover = info.Cover
 	tmp.Updated = info.UpdateTime.Unix()
 	tmp.Created = info.CreateTime.Unix()
 	tmp.Creator = info.Creator
@@ -30,6 +31,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 }
 
 func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, out *pb.ReplyFavoriteOne) error {
+	inLog("favorite.add", in)
 	if len(in.Owner) < 1 {
 		out.ErrorCode = pb.ResultStatus_Empty
 		return errors.New("the scene is empty")
@@ -38,6 +40,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	info := new(cache.FavoriteInfo)
 	info.Name = in.Name
 	info.Remark = in.Remark
+	info.Cover = in.Cover
 	info.Creator = in.Operator
 	err := owner.CreateFavorite(info)
 	if err != nil {
@@ -49,16 +52,12 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 }
 
 func (mine *FavoriteService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteOne) error {
-	if len(in.Owner) < 1 {
-		out.ErrorCode = pb.ResultStatus_Empty
-		return errors.New("the scene is empty")
-	}
+	inLog("favorite.get", in)
 	if len(in.Uid) < 1 {
 		out.ErrorCode = pb.ResultStatus_Empty
 		return errors.New("the favorite is empty")
 	}
-	scene := cache.GetOwner(in.Owner)
-	info := scene.GetFavorite(in.Uid)
+	_,info := cache.GetFavorite(in.Uid)
 	if info == nil {
 		out.ErrorCode = pb.ResultStatus_NotExisted
 		return errors.New("the favorite not found")
@@ -68,16 +67,16 @@ func (mine *FavoriteService)GetOne(ctx context.Context, in *pb.RequestInfo, out 
 }
 
 func (mine *FavoriteService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
-	if len(in.Owner) < 1 {
-		out.ErrorCode = pb.ResultStatus_Empty
-		return errors.New("the scene is empty")
-	}
+	inLog("favorite.remove", in)
 	if len(in.Uid) < 1 {
 		out.ErrorCode = pb.ResultStatus_Empty
 		return errors.New("the favorite is empty")
 	}
-	scene := cache.GetOwner(in.Owner)
-	err := scene.RemoveFavorite(in.Uid, in.Operator)
+	owner,info := cache.GetFavorite(in.Uid)
+	if info == nil {
+		return errors.New("the favorite not found")
+	}
+	err := owner.RemoveFavorite(in.Uid, in.Operator)
 	out.Uid = in.Uid
 	out.Owner = in.Owner
 	if err != nil {
@@ -87,6 +86,7 @@ func (mine *FavoriteService)RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 }
 
 func (mine *FavoriteService)GetList(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteList) error {
+	inLog("favorite.list", in)
 	if len(in.Owner) < 1 {
 		return errors.New("the scene is empty")
 	}
@@ -100,11 +100,12 @@ func (mine *FavoriteService)GetList(ctx context.Context, in *pb.RequestInfo, out
 }
 
 func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUpdate, out *pb.ReplyFavoriteOne) error {
+	inLog("favorite.update", in)
 	if len(in.Uid) < 1 {
 		out.ErrorCode = pb.ResultStatus_Empty
 		return errors.New("the favorite is empty")
 	}
-	info := cache.GetFavorite(in.Uid)
+	_,info := cache.GetFavorite(in.Uid)
 	if info == nil {
 		out.ErrorCode = pb.ResultStatus_NotExisted
 		return errors.New("the favorite not found")
@@ -120,15 +121,17 @@ func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUp
 	if err != nil {
 		out.ErrorCode = pb.ResultStatus_DBException
 	}
+	out.Info = switchFavorite(info.Owner, info)
 	return err
 }
 
 func (mine *FavoriteService)UpdateEntities(ctx context.Context, in *pb.ReqFavoriteEntities, out *pb.ReplyFavoriteEntities) error {
+	inLog("favorite.entities", in)
 	if len(in.Uid) < 1 {
 		out.ErrorCode = pb.ResultStatus_Empty
 		return errors.New("the favorite is empty")
 	}
-	info := cache.GetFavorite(in.Uid)
+	_,info := cache.GetFavorite(in.Uid)
 	if info == nil {
 		out.ErrorCode = pb.ResultStatus_NotExisted
 		return errors.New("the favorite not found")
@@ -156,7 +159,7 @@ func (mine *FavoriteService)SubtractEntity(ctx context.Context, in *pb.RequestIn
 		out.ErrorCode = pb.ResultStatus_Empty
 		return errors.New("the favorite is empty")
 	}
-	info := cache.GetFavorite(in.Uid)
+	_,info := cache.GetFavorite(in.Uid)
 	if info == nil {
 		out.ErrorCode = pb.ResultStatus_NotExisted
 		return errors.New("the favorite not found")

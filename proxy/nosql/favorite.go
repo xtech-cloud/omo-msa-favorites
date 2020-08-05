@@ -22,7 +22,7 @@ type Favorite struct {
 	Remark      string             `json:"remark" bson:"remark"`
 	Owner       string             `json:"owner" bson:"owner"`
 	Type        uint8              `json:"type" bson:"type"`
-	Entities    []proxy.EntityInfo `json:"entities" bson:"entities"`
+	Entities    []proxy.EntityInfo 		   `json:"entities" bson:"entities"`
 }
 
 func CreateFavorite(info *Favorite) error {

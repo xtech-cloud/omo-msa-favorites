@@ -14,20 +14,31 @@ type FavoriteInfo struct {
 	entities []proxy.EntityInfo
 }
 
-func GetFavorite(uid string) *FavoriteInfo {
+func GetFavorite(uid string) (*OwnerInfo,*FavoriteInfo) {
 	for i := 0;i < len(cacheCtx.boxes);i += 1{
 		info := cacheCtx.boxes[i].GetFavorite(uid)
 		if info != nil {
-			return info
+			return cacheCtx.boxes[i], info
 		}
 	}
-	return nil
+	db,err := nosql.GetFavorite(uid)
+	if err == nil{
+		info:= new(FavoriteInfo)
+		info.initInfo(db)
+		owner := GetOwner(info.Owner)
+		if owner != nil {
+			owner.favorites = append(owner.favorites, info)
+		}
+		return owner,info
+	}
+	return nil,nil
 }
 
 func (mine *FavoriteInfo)initInfo(db *nosql.Favorite)  {
 	mine.UID = db.UID.Hex()
 	mine.Remark = db.Remark
 	mine.ID = db.ID
+	mine.Name = db.Name
 	mine.CreateTime = db.CreatedTime
 	mine.UpdateTime = db.UpdatedTime
 	mine.Creator = db.Creator
