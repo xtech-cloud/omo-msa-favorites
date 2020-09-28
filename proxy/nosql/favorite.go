@@ -5,7 +5,6 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"omo.msa.favorite/proxy"
 	"time"
 )
 
@@ -22,7 +21,7 @@ type Favorite struct {
 	Remark      string             `json:"remark" bson:"remark"`
 	Owner       string             `json:"owner" bson:"owner"`
 	Type        uint8              `json:"type" bson:"type"`
-	Entities    []proxy.EntityInfo 		   `json:"entities" bson:"entities"`
+	Entities    []string 		   `json:"entities" bson:"entities"`
 }
 
 func CreateFavorite(info *Favorite) error {
@@ -33,6 +32,23 @@ func CreateFavorite(info *Favorite) error {
 func GetFavoriteNextID() uint64 {
 	num, _ := getSequenceNext(TableFavorite)
 	return num
+}
+
+func GetFavorites() ([]*Favorite, error) {
+	cursor, err1 := findAll(TableFavorite, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Favorite, 0, 100)
+	for cursor.Next(context.Background()) {
+		var node = new(Favorite)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
 }
 
 func GetFavoriteFile(uid string) (*FileInfo, error) {
@@ -92,20 +108,38 @@ func GetFavoritesByOwner(owner string) ([]*Favorite, error) {
 	return items, nil
 }
 
-func UpdateFavoriteBase(uid string, name, remark, operator string) error {
+func UpdateFavoriteBase(uid, name, remark, operator string) error {
 	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
-func UpdateFavoriteCover(uid string, cover, operator string) error {
+func UpdateFavoriteCover(uid, cover, operator string) error {
 	msg := bson.M{"cover": cover, "operator":operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
-func UpdateFavoriteEntity(uid, operator string, list []proxy.EntityInfo) error {
+func UpdateFavoriteEntity(uid, operator string, list []string) error {
 	msg := bson.M{"entities": list, "operator":operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
+	return err
+}
+
+func AppendFavoriteEntity(uid string, key string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"entities": key}
+	_, err := appendElement(TableFavorite, uid, msg)
+	return err
+}
+
+func SubtractFavoriteEntity(uid, key string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"entities": key}
+	_, err := removeElement(TableFavorite, uid, msg)
 	return err
 }

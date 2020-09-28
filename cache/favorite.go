@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 )
 
@@ -11,7 +10,7 @@ type FavoriteInfo struct {
 	Owner string
 	Cover string
 	Remark string
-	entities []proxy.EntityInfo
+	entities []string
 }
 
 func GetFavorite(uid string) (*OwnerInfo,*FavoriteInfo) {
@@ -49,7 +48,7 @@ func (mine *FavoriteInfo)initInfo(db *nosql.Favorite)  {
 	mine.entities = db.Entities
 }
 
-func (mine *FavoriteInfo)GetEntities() []proxy.EntityInfo {
+func (mine *FavoriteInfo)GetEntities() []string {
 	return mine.entities
 }
 
@@ -78,11 +77,47 @@ func (mine *FavoriteInfo)UpdateCover(cover, operator string) error {
 	return err
 }
 
-func (mine *FavoriteInfo) UpdateEntities(operator string, list []proxy.EntityInfo) error {
+func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
 	err := nosql.UpdateFavoriteEntity(mine.UID, operator, list)
 	if err == nil {
 		mine.entities = list
 	}
 	return err
+}
+
+func (mine *FavoriteInfo)HadEntity(uid string) bool {
+	for _, item := range mine.entities {
+		if item == uid {
+			return true
+		}
+	}
+	return false
+}
+
+func (mine *FavoriteInfo)AppendEntity(uid string) error {
+	if mine.HadEntity(uid) {
+		return nil
+	}
+	er := nosql.AppendFavoriteEntity(mine.UID, uid)
+	if er == nil {
+		mine.entities = append(mine.entities, uid)
+	}
+	return er
+}
+
+func (mine *FavoriteInfo)SubtractEntity(uid string) error {
+	if !mine.HadEntity(uid) {
+		return nil
+	}
+	er := nosql.SubtractFavoriteEntity(mine.UID, uid)
+	if er == nil {
+		for i := 0;i < len(mine.entities);i += 1 {
+			if mine.entities[i] == uid {
+				mine.entities = append(mine.entities[:i], mine.entities[i+1:]...)
+				break
+			}
+		}
+	}
+	return er
 }
 
