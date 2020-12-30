@@ -90,7 +90,15 @@ func (mine *OwnerInfo)CreateFavorite(info *FavoriteInfo) error {
 	db.Type = info.Type
 	db.Creator = info.Creator
 	db.Operator = info.Operator
-	db.Entities = make([]string, 0, 1)
+	db.Tags = info.Tags
+	if db.Tags == nil {
+		db.Tags = make([]string, 0, 1)
+	}
+	db.Entities = info.Entities
+	if db.Entities == nil {
+		db.Entities = make([]string, 0, 1)
+	}
+
 	err := nosql.CreateFavorite(db)
 	if err == nil {
 		info.initInfo(db)

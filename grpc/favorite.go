@@ -22,6 +22,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Created = info.CreateTime.Unix()
 	tmp.Creator = info.Creator
 	tmp.Operator = info.Operator
+	tmp.Tags = info.Tags
 	tmp.Entities = info.GetEntities()
 	return tmp
 }
@@ -39,6 +40,8 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	info.Remark = in.Remark
 	info.Cover = in.Cover
 	info.Creator = in.Operator
+	info.Tags = in.Tags
+	info.Entities = in.Entities
 	err := owner.CreateFavorite(info)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
@@ -130,6 +133,33 @@ func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUp
 		err = info.UpdateBase(in.Name, in.Remark, in.Operator)
 	}
 
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.Info = switchFavorite(info.Owner, info)
+	out.Status = outLog(path, out)
+	return nil
+}
+
+
+func (mine *FavoriteService)UpdateTags(ctx context.Context, in *pb.ReqFavoriteTags, out *pb.ReplyFavoriteInfo) error {
+	path := "favorite.updateTags"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	if in.Tags == nil || len(in.Tags) < 1 {
+		out.Status = outError(path,"the favorite tags is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	_,info := cache.GetFavorite(in.Uid)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	err := info.UpdateTags(in.Operator, in.Tags)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil

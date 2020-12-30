@@ -6,11 +6,12 @@ import (
 
 type FavoriteInfo struct {
 	BaseInfo
-	Type uint8
-	Owner string
-	Cover string
-	Remark string
-	entities []string
+	Type     uint8
+	Owner    string
+	Cover    string
+	Remark   string
+	Tags     []string
+	Entities []string
 }
 
 func GetFavorite(uid string) (*OwnerInfo,*FavoriteInfo) {
@@ -45,11 +46,12 @@ func (mine *FavoriteInfo)initInfo(db *nosql.Favorite)  {
 	mine.Cover = db.Cover
 	mine.Type = db.Type
 	mine.Owner = db.Owner
-	mine.entities = db.Entities
+	mine.Tags = db.Tags
+	mine.Entities = db.Entities
 }
 
 func (mine *FavoriteInfo)GetEntities() []string {
-	return mine.entities
+	return mine.Entities
 }
 
 func (mine *FavoriteInfo)UpdateBase(name, remark,operator string) error {
@@ -68,6 +70,15 @@ func (mine *FavoriteInfo)UpdateBase(name, remark,operator string) error {
 	return err
 }
 
+func (mine *FavoriteInfo)UpdateTags(operator string, tags []string) error {
+	err := nosql.UpdateFavoriteTags(mine.UID, operator, tags)
+	if err == nil {
+		mine.Tags = tags
+		mine.Operator = operator
+	}
+	return err
+}
+
 func (mine *FavoriteInfo)UpdateCover(cover, operator string) error {
 	err := nosql.UpdateFavoriteCover(mine.UID, cover, operator)
 	if err == nil {
@@ -80,13 +91,13 @@ func (mine *FavoriteInfo)UpdateCover(cover, operator string) error {
 func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
 	err := nosql.UpdateFavoriteEntity(mine.UID, operator, list)
 	if err == nil {
-		mine.entities = list
+		mine.Entities = list
 	}
 	return err
 }
 
 func (mine *FavoriteInfo)HadEntity(uid string) bool {
-	for _, item := range mine.entities {
+	for _, item := range mine.Entities {
 		if item == uid {
 			return true
 		}
@@ -100,7 +111,7 @@ func (mine *FavoriteInfo)AppendEntity(uid string) error {
 	}
 	er := nosql.AppendFavoriteEntity(mine.UID, uid)
 	if er == nil {
-		mine.entities = append(mine.entities, uid)
+		mine.Entities = append(mine.Entities, uid)
 	}
 	return er
 }
@@ -111,9 +122,9 @@ func (mine *FavoriteInfo)SubtractEntity(uid string) error {
 	}
 	er := nosql.SubtractFavoriteEntity(mine.UID, uid)
 	if er == nil {
-		for i := 0;i < len(mine.entities);i += 1 {
-			if mine.entities[i] == uid {
-				mine.entities = append(mine.entities[:i], mine.entities[i+1:]...)
+		for i := 0;i < len(mine.Entities);i += 1 {
+			if mine.Entities[i] == uid {
+				mine.Entities = append(mine.Entities[:i], mine.Entities[i+1:]...)
 				break
 			}
 		}

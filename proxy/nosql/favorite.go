@@ -21,6 +21,7 @@ type Favorite struct {
 	Remark      string             `json:"remark" bson:"remark"`
 	Owner       string             `json:"owner" bson:"owner"`
 	Type        uint8              `json:"type" bson:"type"`
+	Tags        []string `json:"tags" bsonL:"tags"`
 	Entities    []string 		   `json:"entities" bson:"entities"`
 }
 
@@ -119,6 +120,13 @@ func UpdateFavoriteCover(uid, cover, operator string) error {
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
+
+func UpdateFavoriteTags(uid, operator string, tags []string) error {
+	msg := bson.M{"tags": tags, "operator":operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableFavorite, uid, msg)
+	return err
+}
+
 
 func UpdateFavoriteEntity(uid, operator string, list []string) error {
 	msg := bson.M{"entities": list, "operator":operator, "updatedAt": time.Now()}

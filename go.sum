@@ -523,6 +523,8 @@ github.com/xtech-cloud/omo-msp-favorites v1.1.0 h1:93xaRNXdoCMStyq5SW1OEiqCTur6b
 github.com/xtech-cloud/omo-msp-favorites v1.1.0/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
 github.com/xtech-cloud/omo-msp-favorites v1.2.0 h1:t8V6XZhGrW4esHOLxYIcYe4i/JymgZL0oZH/V1/b/OY=
 github.com/xtech-cloud/omo-msp-favorites v1.2.0/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
+github.com/xtech-cloud/omo-msp-favorites v1.2.1 h1:zenmVUVJU9+YjQuR6XvrCLR1JYZ+yZUfKuEVUDLfSh8=
+github.com/xtech-cloud/omo-msp-favorites v1.2.1/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.mongodb.org/mongo-driver v1.3.4 h1:zs/dKNwX0gYUtzwrN9lLiR15hCO0nDwQj5xXx+vjCdE=
