@@ -10,28 +10,43 @@ type FavoriteInfo struct {
 	Owner    string
 	Cover    string
 	Remark   string
+	Origin   string
 	Tags     []string
 	Entities []string
 }
 
-func GetFavorite(uid string) (*OwnerInfo,*FavoriteInfo) {
-	for i := 0;i < len(cacheCtx.boxes);i += 1{
-		info := cacheCtx.boxes[i].GetFavorite(uid)
-		if info != nil {
-			return cacheCtx.boxes[i], info
-		}
-	}
+func (mine *cacheContext)GetFavorite(uid string) *FavoriteInfo {
 	db,err := nosql.GetFavorite(uid)
 	if err == nil{
 		info:= new(FavoriteInfo)
 		info.initInfo(db)
-		owner := GetOwner(info.Owner)
-		if owner != nil {
-			owner.favorites = append(owner.favorites, info)
-		}
-		return owner,info
+		return info
 	}
-	return nil,nil
+	return nil
+}
+
+func (mine *cacheContext)GetFavoriteByOrigin(user, uid string) *FavoriteInfo {
+	db,err := nosql.GetFavoriteByOrigin(user, uid)
+	if err == nil{
+		info:= new(FavoriteInfo)
+		info.initInfo(db)
+		return info
+	}
+	return nil
+}
+
+func (mine *cacheContext)GetFavoritesByOwner(uid string) []*FavoriteInfo {
+	array,err := nosql.GetFavoritesByOwner(uid)
+	if err == nil{
+		list := make([]*FavoriteInfo, 0, len(array))
+		for _, item := range array {
+			info := new(FavoriteInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
 }
 
 func (mine *FavoriteInfo)initInfo(db *nosql.Favorite)  {
@@ -46,6 +61,7 @@ func (mine *FavoriteInfo)initInfo(db *nosql.Favorite)  {
 	mine.Cover = db.Cover
 	mine.Type = db.Type
 	mine.Owner = db.Owner
+	mine.Origin = db.Origin
 	mine.Tags = db.Tags
 	mine.Entities = db.Entities
 }

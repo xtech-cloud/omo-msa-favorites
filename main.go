@@ -38,7 +38,7 @@ func main() {
 
 	app, _ := filepath.Abs(os.Args[0])
 
-	BuildVersion := "1.2.0"
+	BuildVersion := "1.2.1"
 	BuildTime := time.Now().String()
 	CommitID := "2"
 	logger.Info("-------------------------------------------------------------")

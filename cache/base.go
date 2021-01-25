@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"github.com/micro/go-micro/v2/logger"
 	"omo.msa.favorite/config"
 	"omo.msa.favorite/proxy/nosql"
 	"time"
@@ -17,24 +18,23 @@ type BaseInfo struct {
 }
 
 type cacheContext struct {
-	boxes []*OwnerInfo
+	//boxes []*OwnerInfo
 }
 
 var cacheCtx *cacheContext
 
 func InitData() error {
 	cacheCtx = &cacheContext{}
-	cacheCtx.boxes = make([]*OwnerInfo, 0, 100)
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
 	if err == nil {
-		list,er := nosql.GetFavorites()
-		if er == nil {
-			for _, item := range list {
-				owner := GetOwner(item.Owner)
-				owner.addFavorite(item)
-			}
-		}
+		num := nosql.GetFavoriteCount()
+		count := nosql.GetRepertoryCount()
+		logger.Infof("the favorite count = %d and the repertory count = %d", num, count)
 	}
 	return err
+}
+
+func Context() *cacheContext {
+	return cacheCtx
 }

@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"omo.msa.favorite/cache"
@@ -23,6 +22,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Creator = info.Creator
 	tmp.Operator = info.Operator
 	tmp.Tags = info.Tags
+	tmp.Origin = info.Origin
 	tmp.Entities = info.GetEntities()
 	return tmp
 }
@@ -34,7 +34,14 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 		out.Status = outError(path,"the scene is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	owner := cache.GetOwner(in.Owner)
+	if len(in.Origin) > 0 {
+		tmp := cache.Context().GetFavoriteByOrigin(in.Owner, in.Origin)
+		if tmp != nil {
+			out.Info = switchFavorite(in.Owner, tmp)
+			out.Status = outLog(path, out)
+			return nil
+		}
+	}
 	info := new(cache.FavoriteInfo)
 	info.Name = in.Name
 	info.Remark = in.Remark
@@ -42,7 +49,10 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	info.Creator = in.Operator
 	info.Tags = in.Tags
 	info.Entities = in.Entities
-	err := owner.CreateFavorite(info)
+	info.Origin = in.Origin
+	info.Owner = in.Owner
+	info.Type = uint8(in.Type)
+	err := cache.Context().CreateFavorite(info)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
@@ -59,12 +69,29 @@ func (mine *FavoriteService)GetOne(ctx context.Context, in *pb.RequestInfo, out 
 		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	_,info := cache.GetFavorite(in.Uid)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchFavorite(in.Owner, info)
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *FavoriteService)GetByOrigin(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteInfo) error {
+	path := "favorite.getByOrigin"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetFavoriteByOrigin(in.Owner, in.Uid)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	out.Info = switchFavorite(info.Owner, info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -76,11 +103,7 @@ func (mine *FavoriteService)RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	owner,info := cache.GetFavorite(in.Uid)
-	if info == nil {
-		return errors.New("the favorite not found")
-	}
-	err := owner.RemoveFavorite(in.Uid, in.Operator)
+	err := cache.Context().RemoveFavorite(in.Uid, in.Operator)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
@@ -95,15 +118,9 @@ func (mine *FavoriteService)GetList(ctx context.Context, in *pb.RequestInfo, out
 	path := "favorite.getList"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
-		out.List = make([]*pb.FavoriteInfo, 0, 10)
-		for _, val := range cache.AllOwners() {
-			for _, fav := range val.Favorites() {
-				out.List = append(out.List, switchFavorite(val.UID, fav))
-			}
-		}
+		out.List = make([]*pb.FavoriteInfo, 0, 1)
 	}else{
-		scene := cache.GetOwner(in.Owner)
-		array := scene.Favorites()
+		array := cache.Context().GetFavoritesByOwner(in.Owner)
 		out.List = make([]*pb.FavoriteInfo, 0, len(array))
 		for _, val := range array {
 			out.List = append(out.List, switchFavorite(in.Owner, val))
@@ -120,7 +137,7 @@ func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUp
 		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	_,info := cache.GetFavorite(in.Uid)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
@@ -154,7 +171,7 @@ func (mine *FavoriteService)UpdateTags(ctx context.Context, in *pb.ReqFavoriteTa
 		out.Status = outError(path,"the favorite tags is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	_,info := cache.GetFavorite(in.Uid)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
@@ -176,7 +193,7 @@ func (mine *FavoriteService)UpdateEntities(ctx context.Context, in *pb.ReqFavori
 		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	_,info := cache.GetFavorite(in.Uid)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
@@ -199,7 +216,7 @@ func (mine *FavoriteService)AppendEntity(ctx context.Context, in *pb.RequestInfo
 		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	_,info := cache.GetFavorite(in.Uid)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
@@ -221,7 +238,7 @@ func (mine *FavoriteService)SubtractEntity(ctx context.Context, in *pb.RequestIn
 		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
 		return nil
 	}
-	_,info := cache.GetFavorite(in.Uid)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil

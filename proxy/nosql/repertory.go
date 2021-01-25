@@ -34,6 +34,11 @@ func GetRepertoryNextID() uint64 {
 	return num
 }
 
+func GetRepertoryCount() int64 {
+	num, _ := getCount(TableRepertory)
+	return num
+}
+
 func GetRepertories() ([]*Repertory, error) {
 	cursor, err1 := findAll(TableRepertory, 0)
 	if err1 != nil {

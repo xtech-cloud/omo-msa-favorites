@@ -21,6 +21,7 @@ type Favorite struct {
 	Remark      string             `json:"remark" bson:"remark"`
 	Owner       string             `json:"owner" bson:"owner"`
 	Type        uint8              `json:"type" bson:"type"`
+	Origin      string `json:"origin" bson:"origin"`
 	Tags        []string `json:"tags" bsonL:"tags"`
 	Entities    []string 		   `json:"entities" bson:"entities"`
 }
@@ -79,6 +80,28 @@ func GetFavorite(uid string) (*Favorite, error) {
 	}
 
 	result, err := findOne(TableFavorite, uid)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Favorite)
+	err1 := result.Decode(&model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
+func GetFavoriteCount() int64 {
+	num, _ := getCount(TableFavorite)
+	return num
+}
+
+func GetFavoriteByOrigin(user, origin string) (*Favorite, error) {
+	if len(origin) < 2 || len(user) < 2{
+		return nil, errors.New("db origin uid is empty of GetFavorite")
+	}
+	filter := bson.M{"owner":user, "origin": origin, "deleteAt": new(time.Time)}
+	result, err := findOneBy(TableFavorite, filter)
 	if err != nil {
 		return nil, err
 	}
