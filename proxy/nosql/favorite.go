@@ -78,7 +78,6 @@ func GetFavorite(uid string) (*Favorite, error) {
 	if len(uid) < 2 {
 		return nil, errors.New("db Favorite uid is empty of GetFavorite")
 	}
-
 	result, err := findOne(TableFavorite, uid)
 	if err != nil {
 		return nil, err
@@ -114,13 +113,13 @@ func GetFavoriteByOrigin(user, origin string) (*Favorite, error) {
 }
 
 func GetFavoritesByOwner(owner string) ([]*Favorite, error) {
-	var items = make([]*Favorite, 0, 20)
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
 	cursor, err1 := findMany(TableFavorite, filter, 0)
 	if err1 != nil {
 		return nil, err1
 	}
+	var items = make([]*Favorite, 0, 20)
 	for cursor.Next(context.Background()) {
 		var node = new(Favorite)
 		if err := cursor.Decode(&node); err != nil {
