@@ -41,6 +41,7 @@ func main() {
 	service.Init()
 	// Register Handler
 	_ = proto.RegisterFavoriteServiceHandler(service.Server(), new(grpc.FavoriteService))
+	_ = proto.RegisterActivityServiceHandler(service.Server(), new(grpc.ActivityService))
 
 	app, _ := filepath.Abs(os.Args[0])
 

@@ -21,6 +21,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Created = info.CreateTime.Unix()
 	tmp.Creator = info.Creator
 	tmp.Operator = info.Operator
+	tmp.Owner = info.Owner
 	tmp.Tags = info.Tags
 	tmp.Origin = info.Origin
 	tmp.Entities = info.GetEntities()
