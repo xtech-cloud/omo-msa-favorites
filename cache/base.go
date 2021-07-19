@@ -28,9 +28,10 @@ func InitData() error {
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
 	if err == nil {
-		num := nosql.GetFavoriteCount()
+		table := getFavoriteTable(true)
+		num := nosql.GetFavoriteCount(table)
 		count := nosql.GetRepertoryCount()
-		logger.Infof("the favorite count = %d and the repertory count = %d", num, count)
+		logger.Infof("the person favorite count = %d and the repertory count = %d", num, count)
 	}
 	return err
 }
