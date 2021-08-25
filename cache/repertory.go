@@ -59,6 +59,19 @@ func (mine *cacheContext)CreateFavorite(info *FavoriteInfo, person bool) error {
 	return err
 }
 
+func (mine *cacheContext)HadFavoriteByName(owner, name string, person bool) bool {
+	table := getFavoriteTable(person)
+	fav, err := nosql.GetFavoriteByName(table, owner, name)
+	if err != nil {
+		return false
+	}
+	if fav != nil {
+		return true
+	}else{
+		return true
+	}
+}
+
 func (mine *cacheContext)RemoveFavorite(uid, operator string, person bool) error {
 	table := getFavoriteTable(person)
 	err := nosql.RemoveFavorite(table, uid, operator)

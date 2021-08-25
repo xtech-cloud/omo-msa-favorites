@@ -112,6 +112,23 @@ func GetFavoriteByOrigin(table, user, origin string) (*Favorite, error) {
 	return model, nil
 }
 
+func GetFavoriteByName(table, owner, name string) (*Favorite, error) {
+	if len(owner) < 2 || len(name) < 2{
+		return nil, errors.New("db owner or name is empty of GetFavoriteByName")
+	}
+	filter := bson.M{"owner":owner, "name": name, "deleteAt": new(time.Time)}
+	result, err := findOneBy(table, filter)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Favorite)
+	err1 := result.Decode(&model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
 func GetFavoritesByOwner(table, owner string) ([]*Favorite, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
@@ -130,6 +147,7 @@ func GetFavoritesByOwner(table, owner string) ([]*Favorite, error) {
 	}
 	return items, nil
 }
+
 
 func GetFavoritesByType(table, owner string, kind uint8) ([]*Favorite, error) {
 	def := new(time.Time)

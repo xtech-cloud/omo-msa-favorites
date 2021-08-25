@@ -33,7 +33,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	path := "favorite.addOne"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
-		out.Status = outError(path,"the scene is empty", pb.ResultStatus_Empty)
+		out.Status = outError(path,"the owner is empty", pb.ResultStatus_Empty)
 		return nil
 	}
 	if len(in.Origin) > 0 {
@@ -43,6 +43,10 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 			out.Status = outLog(path, out)
 			return nil
 		}
+	}
+	if cache.Context().HadFavoriteByName(in.Owner, in.Name, in.Person) {
+		out.Status = outError(path,"the name is repeated", pb.ResultStatus_Repeated)
+		return nil
 	}
 	info := new(cache.FavoriteInfo)
 	info.Name = in.Name

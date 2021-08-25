@@ -154,6 +154,7 @@ func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
 	err := nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, list)
 	if err == nil {
 		mine.Keys = list
+		mine.Operator = operator
 	}
 	return err
 }
