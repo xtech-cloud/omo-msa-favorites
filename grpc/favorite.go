@@ -44,7 +44,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 			return nil
 		}
 	}
-	if cache.Context().HadFavoriteByName(in.Owner, in.Name, in.Person) {
+	if cache.Context().HadFavoriteByName(in.Owner, in.Name, uint8(in.Type), in.Person) {
 		out.Status = outError(path,"the name is repeated", pb.ResultStatus_Repeated)
 		return nil
 	}

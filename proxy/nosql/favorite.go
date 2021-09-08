@@ -22,6 +22,7 @@ type Favorite struct {
 	Owner       string    `json:"owner" bson:"owner"`
 	Type        uint8     `json:"type" bson:"type"`
 	Origin      string    `json:"origin" bson:"origin"`
+	Meta        string `json:"meta" bson:"meta"`
 	Tags        []string  `json:"tags" bsonL:"tags"`
 	Keys        []string  `json:"keys" bson:"keys"`
 }
@@ -112,11 +113,11 @@ func GetFavoriteByOrigin(table, user, origin string) (*Favorite, error) {
 	return model, nil
 }
 
-func GetFavoriteByName(table, owner, name string) (*Favorite, error) {
+func GetFavoriteByName(table, owner, name string, tp uint8) (*Favorite, error) {
 	if len(owner) < 2 || len(name) < 2{
 		return nil, errors.New("db owner or name is empty of GetFavoriteByName")
 	}
-	filter := bson.M{"owner":owner, "name": name, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner":owner, "name": name, "type":tp, "deleteAt": new(time.Time)}
 	result, err := findOneBy(table, filter)
 	if err != nil {
 		return nil, err
@@ -148,10 +149,28 @@ func GetFavoritesByOwner(table, owner string) ([]*Favorite, error) {
 	return items, nil
 }
 
-
-func GetFavoritesByType(table, owner string, kind uint8) ([]*Favorite, error) {
+func GetFavoritesByOwnerTP(table, owner string, kind uint8) ([]*Favorite, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "type":kind, "deleteAt": def}
+	cursor, err1 := findMany(table, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Favorite, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Favorite)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetFavoritesByType(table string, kind uint8) ([]*Favorite, error) {
+	def := new(time.Time)
+	filter := bson.M{"type":kind, "deleteAt": def}
 	cursor, err1 := findMany(table, filter, 0)
 	if err1 != nil {
 		return nil, err1

@@ -59,9 +59,9 @@ func (mine *cacheContext)CreateFavorite(info *FavoriteInfo, person bool) error {
 	return err
 }
 
-func (mine *cacheContext)HadFavoriteByName(owner, name string, person bool) bool {
+func (mine *cacheContext)HadFavoriteByName(owner, name string, tp uint8, person bool) bool {
 	table := getFavoriteTable(person)
-	fav, err := nosql.GetFavoriteByName(table, owner, name)
+	fav, err := nosql.GetFavoriteByName(table, owner, name, tp)
 	if err != nil {
 		return false
 	}

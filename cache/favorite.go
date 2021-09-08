@@ -11,6 +11,7 @@ type FavoriteInfo struct {
 	Cover  string
 	Remark string
 	Origin string
+	Meta string
 	table string
 	Tags   []string
 	Keys   []string
@@ -63,7 +64,13 @@ func (mine *cacheContext)GetFavoritesByOwner(uid string, person bool) []*Favorit
 
 func (mine *cacheContext)GetFavoritesByType(owner string, kind uint8, person bool) []*FavoriteInfo {
 	table := getFavoriteTable(person)
-	array,err := nosql.GetFavoritesByType(table, owner, kind)
+	var array []*nosql.Favorite
+	var err error
+	if kind == 1 {
+		array,err = nosql.GetFavoritesByType(table, kind)
+	}else{
+		array,err = nosql.GetFavoritesByOwnerTP(table, owner, kind)
+	}
 	if err == nil{
 		list := make([]*FavoriteInfo, 0, len(array))
 		for _, item := range array {
