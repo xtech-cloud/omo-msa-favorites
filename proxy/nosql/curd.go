@@ -214,7 +214,7 @@ func findOne(collection string, uid string) (*mongo.SingleResult, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
 	defer cancel()
-	filter := bson.M{"_id": objID}
+	filter := bson.M{"_id": objID, "deleteAt": new(time.Time)}
 	result := c.FindOne(ctx, filter)
 	if result.Err() != nil {
 		return nil, result.Err()
@@ -253,7 +253,7 @@ func findOneOfField(collection string, uid string, selector bson.M) (*mongo.Sing
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), timeOut)
 	defer cancel()
-	filter := bson.M{"_id": objID}
+	filter := bson.M{"_id": objID, "deleteAt": new(time.Time)}
 	result := c.FindOne(ctx, filter, options.FindOne().SetProjection(selector))
 	if result.Err() != nil {
 		return nil, result.Err()

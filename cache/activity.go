@@ -61,7 +61,13 @@ func (mine *cacheContext)CreateActivity(info *ActivityInfo) error {
 		db.Participants = make([]string, 0, 1)
 	}
 
-	return nosql.CreateActivity(db)
+	err := nosql.CreateActivity(db)
+	if err == nil {
+		info.UID = db.UID.Hex()
+		info.CreateTime = db.CreatedTime
+		info.ID = db.ID
+	}
+	return err
 }
 
 func (mine *cacheContext)GetActivityByOrganizer(uid string) []*ActivityInfo {

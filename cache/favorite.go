@@ -90,8 +90,8 @@ func (mine *cacheContext)GetFavoritesByList(person bool, array []string) []*Favo
 	table := getFavoriteTable(person)
 	list := make([]*FavoriteInfo, 0, 1)
 	for _, s := range array {
-		db,err := nosql.GetFavorite(table, s)
-		if err == nil {
+		db,_ := nosql.GetFavorite(table, s)
+		if db != nil {
 			info := new(FavoriteInfo)
 			info.initInfo(db, table)
 			list = append(list, info)
