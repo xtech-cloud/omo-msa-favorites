@@ -617,6 +617,12 @@ github.com/xtech-cloud/omo-msp-favorites v1.3.8 h1:NNzIfuqIgxNsC3PogRZA4yhc2ZEO0
 github.com/xtech-cloud/omo-msp-favorites v1.3.8/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
 github.com/xtech-cloud/omo-msp-favorites v1.3.9 h1:MahL73Aag29v6pl/5AniXlW/xUuk5XXJ6pCQBBaZPc0=
 github.com/xtech-cloud/omo-msp-favorites v1.3.9/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
+github.com/xtech-cloud/omo-msp-favorites v1.3.10 h1:mwx6dFFFNYBP6Gb46sm9OGMkoLF1H5C6G96e/WvzfSg=
+github.com/xtech-cloud/omo-msp-favorites v1.3.10/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
+github.com/xtech-cloud/omo-msp-favorites v1.3.11 h1:voVynNpejdZmNmNo0DtpV3EY1KzEwLadw97qBtf/dls=
+github.com/xtech-cloud/omo-msp-favorites v1.3.11/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
+github.com/xtech-cloud/omo-msp-favorites v1.4.0 h1:GeRJz90CaDFFT+RTxHSL3r59SmUqjTgsWQs1ZOP/PSs=
+github.com/xtech-cloud/omo-msp-favorites v1.4.0/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
 go.etcd.io/bbolt v1.3.3 h1:MUGmc65QhB3pIlaQ5bB4LwqSj6GIonVJXpZiaKNyaKk=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.4 h1:hi1bXHMVrlQh6WwxAy+qZCV/SYIlqo+Ushwdpa4tAKg=

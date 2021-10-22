@@ -183,6 +183,28 @@ func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUp
 	return nil
 }
 
+func (mine *FavoriteService)UpdateMeta(ctx context.Context, in *pb.ReqFavoriteMeta, out *pb.ReplyFavoriteInfo) error {
+	path := "favorite.updateMeta"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	var err error
+	err = info.UpdateMeta(in.Operator, in.Meta)
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.Info = switchFavorite(info.Owner, info)
+	out.Status = outLog(path, out)
+	return nil
+}
 
 func (mine *FavoriteService)UpdateTags(ctx context.Context, in *pb.ReqFavoriteTags, out *pb.ReplyFavoriteInfo) error {
 	path := "favorite.updateTags"
@@ -245,7 +267,7 @@ func (mine *FavoriteService)AppendEntity(ctx context.Context, in *pb.RequestInfo
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendEntity(in.Entity)
+	err := info.AppendEntity(in.Flag)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
@@ -267,7 +289,7 @@ func (mine *FavoriteService)SubtractEntity(ctx context.Context, in *pb.RequestIn
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractEntity(in.Entity)
+	err := info.SubtractEntity(in.Flag)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil

@@ -24,12 +24,15 @@ type Activity struct {
 	Require      string `json:"require" bson:"require"`
 	Owner        string    `json:"owner" bson:"owner"`
 	Type         uint8     `json:"type" bson:"type"`
+	Limit		 uint8 		`json:"limit" bson:"limit"`
 	Organizer    string    `json:"organizer" bson:"organizer"`
 	Place        proxy.PlaceInfo `json:"place" bson:"place"`
 	Date         proxy.DateInfo  `json:"date" bson:"date"`
 	Tags         []string  `json:"tags" bsonL:"tags"`
 	Assets       []string  `json:"assets" bson:"assets"`
+	Targets      []string `json:"targets" bson:"targets"`
 	Participants []string  `json:"participants" bson:"participants"`
+	Persons []proxy.PersonInfo  `json:"persons" bson:"persons"`
 }
 
 func CreateActivity(info *Activity) error {
@@ -138,6 +141,12 @@ func UpdateActivityCover(uid, cover, operator string) error {
 	return err
 }
 
+func UpdateActivityLimit(uid, operator string, num uint8) error {
+	msg := bson.M{"limit": num, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
 func UpdateActivityTags(uid, operator string, tags []string) error {
 	msg := bson.M{"tags": tags, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
@@ -146,6 +155,12 @@ func UpdateActivityTags(uid, operator string, tags []string) error {
 
 func UpdateActivityAssets(uid, operator string, list []string) error {
 	msg := bson.M{"assets": list, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityTargets(uid, operator string, list []string) error {
+	msg := bson.M{"targets": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }
@@ -164,6 +179,24 @@ func SubtractActivityParticipant(uid, key string) error {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"participants": key}
+	_, err := removeElement(TableActivity, uid, msg)
+	return err
+}
+
+func AppendActivityPerson(uid string, person proxy.PersonInfo) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"persons": person}
+	_, err := appendElement(TableActivity, uid, msg)
+	return err
+}
+
+func SubtractActivityPerson(uid, entity string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"persons": bson.M{"entity":entity}}
 	_, err := removeElement(TableActivity, uid, msg)
 	return err
 }

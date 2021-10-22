@@ -139,6 +139,10 @@ func (mine *FavoriteInfo)UpdateBase(name, remark,operator string) error {
 	return err
 }
 
+func (mine *FavoriteInfo)UpdateMeta(operator, meta string) error {
+	return nil
+}
+
 func (mine *FavoriteInfo)UpdateTags(operator string, tags []string) error {
 	err := nosql.UpdateFavoriteTags(mine.table, mine.UID, operator, tags)
 	if err == nil {

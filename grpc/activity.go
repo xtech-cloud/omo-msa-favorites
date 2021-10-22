@@ -29,7 +29,12 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Place = &pb.PlaceInfo{Name: info.Place.Name, Location: info.Place.Location}
 	tmp.Organizer = info.Organizer
 	tmp.Assets = info.Assets
-	tmp.Participants = info.Participants
+	tmp.Limit = uint32(info.AssetLimit)
+	tmp.Participants = make([]*pb.PairInfo, 0, len(info.Persons))
+	for _, person := range info.Persons {
+		tmp.Participants = append(tmp.Participants, &pb.PairInfo{Key: person.Entity, Value: person.Event})
+	}
+	tmp.Targets = info.Targets
 	return tmp
 }
 
@@ -49,12 +54,14 @@ func (mine *ActivityService)AddOne(ctx context.Context, in *pb.ReqActivityAdd, o
 	info.Creator = in.Operator
 	info.Tags = in.Tags
 	info.Assets = in.Assets
-	info.Participants = in.Participants
 	info.Owner = in.Owner
 	info.Organizer = in.Organizer
+	info.Targets = in.Targets
 	info.Date = proxy.DateInfo{Start: in.Date.Start, Stop: in.Date.Stop}
 	info.Place = proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location}
 	info.Type = uint8(in.Type)
+	info.AssetLimit = uint8(in.Limit)
+	info.Persons = make([]proxy.PersonInfo, 0 ,1)
 	err := cache.Context().CreateActivity(info)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
@@ -109,9 +116,7 @@ func (mine *ActivityService)GetList(ctx context.Context, in *pb.RequestInfo, out
 		for _, val := range array {
 			out.List = append(out.List, switchActivity(in.Owner, val))
 		}
-	} else if len(in.Entity) > 1 {
-
-	}else{
+	} else{
 		out.List = make([]*pb.ActivityInfo, 0, 1)
 	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
@@ -137,6 +142,9 @@ func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUp
 	if len(in.Name) > 0 || len(in.Remark) > 0 {
 		err = info.UpdateBase(in.Name, in.Remark, in.Require, in.Operator, proxy.DateInfo{Start: in.Date.Start, Stop: in.Date.Stop},
 			proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location})
+	}
+	if uint8(in.Limit) != info.AssetLimit {
+		err = info.UpdateAssetLimit(in.Operator, uint8(in.Limit))
 	}
 
 	if err != nil {
@@ -176,7 +184,7 @@ func (mine *ActivityService)UpdateTags(ctx context.Context, in *pb.RequestList, 
 }
 
 func (mine *ActivityService)UpdateAssets(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
-	path := "activity.updateEntities"
+	path := "activity.updateAssets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path,"the activity uid is empty", pb.ResultStatus_Empty)
@@ -198,6 +206,29 @@ func (mine *ActivityService)UpdateAssets(ctx context.Context, in *pb.RequestList
 	return nil
 }
 
+func (mine *ActivityService)UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
+	path := "activity.updateTargets"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the activity uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetActivity(in.Uid)
+	if info == nil {
+		out.Status = outError(path,"the activity not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	var err error
+	err = info.UpdateTargets(in.Operator, in.List)
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.List = info.Assets
+	out.Status = outLog(path, out)
+	return nil
+}
+
 func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyList) error {
 	path := "activity.appendEntity"
 	inLog(path, in)
@@ -210,12 +241,12 @@ func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path,"the activity not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendParticipant(in.Entity)
+	err := info.AppendPerson(in.Owner, in.Flag)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-	out.List = info.Participants
+	out.List = info.GetEntities()
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -232,12 +263,12 @@ func (mine *ActivityService)SubtractOne(ctx context.Context, in *pb.RequestInfo,
 		out.Status = outError(path,"the activity not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractParticipant(in.Entity)
+	err := info.SubtractPerson(in.Owner)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-	out.List = info.Participants
+	out.List = info.GetEntities()
 	out.Status = outLog(path, out)
 	return nil
 }
