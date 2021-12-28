@@ -18,4 +18,7 @@ const (
 	*/
 	TableSequence = "sequences"
 
+	TableArticle = "articles"
+
+	TableNotice = "notices"
 )

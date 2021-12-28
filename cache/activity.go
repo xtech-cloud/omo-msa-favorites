@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"errors"
+	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
@@ -89,7 +91,7 @@ func (mine *cacheContext)GetActivityByOrganizer(uid string) []*ActivityInfo {
 		}
 		return list
 	}
-	return nil
+	return make([]*ActivityInfo, 0, 1)
 }
 
 func (mine *cacheContext)RemoveActivity(uid, operator string) error {
@@ -108,7 +110,7 @@ func (mine *cacheContext)GetActivitiesByOwner(uid string) []*ActivityInfo {
 		}
 		return list
 	}
-	return nil
+	return make([]*ActivityInfo, 0, 1)
 }
 
 func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
@@ -145,10 +147,10 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 	}
 }
 
-func (mine *ActivityInfo)GetEntities() []string {
-	list := make([]string, 0, len(mine.Persons))
+func (mine *ActivityInfo)GetEntities() []*pb.PairInfo {
+	list := make([]*pb.PairInfo, 0, len(mine.Persons))
 	for _, person := range mine.Persons {
-		list = append(list, person.Entity)
+		list = append(list, &pb.PairInfo{Key: person.Entity, Value: person.Event})
 	}
 	return list
 }
@@ -192,6 +194,9 @@ func (mine *ActivityInfo)UpdateTargets(operator string, list []string) error {
 }
 
 func (mine *ActivityInfo)UpdateTags(operator string, tags []string) error {
+	if tags == nil {
+		return errors.New("the list of target is nil")
+	}
 	err := nosql.UpdateActivityTags(mine.UID, operator, tags)
 	if err == nil {
 		mine.Tags = tags
@@ -219,6 +224,9 @@ func (mine *ActivityInfo)UpdateCover(cover, operator string) error {
 }
 
 func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
+	if list == nil {
+		return errors.New("the list of target is nil")
+	}
 	err := nosql.UpdateActivityAssets(mine.UID, operator, list)
 	if err == nil {
 		mine.Assets = list
@@ -300,7 +308,12 @@ func (mine *ActivityInfo) SubtractPerson(uid string) error {
 	if er == nil {
 		for i := 0;i < len(mine.Persons);i += 1 {
 			if mine.Persons[i].Entity == uid {
-				mine.Persons = append(mine.Persons[:i], mine.Persons[i+1:]...)
+				if i == len(mine.Persons) - 1 {
+					mine.Persons = append(mine.Persons[:i])
+				}else{
+					mine.Persons = append(mine.Persons[:i], mine.Persons[i+1:]...)
+				}
+
 				break
 			}
 		}

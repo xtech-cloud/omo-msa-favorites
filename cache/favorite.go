@@ -1,17 +1,19 @@
 package cache
 
 import (
+	"errors"
 	"omo.msa.favorite/proxy/nosql"
 )
 
 type FavoriteInfo struct {
 	BaseInfo
-	Type   uint8
-	Owner  string
+	Status uint8
+	Type   uint8 //
+	Owner  string //该展览所属组织机构，scene, class等
 	Cover  string
 	Remark string
-	Origin string
-	Meta string
+	Origin string //布展数据来源，比如活动
+	Meta string //
 	table string
 	Tags   []string
 	Keys   []string
@@ -117,6 +119,7 @@ func (mine *FavoriteInfo)initInfo(db *nosql.Favorite, table string)  {
 	mine.Tags = db.Tags
 	mine.Keys = db.Keys
 	mine.table = table
+	mine.Status = db.State
 }
 
 func (mine *FavoriteInfo) GetKeys() []string {
@@ -144,6 +147,9 @@ func (mine *FavoriteInfo)UpdateMeta(operator, meta string) error {
 }
 
 func (mine *FavoriteInfo)UpdateTags(operator string, tags []string) error {
+	if tags == nil {
+		return errors.New("the list of target is nil")
+	}
 	err := nosql.UpdateFavoriteTags(mine.table, mine.UID, operator, tags)
 	if err == nil {
 		mine.Tags = tags
@@ -161,7 +167,19 @@ func (mine *FavoriteInfo)UpdateCover(cover, operator string) error {
 	return err
 }
 
+func (mine *FavoriteInfo)UpdateStatus(st uint8, operator string) error {
+	err := nosql.UpdateFavoriteState(mine.table, mine.UID, operator, st)
+	if err == nil {
+		mine.Status = st
+		mine.Operator = operator
+	}
+	return err
+}
+
 func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
+	if list == nil {
+		return errors.New("the list of target is nil")
+	}
 	err := nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, list)
 	if err == nil {
 		mine.Keys = list
@@ -198,7 +216,11 @@ func (mine *FavoriteInfo)SubtractEntity(uid string) error {
 	if er == nil {
 		for i := 0;i < len(mine.Keys);i += 1 {
 			if mine.Keys[i] == uid {
-				mine.Keys = append(mine.Keys[:i], mine.Keys[i+1:]...)
+				if i == len(mine.Keys) - 1{
+					mine.Keys = append(mine.Keys[:i])
+				}else{
+					mine.Keys = append(mine.Keys[:i], mine.Keys[i+1:]...)
+				}
 				break
 			}
 		}

@@ -20,9 +20,10 @@ type Favorite struct {
 	Cover       string    `json:"cover" bson:"cover"`
 	Remark      string    `json:"remark" bson:"remark"`
 	Owner       string    `json:"owner" bson:"owner"`
+	State       uint8 	  `json:"state" bson:"state"`
 	Type        uint8     `json:"type" bson:"type"`
-	Origin      string    `json:"origin" bson:"origin"`
-	Meta        string `json:"meta" bson:"meta"`
+	Origin      string    `json:"origin" bson:"origin"` //数据来源，可能是某次活动
+	Meta        string 	  `json:"meta" bson:"meta"` //源数据
 	Tags        []string  `json:"tags" bsonL:"tags"`
 	Keys        []string  `json:"keys" bson:"keys"`
 }
@@ -195,6 +196,12 @@ func UpdateFavoriteBase(table, uid, name, remark, operator string) error {
 
 func UpdateFavoriteCover(table, uid, cover, operator string) error {
 	msg := bson.M{"cover": cover, "operator":operator, "updatedAt": time.Now()}
+	_, err := updateOne(table, uid, msg)
+	return err
+}
+
+func UpdateFavoriteState(table, uid, operator string, st uint8) error {
+	msg := bson.M{"state": st, "operator":operator, "updatedAt": time.Now()}
 	_, err := updateOne(table, uid, msg)
 	return err
 }

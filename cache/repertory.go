@@ -38,6 +38,7 @@ func (mine *cacheContext)CreateFavorite(info *FavoriteInfo, person bool) error {
 	db.Owner = info.Owner
 	db.Type = info.Type
 	db.Origin = info.Origin
+	db.State = info.Status
 	db.Creator = info.Creator
 	db.Operator = info.Operator
 	db.Tags = info.Tags

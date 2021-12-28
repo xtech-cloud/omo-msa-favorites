@@ -11,7 +11,6 @@ type FavoriteService struct {}
 
 func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp := new(pb.FavoriteInfo)
-	tmp.Owner = owner
 	tmp.Uid = info.UID
 	tmp.Id = info.ID
 	tmp.Name = info.Name
@@ -25,6 +24,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Type = uint32(info.Type)
 	tmp.Tags = info.Tags
 	tmp.Origin = info.Origin
+	tmp.Status = uint32(info.Status)
 	tmp.Keys = info.GetKeys()
 	return tmp
 }
@@ -57,6 +57,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	info.Keys = in.Keys
 	info.Origin = in.Origin
 	info.Owner = in.Owner
+	info.Status = uint8(in.Status)
 	info.Type = uint8(in.Type)
 	err := cache.Context().CreateFavorite(info, in.Person)
 	if err != nil {
@@ -154,6 +155,14 @@ func (mine *FavoriteService)GetByList(ctx context.Context, in *pb.RequestList, o
 	return nil
 }
 
+func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyFavoriteList) error {
+	path := "favorite.getByFilter"
+	inLog(path, in)
+
+	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
+	return nil
+}
+
 func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUpdate, out *pb.ReplyFavoriteInfo) error {
 	path := "favorite.updateBase"
 	inLog(path, in)
@@ -202,6 +211,28 @@ func (mine *FavoriteService)UpdateMeta(ctx context.Context, in *pb.ReqFavoriteMe
 		return nil
 	}
 	out.Info = switchFavorite(info.Owner, info)
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *FavoriteService)UpdateStatus(ctx context.Context, in *pb.ReqFavoriteState, out *pb.ReplyInfo) error {
+	path := "favorite.updateStatus"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	var err error
+	err = info.UpdateStatus(uint8(in.Status), in.Operator)
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
 	out.Status = outLog(path, out)
 	return nil
 }

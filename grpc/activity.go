@@ -123,6 +123,14 @@ func (mine *ActivityService)GetList(ctx context.Context, in *pb.RequestInfo, out
 	return nil
 }
 
+func (mine *ActivityService)GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyActivityList) error {
+	path := "activity.getByFilter"
+	inLog(path, in)
+
+	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
+	return nil
+}
+
 func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUpdate, out *pb.ReplyActivityInfo) error {
 	path := "activity.updateBase"
 	inLog(path, in)
@@ -229,7 +237,7 @@ func (mine *ActivityService)UpdateTargets(ctx context.Context, in *pb.RequestLis
 	return nil
 }
 
-func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyList) error {
+func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyPairList) error {
 	path := "activity.appendEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -251,7 +259,7 @@ func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, o
 	return nil
 }
 
-func (mine *ActivityService)SubtractOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyList) error {
+func (mine *ActivityService)SubtractOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyPairList) error {
 	path := "activity.subtractEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
