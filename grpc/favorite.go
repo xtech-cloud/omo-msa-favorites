@@ -5,11 +5,12 @@ import (
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"omo.msa.favorite/cache"
+	"omo.msa.favorite/proxy"
 )
 
 type FavoriteService struct {}
 
-func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
+func switchFavorite(info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp := new(pb.FavoriteInfo)
 	tmp.Uid = info.UID
 	tmp.Id = info.ID
@@ -26,6 +27,7 @@ func switchFavorite(owner string, info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Origin = info.Origin
 	tmp.Status = uint32(info.Status)
 	tmp.Keys = info.GetKeys()
+	tmp.Targets = info.GetTargets()
 	return tmp
 }
 
@@ -39,7 +41,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	if len(in.Origin) > 0 {
 		tmp := cache.Context().GetFavoriteByOrigin(in.Owner, in.Origin, in.Person)
 		if tmp != nil {
-			out.Info = switchFavorite(in.Owner, tmp)
+			out.Info = switchFavorite(tmp)
 			out.Status = outLog(path, out)
 			return nil
 		}
@@ -64,7 +66,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-	out.Info = switchFavorite(in.Owner, info)
+	out.Info = switchFavorite(info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -81,7 +83,7 @@ func (mine *FavoriteService)GetOne(ctx context.Context, in *pb.RequestInfo, out 
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	out.Info = switchFavorite(in.Owner, info)
+	out.Info = switchFavorite(info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -98,7 +100,7 @@ func (mine *FavoriteService)GetByOrigin(ctx context.Context, in *pb.RequestInfo,
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	out.Info = switchFavorite(info.Owner, info)
+	out.Info = switchFavorite(info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -136,7 +138,7 @@ func (mine *FavoriteService)GetList(ctx context.Context, in *pb.ReqFavoriteList,
 
 		out.List = make([]*pb.FavoriteInfo, 0, len(array))
 		for _, val := range array {
-			out.List = append(out.List, switchFavorite(in.Owner, val))
+			out.List = append(out.List, switchFavorite(val))
 		}
 	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
@@ -149,7 +151,7 @@ func (mine *FavoriteService)GetByList(ctx context.Context, in *pb.RequestList, o
 	array := cache.Context().GetFavoritesByList(in.Person, in.List)
 	out.List = make([]*pb.FavoriteInfo, 0, len(array))
 	for _, val := range array {
-		out.List = append(out.List, switchFavorite(val.Owner, val))
+		out.List = append(out.List, switchFavorite(val))
 	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
@@ -158,7 +160,20 @@ func (mine *FavoriteService)GetByList(ctx context.Context, in *pb.RequestList, o
 func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyFavoriteList) error {
 	path := "favorite.getByFilter"
 	inLog(path, in)
+	var array []*cache.FavoriteInfo
+	var max uint32 = 0
+	var pages uint32 = 0
+	if in.Key == "target" {
 
+	}else if in.Key == "targets" {
+		max, pages, array = cache.Context().GetFavoritesByTargets(in.List, in.Page, in.Number)
+	}
+	out.List = make([]*pb.FavoriteInfo, 0, len(array))
+	for _, val := range array {
+		out.List = append(out.List, switchFavorite(val))
+	}
+	out.Total = max
+	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
@@ -187,7 +202,7 @@ func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUp
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-	out.Info = switchFavorite(info.Owner, info)
+	out.Info = switchFavorite(info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -210,7 +225,7 @@ func (mine *FavoriteService)UpdateMeta(ctx context.Context, in *pb.ReqFavoriteMe
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-	out.Info = switchFavorite(info.Owner, info)
+	out.Info = switchFavorite(info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -258,7 +273,7 @@ func (mine *FavoriteService)UpdateTags(ctx context.Context, in *pb.ReqFavoriteTa
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
-	out.Info = switchFavorite(info.Owner, info)
+	out.Info = switchFavorite(info)
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -286,7 +301,7 @@ func (mine *FavoriteService)UpdateKeys(ctx context.Context, in *pb.ReqFavoriteKe
 	return nil
 }
 
-func (mine *FavoriteService)AppendEntity(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteKeys) error {
+func (mine *FavoriteService)AppendKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteKeys) error {
 	path := "favorite.appendEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -298,7 +313,7 @@ func (mine *FavoriteService)AppendEntity(ctx context.Context, in *pb.RequestInfo
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendEntity(in.Flag)
+	err := info.AppendKey(in.Flag)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
@@ -308,7 +323,7 @@ func (mine *FavoriteService)AppendEntity(ctx context.Context, in *pb.RequestInfo
 	return nil
 }
 
-func (mine *FavoriteService)SubtractEntity(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteKeys) error {
+func (mine *FavoriteService)SubtractKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteKeys) error {
 	path := "favorite.subtractEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -320,12 +335,78 @@ func (mine *FavoriteService)SubtractEntity(ctx context.Context, in *pb.RequestIn
 		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractEntity(in.Flag)
+	err := info.SubtractKey(in.Flag)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil
 	}
 	out.Keys = info.GetKeys()
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *FavoriteService)UpdateTarget(ctx context.Context, in *pb.ReqFavoriteTarget, out *pb.ReplyFavoriteTargets) error {
+	path := "favorite.updateTarget"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	err := info.UpdateTarget(in.Target, in.Effect, in.Skin, in.Operator, in.Slots)
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.Targets = info.GetTargets()
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *FavoriteService)AppendTarget(ctx context.Context, in *pb.ReqFavoriteTarget, out *pb.ReplyFavoriteTargets) error {
+	path := "favorite.appendTarget"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Skin: in.Skin, Slots: in.Slots})
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.Targets = info.GetTargets()
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *FavoriteService)SubtractTarget(ctx context.Context, in *pb.ReqFavoriteTarget, out *pb.ReplyFavoriteTargets) error {
+	path := "favorite.subtractTarget"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pb.ResultStatus_Empty)
+		return nil
+	}
+	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	if info == nil {
+		out.Status = outError(path,"the favorite not found", pb.ResultStatus_NotExisted)
+		return nil
+	}
+	err := info.SubtractTarget(in.Target)
+	if err != nil {
+		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
+		return nil
+	}
+	out.Targets = info.GetTargets()
 	out.Status = outLog(path, out)
 	return nil
 }

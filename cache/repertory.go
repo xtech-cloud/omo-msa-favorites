@@ -26,59 +26,6 @@ func (mine *cacheContext)GetRepertory(owner string) (*RepertoryInfo,error) {
 	return info,nil
 }
 
-func (mine *cacheContext)CreateFavorite(info *FavoriteInfo, person bool) error {
-	table := getFavoriteTable(person)
-	db := new(nosql.Favorite)
-	db.UID = primitive.NewObjectID()
-	db.ID = nosql.GetFavoriteNextID(table)
-	db.CreatedTime = time.Now()
-	db.Cover = info.Cover
-	db.Name = info.Name
-	db.Remark = info.Remark
-	db.Owner = info.Owner
-	db.Type = info.Type
-	db.Origin = info.Origin
-	db.State = info.Status
-	db.Creator = info.Creator
-	db.Operator = info.Operator
-	db.Tags = info.Tags
-	if db.Tags == nil {
-		db.Tags = make([]string, 0, 1)
-	}
-	db.Keys = info.Keys
-	if db.Keys == nil {
-		db.Keys = make([]string, 0, 1)
-	}
-
-	err := nosql.CreateFavorite(table, db)
-	if err == nil {
-		info.UID = db.UID.Hex()
-		info.CreateTime = db.CreatedTime
-		info.ID = db.ID
-		info.UpdateTime = db.UpdatedTime
-	}
-	return err
-}
-
-func (mine *cacheContext)HadFavoriteByName(owner, name string, tp uint8, person bool) bool {
-	table := getFavoriteTable(person)
-	fav, err := nosql.GetFavoriteByName(table, owner, name, tp)
-	if err != nil {
-		return false
-	}
-	if fav != nil {
-		return true
-	}else{
-		return true
-	}
-}
-
-func (mine *cacheContext)RemoveFavorite(uid, operator string, person bool) error {
-	table := getFavoriteTable(person)
-	err := nosql.RemoveFavorite(table, uid, operator)
-	return err
-}
-
 func (mine *RepertoryInfo) initInfo(db *nosql.Repertory) {
 
 }

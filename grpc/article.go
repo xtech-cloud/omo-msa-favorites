@@ -97,6 +97,8 @@ func (mine *ArticleService)GetList(ctx context.Context, in *pb.RequestFilter, ou
 	path := "article.getList"
 	inLog(path, in)
 	var array []*cache.ArticleInfo
+	var max uint32 = 0
+	var pages uint32 = 0
 	if in.Key == "type" {
 		st, er := strconv.ParseUint(in.Value, 10, 32)
 		if er == nil {
@@ -114,16 +116,18 @@ func (mine *ArticleService)GetList(ctx context.Context, in *pb.RequestFilter, ou
 			return nil
 		}
 	}else if in.Key == "targets" {
-		array = cache.Context().GetArticlesByTargets(in.List)
+		max, pages, array = cache.Context().GetArticlesByTargets(in.List, in.Page, in.Number)
 	}else if in.Key == "array" {
 		array = cache.Context().GetArticlesByList(in.List)
 	}else{
-		array = cache.Context().GetArticlesByOwner(in.Value)
+		array = cache.Context().GetArticlesByOwner(in.Owner)
 	}
 	out.List = make([]*pb.ArticleInfo, 0, len(array))
 	for _, val := range array {
 		out.List = append(out.List, switchArticle(val))
 	}
+	out.Total = max
+	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
@@ -182,7 +186,7 @@ func (mine *ArticleService)UpdateStatus(ctx context.Context, in *pb.ReqArticleSt
 		return nil
 	}
 	var err error
-	err = info.UpdateStatus(cache.MessageStatus(in.Status), "")
+	err = info.UpdateStatus(cache.MessageStatus(in.Status), in.Operator)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pb.ResultStatus_DBException)
 		return nil

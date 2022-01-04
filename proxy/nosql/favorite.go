@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"time"
 )
 
@@ -26,6 +27,7 @@ type Favorite struct {
 	Meta        string 	  `json:"meta" bson:"meta"` //源数据
 	Tags        []string  `json:"tags" bsonL:"tags"`
 	Keys        []string  `json:"keys" bson:"keys"`
+	Targets     []*proxy.ShowingInfo `json:"targets" bson:"targets"`
 }
 
 func CreateFavorite(table string, info *Favorite) error {
@@ -188,6 +190,25 @@ func GetFavoritesByType(table string, kind uint8) ([]*Favorite, error) {
 	return items, nil
 }
 
+func GetFavoritesByTarget(table, target string) ([]*Favorite, error) {
+	def := new(time.Time)
+	filter := bson.M{"targets": bson.M{"target": target} , "deleteAt": def}
+	cursor, err1 := findMany(table, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Favorite, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Favorite)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func UpdateFavoriteBase(table, uid, name, remark, operator string) error {
 	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(table, uid, msg)
@@ -218,7 +239,7 @@ func UpdateFavoriteEntity(table, uid, operator string, list []string) error {
 	return err
 }
 
-func AppendFavoriteEntity(table, uid string, key string) error {
+func AppendFavoriteKey(table, uid string, key string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
@@ -227,11 +248,35 @@ func AppendFavoriteEntity(table, uid string, key string) error {
 	return err
 }
 
-func SubtractFavoriteEntity(table, uid, key string) error {
+func SubtractFavoriteKey(table, uid, key string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"keys": key}
+	_, err := removeElement(table, uid, msg)
+	return err
+}
+
+func UpdateFavoriteTarget(table, uid, operator string, list []*proxy.ShowingInfo) error {
+	msg := bson.M{"targets": list, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(table, uid, msg)
+	return err
+}
+
+func AppendFavoriteTarget(table, uid string, target *proxy.ShowingInfo) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"targets": target}
+	_, err := appendElement(table, uid, msg)
+	return err
+}
+
+func SubtractFavoriteTarget(table, uid, target string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"targets": bson.M{"target":target}}
 	_, err := removeElement(table, uid, msg)
 	return err
 }

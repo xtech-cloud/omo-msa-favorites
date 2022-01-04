@@ -144,7 +144,7 @@ func GetArticlesByOwner(owner string) ([]*Article, error) {
 	return items, nil
 }
 
-func GetArticlesByTargets(target string) ([]*Article, error) {
+func GetArticlesByTarget(target string) ([]*Article, error) {
 	def := new(time.Time)
 	filter := bson.M{"targets": target, "deleteAt": def}
 	cursor, err1 := findMany(TableArticle, filter, 0)

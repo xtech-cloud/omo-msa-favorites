@@ -129,6 +129,25 @@ func GetActivitiesByOwner(owner string) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesByTarget(target string) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"targets": target, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func UpdateActivityBase(uid, name, remark, require, operator string, date proxy.DateInfo, place proxy.PlaceInfo) error {
 	msg := bson.M{"name": name, "remark": remark, "require": require, "operator": operator, "date":date, "place":place, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)

@@ -91,6 +91,8 @@ func (mine *NoticeService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out
 func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyNoticeList) error {
 	path := "notice.getList"
 	inLog(path, in)
+	var max uint32 = 0
+	var pages uint32 = 0
 	var array []*cache.NoticeInfo
 	if in.Key == "status" {
 		//st, er := strconv.ParseUint(in.Value, 10, 32)
@@ -101,16 +103,18 @@ func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out
 		//	return nil
 		//}
 	}else if in.Key == "targets" {
-		array = cache.Context().GetNoticesByTargets(in.List)
+		max, pages, array = cache.Context().GetNoticesByTargets(in.List, in.Page, in.Number)
 	}else if in.Key == "array" {
 		array = cache.Context().GetNoticesByList(in.List)
 	}else{
-		array = cache.Context().GetNoticesByOwner(in.Value)
+		array = cache.Context().GetNoticesByOwner(in.Owner)
 	}
 	out.List = make([]*pb.NoticeInfo, 0, len(array))
 	for _, val := range array {
 		out.List = append(out.List, switchNotice(val))
 	}
+	out.Total = max
+	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }

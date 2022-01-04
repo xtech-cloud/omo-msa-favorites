@@ -26,7 +26,7 @@ type ArticleInfo struct {
 	Subtitle string
 	Body     string
 	Tags     []string
-	Targets  []string
+	Targets  []string //班级，场景
 	Assets   []string
 }
 
@@ -147,23 +147,29 @@ func (mine *cacheContext) GetArticlesByList(array []string) []*ArticleInfo {
 	return list
 }
 
-func (mine *cacheContext) GetArticlesByTargets(array []string) []*ArticleInfo {
+func (mine *cacheContext) GetArticlesByTargets(array []string, page, num uint32) (uint32, uint32, []*ArticleInfo) {
 	if array == nil || len(array) < 1 {
-		return make([]*ArticleInfo, 0, 1)
+		return 0, 0, make([]*ArticleInfo, 0, 1)
 	}
-	list := make([]*ArticleInfo, 0, 10)
+	all := make([]*ArticleInfo, 0, 10)
 	for _, s := range array {
-		db, _ := nosql.GetArticlesByTargets(s)
+		db, _ := nosql.GetArticlesByTarget(s)
 		if db != nil {
 			for _, article := range db {
 				info := new(ArticleInfo)
 				info.initInfo(article)
-				list = append(list, info)
+				all = append(all, info)
 			}
 		}
 	}
-
-	return list
+	if num < 1 {
+		num = 10
+	}
+	if len(all) < 1 {
+		return 0, 0, make([]*ArticleInfo, 0, 1)
+	}
+	max, pages, list := checkPage(page, num, all)
+	return max, pages, list.([]*ArticleInfo)
 }
 
 func (mine *ArticleInfo) initInfo(db *nosql.Article) {

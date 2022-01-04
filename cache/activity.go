@@ -22,7 +22,7 @@ type ActivityInfo struct {
 	AssetLimit uint8
 	Assets   []string
 	Tags     []string
-	Targets []string
+	Targets []string //班级，场景等
 	Persons []proxy.PersonInfo
 }
 
@@ -111,6 +111,32 @@ func (mine *cacheContext)GetActivitiesByOwner(uid string) []*ActivityInfo {
 		return list
 	}
 	return make([]*ActivityInfo, 0, 1)
+}
+
+func (mine *cacheContext) GetActivitiesByTargets(array []string, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+	if array == nil || len(array) < 1 {
+		return 0, 0, make([]*ActivityInfo, 0, 1)
+	}
+	all := make([]*ActivityInfo, 0, 10)
+	for _, s := range array {
+		db, _ := nosql.GetActivitiesByTarget(s)
+		if db != nil {
+			for _, item := range db {
+				info := new(ActivityInfo)
+				info.initInfo(item)
+				all = append(all, info)
+			}
+		}
+	}
+
+	if num < 1 {
+		num = 10
+	}
+	if len(all) < 1 {
+		return 0, 0, make([]*ActivityInfo, 0, 1)
+	}
+	max, pages, list := checkPage(page, num, all)
+	return max, pages, list.([]*ActivityInfo)
 }
 
 func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {

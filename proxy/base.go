@@ -20,3 +20,11 @@ type PersonInfo struct {
 	Entity string `json:"entity" bson:"entity"`
 	Event string `json:"event" bson:"event"`
 }
+
+type ShowingInfo struct {
+	//设备
+	Target string `json:"target" bson:"target"`
+	Effect string `json:"effect" bson:"effect"`
+	Skin string `json:"skin" bson:"skin"`
+	Slots []string `json:"slots" bson:"slots"`
+}

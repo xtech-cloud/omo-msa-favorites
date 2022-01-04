@@ -81,23 +81,29 @@ func (mine *cacheContext) GetNoticesByOwner(uid string) []*NoticeInfo {
 	return make([]*NoticeInfo, 0, 1)
 }
 
-func (mine *cacheContext) GetNoticesByTargets(array []string) []*NoticeInfo {
+func (mine *cacheContext) GetNoticesByTargets(array []string, page, num uint32) (uint32, uint32, []*NoticeInfo) {
 	if array == nil || len(array) < 1 {
-		return make([]*NoticeInfo, 0, 1)
+		return 0, 0, make([]*NoticeInfo, 0, 1)
 	}
-	list := make([]*NoticeInfo, 0, 10)
+	all := make([]*NoticeInfo, 0, 10)
 	for _, s := range array {
-		db, _ := nosql.GetNoticesByTargets(s)
+		db, _ := nosql.GetNoticesByTarget(s)
 		if db != nil {
 			for _, item := range db {
 				info := new(NoticeInfo)
 				info.initInfo(item)
-				list = append(list, info)
+				all = append(all, info)
 			}
 		}
 	}
-
-	return list
+	if num < 1 {
+		num = 10
+	}
+	if len(all) < 1 {
+		return 0, 0, make([]*NoticeInfo, 0, 1)
+	}
+	max, pages, list := checkPage(page, num, all)
+	return max, pages, list.([]*NoticeInfo)
 }
 
 func (mine *cacheContext) GetNoticesByList(array []string) []*NoticeInfo {

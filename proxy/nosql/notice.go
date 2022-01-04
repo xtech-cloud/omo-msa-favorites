@@ -66,7 +66,7 @@ func GetNoticeCount() int64 {
 	return num
 }
 
-func GetNoticesByTargets(target string) ([]*Notice, error) {
+func GetNoticesByTarget(target string) ([]*Notice, error) {
 	def := new(time.Time)
 	filter := bson.M{"targets": target, "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)

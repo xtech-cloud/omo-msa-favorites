@@ -126,7 +126,20 @@ func (mine *ActivityService)GetList(ctx context.Context, in *pb.RequestInfo, out
 func (mine *ActivityService)GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyActivityList) error {
 	path := "activity.getByFilter"
 	inLog(path, in)
+	var array []*cache.ActivityInfo
+	var max uint32 = 0
+	var pages uint32 = 0
+	if in.Key == "target" {
 
+	}else if in.Key == "targets" {
+		max, pages, array = cache.Context().GetActivitiesByTargets(in.List, in.Page, in.Number)
+	}
+	out.List = make([]*pb.ActivityInfo, 0, len(array))
+	for _, val := range array {
+		out.List = append(out.List, switchActivity(val.Owner, val))
+	}
+	out.Total = max
+	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
