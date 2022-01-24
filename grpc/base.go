@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/micro/go-micro/v2/logger"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
+	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 )
 
 func inLog(name, data interface{})  {
@@ -12,7 +13,7 @@ func inLog(name, data interface{})  {
 	logger.Infof("[in.%s]:data = %s", name, msg)
 }
 
-func outError(name, msg string, code pb.ResultStatus) *pb.ReplyStatus {
+func outError(name, msg string, code pbstatus.ResultStatus) *pb.ReplyStatus {
 	logger.Warnf("[error.%s]:code = %d, msg = %s", name, code, msg)
 	tmp := &pb.ReplyStatus{
 		Code: uint32(code),

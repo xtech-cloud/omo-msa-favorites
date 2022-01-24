@@ -21,9 +21,9 @@ type Favorite struct {
 	Cover       string    `json:"cover" bson:"cover"`
 	Remark      string    `json:"remark" bson:"remark"`
 	Owner       string    `json:"owner" bson:"owner"`
-	State       uint8 	  `json:"state" bson:"state"`
+	Status       uint8 	  `json:"status" bson:"status"`
 	Type        uint8     `json:"type" bson:"type"`
-	Origin      string    `json:"origin" bson:"origin"` //数据来源，可能是某次活动
+	Origin      string    `json:"origin" bson:"origin"` //数据来源，可能是某次活动,或者是标准榜样
 	Meta        string 	  `json:"meta" bson:"meta"` //源数据
 	Tags        []string  `json:"tags" bsonL:"tags"`
 	Keys        []string  `json:"keys" bson:"keys"`
@@ -95,7 +95,7 @@ func GetFavorite(table, uid string) (*Favorite, error) {
 }
 
 func GetFavoriteCount(table string) int64 {
-	num, _ := getCount(table)
+	num, _ := getTotalCount(table)
 	return num
 }
 
@@ -136,6 +136,44 @@ func GetFavoriteByName(table, owner, name string, tp uint8) (*Favorite, error) {
 func GetFavoritesByOwner(table, owner string) ([]*Favorite, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
+	cursor, err1 := findMany(table, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Favorite, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Favorite)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetFavoritesByStatus(table, owner string, st uint8) ([]*Favorite, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "status":st, "deleteAt": def}
+	cursor, err1 := findMany(table, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Favorite, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Favorite)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetFavoritesByProduct(table, owner string, st uint8) ([]*Favorite, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "status":st, "deleteAt": def}
 	cursor, err1 := findMany(table, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -257,7 +295,7 @@ func SubtractFavoriteKey(table, uid, key string) error {
 	return err
 }
 
-func UpdateFavoriteTarget(table, uid, operator string, list []*proxy.ShowingInfo) error {
+func UpdateFavoriteTargets(table, uid, operator string, list []*proxy.ShowingInfo) error {
 	msg := bson.M{"targets": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(table, uid, msg)
 	return err

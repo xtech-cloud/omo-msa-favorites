@@ -29,10 +29,16 @@ func InitData() error {
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
 	if err == nil {
-		table := getFavoriteTable(true)
+		table := getFavoriteTable(false)
 		num := nosql.GetFavoriteCount(table)
 		count := nosql.GetRepertoryCount()
 		logger.Infof("the person favorite count = %d and the repertory count = %d", num, count)
+
+		db,_ := nosql.GetActivity("616e7f56e1fd51b21c857b26")
+		if db != nil {
+			info := new(ActivityInfo)
+			info.initInfo(db)
+		}
 	}
 	return err
 }
@@ -52,6 +58,9 @@ func checkPage( page, number uint32, all interface{}) (uint32, uint32, interface
 		return total, maxPage, all
 	}
 
+	if page > maxPage {
+		page = maxPage
+	}
 	var start = (page - 1) * number
 	var end = start + number
 	if end > total {

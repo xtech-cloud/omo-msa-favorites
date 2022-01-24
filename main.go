@@ -29,6 +29,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	// New Service
 	service := micro.NewService(
 		micro.Name("omo.msa.favorite"),

@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"io"
 	"time"
 
 	"omo.msa.favorite/config"
 
-	proto "github.com/xtech-cloud/omo-msp-favorite/proto/favorite"
 
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/client"
@@ -21,6 +19,7 @@ func main() {
 	service := micro.NewService(
 		micro.Name("omo.msa.favorite.tester"),
 	)
+
 	service.Init()
 
 	cli := service.Client()

@@ -64,7 +64,7 @@ func GetArticle(uid string) (*Article, error) {
 }
 
 func GetArticleCount() int64 {
-	num, _ := getCount(TableArticle)
+	num, _ := getTotalCount(TableArticle)
 	return num
 }
 
@@ -144,15 +144,42 @@ func GetArticlesByOwner(owner string) ([]*Article, error) {
 	return items, nil
 }
 
-func GetArticlesByTarget(target string) ([]*Article, error) {
+func GetArticlesByTargets(targets []string) ([]*Article, error) {
 	def := new(time.Time)
-	filter := bson.M{"targets": target, "deleteAt": def}
+	in := bson.A{}
+	for _, target := range targets {
+		in = append(in, target)
+	}
+	filter := bson.M{"$or":bson.A{bson.M{"targets": bson.M{"$in":in}}, bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
 	cursor, err1 := findMany(TableArticle, filter, 0)
 	if err1 != nil {
 		return nil, err1
 	}
 	var items = make([]*Article, 0, 20)
-	for cursor.Next(context.Background()) {
+	for cursor.Next(context.TODO()) {
+		var node = new(Article)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetArticlesByOTargets(owner string, targets []string) ([]*Article, error) {
+	def := new(time.Time)
+	in := bson.A{}
+	for _, target := range targets {
+		in = append(in, target)
+	}
+	filter := bson.M{"owner":owner, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	cursor, err1 := findMany(TableArticle, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Article, 0, 20)
+	for cursor.Next(context.TODO()) {
 		var node = new(Article)
 		if err := cursor.Decode(&node); err != nil {
 			return nil, err

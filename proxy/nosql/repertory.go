@@ -35,7 +35,7 @@ func GetRepertoryNextID() uint64 {
 }
 
 func GetRepertoryCount() int64 {
-	num, _ := getCount(TableRepertory)
+	num, _ := getTotalCount(TableRepertory)
 	return num
 }
 

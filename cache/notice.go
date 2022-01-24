@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy/nosql"
+	"omo.msa.favorite/tool"
 	"time"
 )
 
@@ -81,19 +82,23 @@ func (mine *cacheContext) GetNoticesByOwner(uid string) []*NoticeInfo {
 	return make([]*NoticeInfo, 0, 1)
 }
 
-func (mine *cacheContext) GetNoticesByTargets(array []string, page, num uint32) (uint32, uint32, []*NoticeInfo) {
+func (mine *cacheContext) GetNoticesByTargets(owner string,array []string, page, num uint32) (uint32, uint32, []*NoticeInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*NoticeInfo, 0, 1)
 	}
 	all := make([]*NoticeInfo, 0, 10)
-	for _, s := range array {
-		db, _ := nosql.GetNoticesByTarget(s)
-		if db != nil {
-			for _, item := range db {
-				info := new(NoticeInfo)
-				info.initInfo(item)
-				all = append(all, info)
-			}
+	var dbs []*nosql.Notice
+	var er error
+	if len(owner) < 1{
+		dbs,er = nosql.GetNoticesByTargets(array)
+	}else{
+		dbs,er = nosql.GetNoticesByOTargets(owner, array)
+	}
+	if er == nil {
+		for _, db := range dbs {
+			info := new(NoticeInfo)
+			info.initInfo(db)
+			all = append(all, info)
 		}
 	}
 	if num < 1 {
@@ -139,6 +144,7 @@ func (mine *NoticeInfo) initInfo(db *nosql.Notice) {
 	mine.Targets = db.Targets
 	if mine.Targets == nil {
 		mine.Targets = make([]string, 0, 1)
+		_ = mine.UpdateTargets(mine.Operator, mine.Targets)
 	}
 
 	if mine.Tags == nil {
@@ -168,7 +174,7 @@ func (mine *NoticeInfo) UpdateBase(name, sub, body, operator string) error {
 
 func (mine *NoticeInfo) UpdateTags(operator string, tags []string) error {
 	if tags == nil {
-		return errors.New("the list of target is nil")
+		return errors.New("the list of tags is nil")
 	}
 	err := nosql.UpdateNoticeTags(mine.UID, operator, tags)
 	if err == nil {
@@ -189,7 +195,7 @@ func (mine *NoticeInfo) UpdateStatus(st MessageStatus, operator string) error {
 
 func (mine *NoticeInfo) UpdateTargets(operator string, list []string) error {
 	if list == nil {
-		return errors.New("the list of target is nil")
+		return errors.New("the list of targets is nil")
 	}
 	err := nosql.UpdateNoticeTargets(mine.UID, operator, list)
 	if err == nil {
@@ -197,4 +203,19 @@ func (mine *NoticeInfo) UpdateTargets(operator string, list []string) error {
 		mine.Operator = operator
 	}
 	return err
+}
+
+func (mine *NoticeInfo)HadTargets(arr []string) bool {
+	if mine.Targets == nil || len(mine.Targets) < 1 {
+		return true
+	}
+	if arr == nil || len(arr) < 1 {
+		return false
+	}
+	for _, item := range arr {
+		if tool.HasItem(mine.Targets, item) {
+			return true
+		}
+	}
+	return false
 }

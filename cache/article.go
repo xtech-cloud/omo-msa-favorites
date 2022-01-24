@@ -4,6 +4,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy/nosql"
+	"omo.msa.favorite/tool"
 	"time"
 )
 
@@ -101,7 +102,7 @@ func (mine *cacheContext) GetArticlesByOwner(uid string) []*ArticleInfo {
 func (mine *cacheContext) GetArticlesByTP(owner string, st uint8) []*ArticleInfo {
 	var array []*nosql.Article
 	var err error
-	array, err = nosql.GetArticlesByOwnerTP(owner, uint8(st))
+	array, err = nosql.GetArticlesByOwnerTP(owner, st)
 	if err == nil {
 		list := make([]*ArticleInfo, 0, len(array))
 		for _, item := range array {
@@ -147,19 +148,23 @@ func (mine *cacheContext) GetArticlesByList(array []string) []*ArticleInfo {
 	return list
 }
 
-func (mine *cacheContext) GetArticlesByTargets(array []string, page, num uint32) (uint32, uint32, []*ArticleInfo) {
+func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, page, num uint32) (uint32, uint32, []*ArticleInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*ArticleInfo, 0, 1)
 	}
 	all := make([]*ArticleInfo, 0, 10)
-	for _, s := range array {
-		db, _ := nosql.GetArticlesByTarget(s)
-		if db != nil {
-			for _, article := range db {
-				info := new(ArticleInfo)
-				info.initInfo(article)
-				all = append(all, info)
-			}
+	var dbs []*nosql.Article
+	var er error
+	if len(owner) < 1{
+		dbs,er = nosql.GetArticlesByTargets(array)
+	}else{
+		dbs,er = nosql.GetArticlesByOTargets(owner, array)
+	}
+	if er == nil {
+		for _, db := range dbs {
+			info := new(ArticleInfo)
+			info.initInfo(db)
+			all = append(all, info)
 		}
 	}
 	if num < 1 {
@@ -190,6 +195,7 @@ func (mine *ArticleInfo) initInfo(db *nosql.Article) {
 	mine.Assets = db.Assets
 	if mine.Targets == nil {
 		mine.Targets = make([]string, 0, 1)
+		_ = mine.UpdateTargets(mine.Operator, mine.Targets)
 	}
 	if mine.Assets == nil {
 		mine.Assets = make([]string, 0, 1)
@@ -221,7 +227,7 @@ func (mine *ArticleInfo) UpdateBase(name, sub, body, operator string) error {
 
 func (mine *ArticleInfo) UpdateTags(operator string, tags []string) error {
 	if tags == nil {
-		return errors.New("the list of target is nil")
+		return errors.New("the list of tags is nil")
 	}
 	err := nosql.UpdateArticleTags(mine.UID, operator, tags)
 	if err == nil {
@@ -242,7 +248,7 @@ func (mine *ArticleInfo) UpdateStatus(st MessageStatus, operator string) error {
 
 func (mine *ArticleInfo) UpdateTargets(operator string, list []string) error {
 	if list == nil {
-		return errors.New("the list of target is nil")
+		return errors.New("the list of targets is nil")
 	}
 	err := nosql.UpdateArticleTargets(mine.UID, operator, list)
 	if err == nil {
@@ -254,7 +260,7 @@ func (mine *ArticleInfo) UpdateTargets(operator string, list []string) error {
 
 func (mine *ArticleInfo) UpdateAssets(operator string, list []string) error {
 	if list == nil {
-		return errors.New("the list of asset is nil")
+		return errors.New("the list of assets is nil")
 	}
 	err := nosql.UpdateArticleAssets(mine.UID, operator, list)
 	if err == nil {
@@ -263,3 +269,19 @@ func (mine *ArticleInfo) UpdateAssets(operator string, list []string) error {
 	}
 	return err
 }
+
+func (mine *ArticleInfo)HadTargets(arr []string) bool {
+	if mine.Targets == nil || len(mine.Targets) < 1 {
+		return true
+	}
+	if arr == nil || len(arr) < 1 {
+		return false
+	}
+	for _, item := range arr {
+		if tool.HasItem(mine.Targets, item) {
+			return true
+		}
+	}
+	return false
+}
+

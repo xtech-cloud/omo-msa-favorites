@@ -62,19 +62,46 @@ func GetNotice(uid string) (*Notice, error) {
 }
 
 func GetNoticeCount() int64 {
-	num, _ := getCount(TableNotice)
+	num, _ := getTotalCount(TableNotice)
 	return num
 }
 
-func GetNoticesByTarget(target string) ([]*Notice, error) {
+func GetNoticesByTargets(targets []string) ([]*Notice, error) {
 	def := new(time.Time)
-	filter := bson.M{"targets": target, "deleteAt": def}
+	in := bson.A{}
+	for _, target := range targets {
+		in = append(in, target)
+	}
+	filter := bson.M{ "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}, bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)
 	if err1 != nil {
 		return nil, err1
 	}
 	var items = make([]*Notice, 0, 20)
-	for cursor.Next(context.Background()) {
+	for cursor.Next(context.TODO()) {
+		var node = new(Notice)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetNoticesByOTargets(owner string, targets []string) ([]*Notice, error) {
+	def := new(time.Time)
+	in := bson.A{}
+	for _, target := range targets {
+		in = append(in, target)
+	}
+	filter := bson.M{"owner":owner, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	cursor, err1 := findMany(TableNotice, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Notice, 0, 20)
+	for cursor.Next(context.TODO()) {
 		var node = new(Notice)
 		if err := cursor.Decode(&node); err != nil {
 			return nil, err
