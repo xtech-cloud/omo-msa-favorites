@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
@@ -148,7 +149,7 @@ func (mine *cacheContext) GetArticlesByList(array []string) []*ArticleInfo {
 	return list
 }
 
-func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, page, num uint32) (uint32, uint32, []*ArticleInfo) {
+func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, st MessageStatus, page, num uint32) (uint32, uint32, []*ArticleInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*ArticleInfo, 0, 1)
 	}
@@ -156,9 +157,9 @@ func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, pag
 	var dbs []*nosql.Article
 	var er error
 	if len(owner) < 1{
-		dbs,er = nosql.GetArticlesByTargets(array)
+		dbs,er = nosql.GetArticlesByTargets(uint8(st), array)
 	}else{
-		dbs,er = nosql.GetArticlesByOTargets(owner, array)
+		dbs,er = nosql.GetArticlesByOTargets(owner, uint8(st), array)
 	}
 	if er == nil {
 		for _, db := range dbs {
@@ -173,7 +174,7 @@ func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, pag
 	if len(all) < 1 {
 		return 0, 0, make([]*ArticleInfo, 0, 1)
 	}
-	max, pages, list := checkPage(page, num, all)
+	max, pages, list := CheckPage(page, num, all)
 	return max, pages, list.([]*ArticleInfo)
 }
 
@@ -193,9 +194,12 @@ func (mine *ArticleInfo) initInfo(db *nosql.Article) {
 	mine.Targets = db.Targets
 	mine.Status = MessageStatus(db.Status)
 	mine.Assets = db.Assets
-	if mine.Targets == nil {
-		mine.Targets = make([]string, 0, 1)
-		_ = mine.UpdateTargets(mine.Operator, mine.Targets)
+	if mine.Targets == nil || len(mine.Targets) < 1{
+		mine.Targets = make([]string, 0 ,15)
+		for i := 0;i < 15;i += 1 {
+			mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
+		}
+		_ = nosql.UpdateArticleTargets(mine.UID, mine.Operator, mine.Targets)
 	}
 	if mine.Assets == nil {
 		mine.Assets = make([]string, 0, 1)

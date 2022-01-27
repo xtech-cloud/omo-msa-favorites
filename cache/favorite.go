@@ -187,14 +187,14 @@ func (mine *cacheContext) GetFavoritesByList(person bool, array []string) []*Fav
 	return list
 }
 
-func (mine *cacheContext) GetFavoritesByTargets(array []string, page, num uint32) (uint32, uint32, []*FavoriteInfo) {
+func (mine *cacheContext) GetFavoritesByTargets(owner string, array []string, page, num uint32) (uint32, uint32, []*FavoriteInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*FavoriteInfo, 0, 1)
 	}
 	all := make([]*FavoriteInfo, 0, 10)
 	table := getFavoriteTable(false)
 	for _, s := range array {
-		db, _ := nosql.GetFavoritesByTarget(table, s)
+		db, _ := nosql.GetFavoritesByTarget(table, owner, s)
 		if db != nil {
 			for _, item := range db {
 				info := new(FavoriteInfo)
@@ -210,7 +210,7 @@ func (mine *cacheContext) GetFavoritesByTargets(array []string, page, num uint32
 	if len(all) < 1 {
 		return 0, 0, make([]*FavoriteInfo, 0, 1)
 	}
-	max, pages, list := checkPage(page, num, all)
+	max, pages, list := CheckPage(page, num, all)
 	return max, pages, list.([]*FavoriteInfo)
 }
 
@@ -237,6 +237,7 @@ func (mine *FavoriteInfo) initInfo(db *nosql.Favorite, table string) {
 	}
 	if mine.Targets == nil {
 		mine.Targets = make([]*proxy.ShowingInfo, 0, 1)
+		_ = nosql.UpdateFavoriteTargets(mine.table, mine.UID, mine.Operator, mine.Targets)
 	}
 }
 

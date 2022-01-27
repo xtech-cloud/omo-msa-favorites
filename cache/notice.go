@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
@@ -82,7 +83,7 @@ func (mine *cacheContext) GetNoticesByOwner(uid string) []*NoticeInfo {
 	return make([]*NoticeInfo, 0, 1)
 }
 
-func (mine *cacheContext) GetNoticesByTargets(owner string,array []string, page, num uint32) (uint32, uint32, []*NoticeInfo) {
+func (mine *cacheContext) GetNoticesByTargets(owner string,array []string, st MessageStatus, page, num uint32) (uint32, uint32, []*NoticeInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*NoticeInfo, 0, 1)
 	}
@@ -90,9 +91,9 @@ func (mine *cacheContext) GetNoticesByTargets(owner string,array []string, page,
 	var dbs []*nosql.Notice
 	var er error
 	if len(owner) < 1{
-		dbs,er = nosql.GetNoticesByTargets(array)
+		dbs,er = nosql.GetNoticesByTargets(uint8(st), array)
 	}else{
-		dbs,er = nosql.GetNoticesByOTargets(owner, array)
+		dbs,er = nosql.GetNoticesByOTargets(owner, uint8(st), array)
 	}
 	if er == nil {
 		for _, db := range dbs {
@@ -107,8 +108,33 @@ func (mine *cacheContext) GetNoticesByTargets(owner string,array []string, page,
 	if len(all) < 1 {
 		return 0, 0, make([]*NoticeInfo, 0, 1)
 	}
-	max, pages, list := checkPage(page, num, all)
+	max, pages, list := CheckPage(page, num, all)
 	return max, pages, list.([]*NoticeInfo)
+}
+
+func (mine *cacheContext) GetAllNoticesByTargets(owner string, st MessageStatus, tm uint64,array []string) []*NoticeInfo {
+	if array == nil || len(array) < 1 {
+		return make([]*NoticeInfo, 0, 1)
+	}
+	all := make([]*NoticeInfo, 0, 20)
+	var dbs []*nosql.Notice
+	var er error
+	if len(owner) < 1{
+		dbs,er = nosql.GetNoticesByTargets(uint8(st), array)
+	}else{
+		dbs,er = nosql.GetNoticesByOTargets(owner, uint8(st), array)
+	}
+	if er == nil {
+		var secs int64 = -3600 * 24 * 7
+		for _, db := range dbs {
+			if db.CreatedTime.Unix() - int64(tm) > secs {
+				info := new(NoticeInfo)
+				info.initInfo(db)
+				all = append(all, info)
+			}
+		}
+	}
+	return all
 }
 
 func (mine *cacheContext) GetNoticesByList(array []string) []*NoticeInfo {
@@ -142,9 +168,12 @@ func (mine *NoticeInfo) initInfo(db *nosql.Notice) {
 	mine.Status = MessageStatus(db.Status)
 	mine.Tags = db.Tags
 	mine.Targets = db.Targets
-	if mine.Targets == nil {
-		mine.Targets = make([]string, 0, 1)
-		_ = mine.UpdateTargets(mine.Operator, mine.Targets)
+	if mine.Targets == nil || len(mine.Targets) < 1{
+		mine.Targets = make([]string, 0 ,15)
+		for i := 0;i < 15;i += 1 {
+			mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
+		}
+		_ = nosql.UpdateNoticeTargets(mine.UID, mine.Operator, mine.Targets)
 	}
 
 	if mine.Tags == nil {

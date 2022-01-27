@@ -228,9 +228,32 @@ func GetFavoritesByType(table string, kind uint8) ([]*Favorite, error) {
 	return items, nil
 }
 
-func GetFavoritesByTarget(table, target string) ([]*Favorite, error) {
+func GetFavoritesByTarget(table, owner, target string) ([]*Favorite, error) {
 	def := new(time.Time)
-	filter := bson.M{"targets": bson.M{"target": target} , "deleteAt": def}
+	filter := bson.M{"owner":owner, "targets.target": target , "deleteAt": def}
+	cursor, err1 := findMany(table, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Favorite, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Favorite)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetFavoritesByTargets(table string, st uint8, targets []string) ([]*Favorite, error) {
+	def := new(time.Time)
+	in := bson.A{}
+	for _, target := range targets {
+		in = append(in, target)
+	}
+	filter := bson.M{"status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
 	cursor, err1 := findMany(table, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -260,7 +283,7 @@ func UpdateFavoriteCover(table, uid, cover, operator string) error {
 }
 
 func UpdateFavoriteState(table, uid, operator string, st uint8) error {
-	msg := bson.M{"state": st, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"status": st, "operator":operator, "updatedAt": time.Now()}
 	_, err := updateOne(table, uid, msg)
 	return err
 }

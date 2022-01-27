@@ -147,13 +147,13 @@ func GetActivitiesByOwner(owner string) ([]*Activity, error) {
 	return items, nil
 }
 
-func GetActivitiesByTargets(targets []string) ([]*Activity, error) {
+func GetActivitiesByTargets(st uint8, targets []string) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{ "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}, bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}} , "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -170,13 +170,36 @@ func GetActivitiesByTargets(targets []string) ([]*Activity, error) {
 	return items, nil
 }
 
-func GetActivitiesByOTargets(owner string, targets []string) ([]*Activity, error) {
+func GetActivitiesByOTargets(owner string, st uint8, targets []string) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"owner":owner, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"owner":owner, "status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.TODO()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetActivitiesByStates(owner string, states []uint8) ([]*Activity, error) {
+	def := new(time.Time)
+	in := bson.A{}
+	for _, st := range states {
+		in = append(in, bson.M{"status":st})
+	}
+	filter := bson.M{"owner":owner, "$or":bson.A{in}, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -196,6 +219,29 @@ func GetActivitiesByOTargets(owner string, targets []string) ([]*Activity, error
 func GetActivitiesByStatus(owner string, status uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "status":status, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetActivitiesByShow(owners []string, st uint8) ([]*Activity, error) {
+	def := new(time.Time)
+	in := bson.A{}
+	for _, ss := range owners {
+		in = append(in, bson.M{"owner":ss})
+	}
+	filter := bson.M{"$or":bson.A{in}, "show":st, "template":"", "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1

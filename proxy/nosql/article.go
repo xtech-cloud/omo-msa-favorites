@@ -144,13 +144,13 @@ func GetArticlesByOwner(owner string) ([]*Article, error) {
 	return items, nil
 }
 
-func GetArticlesByTargets(targets []string) ([]*Article, error) {
+func GetArticlesByTargets(st uint8, targets []string) ([]*Article, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"$or":bson.A{bson.M{"targets": bson.M{"$in":in}}, bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}, bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
 	cursor, err1 := findMany(TableArticle, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -167,13 +167,13 @@ func GetArticlesByTargets(targets []string) ([]*Article, error) {
 	return items, nil
 }
 
-func GetArticlesByOTargets(owner string, targets []string) ([]*Article, error) {
+func GetArticlesByOTargets(owner string, st uint8, targets []string) ([]*Article, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"owner":owner, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"owner":owner,"status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}} , "deleteAt": def}
 	cursor, err1 := findMany(TableArticle, filter, 0)
 	if err1 != nil {
 		return nil, err1

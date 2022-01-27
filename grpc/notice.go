@@ -112,7 +112,7 @@ func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out
 		//	return nil
 		//}
 	}else if in.Key == "targets" {
-		max, pages, array = cache.Context().GetNoticesByTargets(in.Owner, in.List, in.Page, in.Number)
+		max, pages, array = cache.Context().GetNoticesByTargets(in.Owner, in.List, cache.MessageStatusAgree, in.Page, in.Number)
 	}else if in.Key == "array" {
 		array = cache.Context().GetNoticesByList(in.List)
 	}else{
@@ -162,7 +162,7 @@ func (mine *NoticeService)UpdateBase(ctx context.Context, in *pb.ReqNoticeUpdate
 	return nil
 }
 
-func (mine *NoticeService)UpdateStatus(ctx context.Context, in *pb.ReqNoticeState, out *pb.ReplyInfo) error {
+func (mine *NoticeService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "notice.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {

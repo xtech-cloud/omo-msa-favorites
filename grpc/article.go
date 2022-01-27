@@ -117,7 +117,7 @@ func (mine *ArticleService)GetList(ctx context.Context, in *pb.RequestFilter, ou
 			return nil
 		}
 	}else if in.Key == "targets" {
-		max, pages, array = cache.Context().GetArticlesByTargets(in.Owner, in.List, in.Page, in.Number)
+		max, pages, array = cache.Context().GetArticlesByTargets(in.Owner, in.List, cache.MessageStatusAgree, in.Page, in.Number)
 	}else if in.Key == "array" {
 		array = cache.Context().GetArticlesByList(in.List)
 	}else{
@@ -182,7 +182,7 @@ func (mine *ArticleService)UpdateBase(ctx context.Context, in *pb.ReqArticleUpda
 	return nil
 }
 
-func (mine *ArticleService)UpdateStatus(ctx context.Context, in *pb.ReqArticleState, out *pb.ReplyInfo) error {
+func (mine *ArticleService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "article.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {

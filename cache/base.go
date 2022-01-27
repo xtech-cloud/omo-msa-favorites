@@ -1,10 +1,13 @@
 package cache
 
 import (
+	"errors"
 	"github.com/micro/go-micro/v2/logger"
 	"omo.msa.favorite/config"
 	"omo.msa.favorite/proxy/nosql"
 	"reflect"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -47,7 +50,7 @@ func Context() *cacheContext {
 	return cacheCtx
 }
 
-func checkPage( page, number uint32, all interface{}) (uint32, uint32, interface{}) {
+func CheckPage( page, number uint32, all interface{}) (uint32, uint32, interface{}) {
 	if number < 1 {
 		number = 10
 	}
@@ -69,4 +72,30 @@ func checkPage( page, number uint32, all interface{}) (uint32, uint32, interface
 
 	list := array.Slice(int(start), int(end))
 	return total, maxPage, list.Interface()
+}
+
+func ParseDate(msg string) (year int, month time.Month, day int, err error) {
+	if len(msg) < 1 {
+		return 0,0,0, errors.New("the date is empty")
+	}
+	array := strings.Split(msg, "/")
+	if array != nil && len(array) > 2 {
+		y,_ := strconv.ParseUint(array[0], 10, 32)
+		year = int(y)
+		m,_ := strconv.ParseUint(array[1], 10, 32)
+		month = time.Month(m)
+		d,_ := strconv.ParseUint(array[2], 10, 32)
+		day = int(d)
+		return year,month, day, nil
+	}else{
+		return 0,0,0,errors.New("the split array is nil")
+	}
+}
+
+func ParseTime(msg string) int64 {
+	y,m,d,e := ParseDate(msg)
+	if e != nil {
+		return 0
+	}
+	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Unix()
 }

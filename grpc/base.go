@@ -5,7 +5,43 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
+	"strconv"
+	"strings"
 )
+
+func stringToUints(source, split string) ([]uint8,error) {
+	arr := make([]uint8, 0, 3)
+	if strings.Contains(source, split) {
+		ss := strings.Split(source, split)
+		for _, s := range ss {
+			st, er := strconv.ParseUint(s, 10, 32)
+			if er != nil {
+				return nil, er
+			}
+			arr = append(arr, uint8(st))
+		}
+	}else{
+		st, er := strconv.ParseUint(source, 10, 32)
+		if er != nil {
+			return nil, er
+		}
+		arr = append(arr, uint8(st))
+	}
+	return arr, nil
+}
+
+func stringToArray(source, split string) ([]string,error) {
+	arr := make([]string, 0, 3)
+	if strings.Contains(source, split) {
+		ss := strings.Split(source, split)
+		for _, s := range ss {
+			arr = append(arr, s)
+		}
+	}else{
+		arr = append(arr, source)
+	}
+	return arr, nil
+}
 
 func inLog(name, data interface{})  {
 	bytes, _ := json.Marshal(data)

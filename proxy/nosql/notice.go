@@ -18,7 +18,7 @@ type Notice struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Status  uint8 `json:"status" bson:"status"`
+	Status   uint8  `json:"status" bson:"status"`
 	Subtitle string `json:"subtitle" bson:"subtitle"`
 	Body     string `json:"body" bson:"body"`
 	Owner    string `json:"owner" bson:"owner"`
@@ -66,13 +66,13 @@ func GetNoticeCount() int64 {
 	return num
 }
 
-func GetNoticesByTargets(targets []string) ([]*Notice, error) {
+func GetNoticesByTargets(st uint8, targets []string) ([]*Notice, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{ "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}, bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}, bson.M{"targets": bson.M{"$ne": nil}}}, "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -89,13 +89,13 @@ func GetNoticesByTargets(targets []string) ([]*Notice, error) {
 	return items, nil
 }
 
-func GetNoticesByOTargets(owner string, targets []string) ([]*Notice, error) {
+func GetNoticesByOTargets(owner string, st uint8, targets []string) ([]*Notice, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"owner":owner, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)
 	if err1 != nil {
 		return nil, err1

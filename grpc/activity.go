@@ -7,6 +7,7 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
+	"omo.msa.favorite/tool"
 	"strconv"
 )
 
@@ -213,20 +214,32 @@ func (mine *ActivityService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	var max uint32 = 0
 	var pages uint32 = 0
 	if in.Key == "targets" {
-		max, pages, array = cache.Context().GetActivitiesByTargets(in.Owner, in.List, in.Page, in.Number)
+		max, pages, array = cache.Context().GetActivitiesByTargets(in.Owner, in.List, cache.ActivityStatusPublish, in.Page, in.Number)
 	}else if in.Key == "status" {
-		st, er := strconv.ParseUint(in.Value, 10, 32)
+		arr,er := stringToUints(in.Value, ";")
 		if er != nil {
 			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-		max, pages, array = cache.Context().GetActivitiesByStatus(in.Owner, uint8(st), in.Page, in.Number)
+		max, pages, array = cache.Context().GetActivitiesByStatus(in.Owner, arr, in.Page, in.Number)
 	}else if in.Key == "opuses" {
 
 	}else if in.Key == "organizer" {
 		array = cache.Context().GetActivitiesByOrganizer(in.Value)
 	}else if in.Key == "template" {
 		array = cache.Context().GetActivitiesByTemplate(in.Owner, in.Value)
+	}else if in.Key == "show" {
+		st, er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
+		owners,er := stringToArray(in.Owner, ";")
+		if er != nil {
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
+		max, pages, array = cache.Context().GetActivitiesByShow(owners, uint8(st), in.Page, in.Number)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
@@ -251,7 +264,7 @@ func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUp
 		return nil
 	}
 	var err error
-	if len(in.Cover) > 0 {
+	if len(in.Cover) > 0 && in.Cover != info.Cover {
 		err = info.UpdateCover(in.Cover, in.Operator)
 	}
 	if len(in.Name) > 0 || len(in.Remark) > 0 {
@@ -260,6 +273,18 @@ func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUp
 	}
 	if uint8(in.Limit) != info.SubmitLimit {
 		err = info.UpdateAssetLimit(in.Operator, uint8(in.Limit))
+	}
+
+	if !tool.EqualArray(info.Tags, in.Tags) {
+		err = info.UpdateTags(in.Operator, in.Tags)
+	}
+
+	if !tool.EqualArray(info.Targets, in.Targets) {
+		err = info.UpdateTargets(in.Operator, in.Targets)
+	}
+
+	if !tool.EqualArray(info.Assets, in.Assets) {
+		err = info.UpdateAssets(in.Operator, in.Assets)
 	}
 
 	if err != nil {
@@ -348,7 +373,7 @@ func (mine *ActivityService)UpdateTargets(ctx context.Context, in *pb.RequestLis
 	return nil
 }
 
-func (mine *ActivityService)UpdateStatus(ctx context.Context, in *pb.ReqActivityState, out *pb.ReplyInfo) error {
+func (mine *ActivityService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "activity.updateTargets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
@@ -425,7 +450,7 @@ func (mine *ActivityService)UpdatePrize(ctx context.Context, in *pb.ReqActivityP
 	return nil
 }
 
-func (mine *ActivityService)UpdateShow(ctx context.Context, in *pb.ReqActivityState, out *pb.ReplyInfo) error {
+func (mine *ActivityService)UpdateShow(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "activity.updateShow"
 	inLog(path, in)
 	if len(in.Uid) < 1 {

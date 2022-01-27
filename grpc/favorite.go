@@ -176,7 +176,7 @@ func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	if in.Key == "target" {
 
 	}else if in.Key == "targets" {
-		max, pages, array = cache.Context().GetFavoritesByTargets(in.List, in.Page, in.Number)
+		max, pages, array = cache.Context().GetFavoritesByTargets(in.Owner, in.List, in.Page, in.Number)
 	}else if in.Key == "status" {
 		st, er := strconv.ParseUint(in.Value, 10, 32)
 		if er != nil {
@@ -247,7 +247,7 @@ func (mine *FavoriteService)UpdateMeta(ctx context.Context, in *pb.ReqFavoriteMe
 	return nil
 }
 
-func (mine *FavoriteService)UpdateStatus(ctx context.Context, in *pb.ReqFavoriteState, out *pb.ReplyInfo) error {
+func (mine *FavoriteService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "favorite.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {

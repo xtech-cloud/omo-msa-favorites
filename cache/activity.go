@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy"
@@ -16,8 +17,7 @@ const (
 	ActivityStatusPending uint8 = 2 // 审核通过，待发布或者释放
 	ActivityStatusRelease  uint8 = 3 // 释放成功
 	ActivityStatusPublish  uint8 = 4 // 发布成功
-	ActivityStatusEnd  uint8 = 5 // 活动结束
-	ActivityStatusAbandon  uint8 = 6 // 活动废弃
+	ActivityStatusAbandon  uint8 = 5 // 活动废弃
 )
 
 const (
@@ -158,7 +158,7 @@ func (mine *cacheContext)GetActivitiesByOwner(uid string, usable bool) []*Activi
 	return make([]*ActivityInfo, 0, 1)
 }
 
-func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string,st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
@@ -166,9 +166,9 @@ func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string, p
 	var dbs []*nosql.Activity
 	var er error
 	if len(owner) < 1{
-		dbs,er = nosql.GetActivitiesByTargets(array)
+		dbs,er = nosql.GetActivitiesByTargets(st, array)
 	}else{
-		dbs,er = nosql.GetActivitiesByOTargets(owner, array)
+		dbs,er = nosql.GetActivitiesByOTargets(owner,st, array)
 	}
 	if er == nil {
 		for _, db := range dbs {
@@ -183,16 +183,42 @@ func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string, p
 	if len(all) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
-	max, pages, list := checkPage(page, num, all)
+	max, pages, list := CheckPage(page, num, all)
 	return max, pages, list.([]*ActivityInfo)
 }
 
-func (mine *cacheContext) GetActivitiesByStatus(owner string, st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+func (mine *cacheContext) GetAllActivitiesByTargets(owner string,st uint8, tm uint64, array []string) []*ActivityInfo {
+	if array == nil || len(array) < 1 {
+		return make([]*ActivityInfo, 0, 1)
+	}
+	all := make([]*ActivityInfo, 0, 20)
+	var dbs []*nosql.Activity
+	var er error
+	if len(owner) < 1{
+		dbs,er = nosql.GetActivitiesByTargets(st, array)
+	}else{
+		dbs,er = nosql.GetActivitiesByOTargets(owner, st, array)
+	}
+	if er == nil {
+		var secs int64 = -3600 * 24 * 7
+		for _, db := range dbs {
+			start := ParseTime(db.Date.Start)
+			if start - int64(tm) > secs {
+				info := new(ActivityInfo)
+				info.initInfo(db)
+				all = append(all, info)
+			}
+		}
+	}
+	return all
+}
+
+func (mine *cacheContext) GetActivitiesByStatus(owner string, states []uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if len(owner) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
 	all := make([]*ActivityInfo, 0, 10)
-	db, _ := nosql.GetActivitiesByStatus(owner, st)
+	db, _ := nosql.GetActivitiesByStates(owner, states)
 	if db != nil {
 		for _, item := range db {
 			info := new(ActivityInfo)
@@ -207,7 +233,31 @@ func (mine *cacheContext) GetActivitiesByStatus(owner string, st uint8, page, nu
 	if len(all) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
-	max, pages, list := checkPage(page, num, all)
+	max, pages, list := CheckPage(page, num, all)
+	return max, pages, list.([]*ActivityInfo)
+}
+
+func (mine *cacheContext) GetActivitiesByShow(owners []string, st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+	if owners == nil || len(owners) < 1 {
+		return 0, 0, make([]*ActivityInfo, 0, 1)
+	}
+	all := make([]*ActivityInfo, 0, 10)
+	db, _ := nosql.GetActivitiesByShow(owners, st)
+	if db != nil {
+		for _, item := range db {
+			info := new(ActivityInfo)
+			info.initInfo(item)
+			all = append(all, info)
+		}
+	}
+
+	if num < 1 {
+		num = 10
+	}
+	if len(all) < 1 {
+		return 0, 0, make([]*ActivityInfo, 0, 1)
+	}
+	max, pages, list := CheckPage(page, num, all)
 	return max, pages, list.([]*ActivityInfo)
 }
 
@@ -264,9 +314,12 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 	mine.Persons = db.Persons
 	mine.Status = db.Status
 
-	if mine.Targets == nil {
-		mine.Targets = make([]string, 0 ,1)
-		_ = nosql.UpdateArticleTargets(mine.UID, mine.Operator, mine.Targets)
+	if mine.Targets == nil || len(mine.Targets) < 1{
+		mine.Targets = make([]string, 0 ,15)
+		for i := 0;i < 15;i += 1 {
+			mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
+		}
+		_ = nosql.UpdateActivityTargets(mine.UID, mine.Operator, mine.Targets)
 	}
 	if mine.Assets == nil {
 		mine.Assets = make([]string, 0, 1)
