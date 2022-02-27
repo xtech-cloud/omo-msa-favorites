@@ -141,6 +141,18 @@ func (mine *ArticleService)GetStatistic(ctx context.Context, in *pb.RequestFilte
 	return nil
 }
 
+func (mine *ArticleService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+	path := "article.updateByFilter"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
+
+	out.Status = outLog(path, out)
+	return nil
+}
+
 func (mine *ArticleService)UpdateBase(ctx context.Context, in *pb.ReqArticleUpdate, out *pb.ReplyArticleInfo) error {
 	path := "article.updateBase"
 	inLog(path, in)

@@ -178,12 +178,26 @@ func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	}else if in.Key == "targets" {
 		max, pages, array = cache.Context().GetFavoritesByTargets(in.Owner, in.List, in.Page, in.Number)
 	}else if in.Key == "status" {
-		st, er := strconv.ParseUint(in.Value, 10, 32)
-		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
-			return nil
+		if in.List != nil && len(in.List) > 1 {
+			for _, val := range in.List {
+				st, er := strconv.ParseUint(val, 10, 32)
+				if er != nil {
+					out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+					return nil
+				}
+				arr := cache.Context().GetFavoritesByStatus(in.Owner, uint8(st), in.Person)
+				if len(arr) > 0 {
+					array = append(array, arr...)
+				}
+			}
+		}else{
+			st, er := strconv.ParseUint(in.Value, 10, 32)
+			if er != nil {
+				out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+				return nil
+			}
+			array = cache.Context().GetFavoritesByStatus(in.Owner, uint8(st), in.Person)
 		}
-		array = cache.Context().GetFavoritesByStatus(in.Owner, uint8(st), in.Person)
 	}
 	out.List = make([]*pb.FavoriteInfo, 0, len(array))
 	for _, val := range array {
@@ -192,6 +206,18 @@ func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	out.Total = max
 	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
+	return nil
+}
+
+func (mine *FavoriteService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+	path := "favorite.updateByFilter"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
+
+	out.Status = outLog(path, out)
 	return nil
 }
 
@@ -366,7 +392,7 @@ func (mine *FavoriteService)UpdateTargets(ctx context.Context, in *pb.ReqFavorit
 	path := "favorite.updateTargets"
 	inLog(path, in)
 	if in.List == nil || len(in.List) < 1 {
-		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path,"the favorite list is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	for _, uid := range in.List {

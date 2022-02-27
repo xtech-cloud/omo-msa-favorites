@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
+	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"sort"
-)
-
-const (
-	ObserveActivity = 1
-	ObserveNotice = 2
+	"strconv"
 )
 
 type MessageService struct {}
@@ -18,7 +15,7 @@ type MessageService struct {}
 func switchActivityMessage(info *cache.ActivityInfo, entity string) *pb.MessageInfo {
 	tmp := new(pb.MessageInfo)
 	tmp.Uid = info.UID
-	tmp.Type = ObserveActivity
+	tmp.Type = cache.ObserveActivity
 	tmp.Name = info.Name
 	tmp.Created = uint64(info.CreateTime.Unix())
 	tmp.Remark = info.Remark
@@ -34,7 +31,7 @@ func switchActivityMessage(info *cache.ActivityInfo, entity string) *pb.MessageI
 func switchNoticeMessage(info *cache.NoticeInfo, entity string) *pb.MessageInfo {
 	tmp := new(pb.MessageInfo)
 	tmp.Uid = info.UID
-	tmp.Type = ObserveNotice
+	tmp.Type = cache.ObserveNotice
 	tmp.Name = info.Name
 	tmp.Created = uint64(info.CreateTime.Unix())
 	tmp.Remark = info.Body
@@ -88,6 +85,23 @@ func (mine *MessageService)GetByFilter(ctx context.Context, in *pb.ReqMessageFil
 	out.Total = max
 	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d, max = %d", len(out.List), max))
+	return nil
+}
+
+func (mine *MessageService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+	path := "message.getStatistic"
+	inLog(path, in)
+	out.Owner = in.Owner
+	if in.Key == "type" {
+		tp, er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+		out.Count = cache.Context().GetRecordCount(in.Owner, uint8(tp))
+	}
+
+	out.Status = outLog(path, out)
 	return nil
 }
 

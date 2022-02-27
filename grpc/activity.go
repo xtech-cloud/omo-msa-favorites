@@ -7,6 +7,7 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
+	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
 	"strconv"
 )
@@ -36,11 +37,8 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Organizer = info.Organizer
 	tmp.Template = info.Template
 	tmp.Assets = info.Assets
+	tmp.Participant = info.Participant
 	tmp.Limit = uint32(info.SubmitLimit)
-	tmp.Participants = make([]*pb.PairInfo, 0, len(info.Persons))
-	for _, person := range info.Persons {
-		tmp.Participants = append(tmp.Participants, &pb.PairInfo{Key: person.Entity, Value: person.Event})
-	}
 	tmp.Targets = info.Targets
 	tmp.Prize = switchPrize(info.Prize)
 	tmp.Opuses = switchOpuses(info.Opuses)
@@ -93,6 +91,10 @@ func (mine *ActivityService)AddOne(ctx context.Context, in *pb.ReqActivityAdd, o
 			return nil
 		}
 	}
+	if in.Targets == nil || len(in.Targets) < 1 {
+		out.Status = outError(path,"the activity targets is not empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
 
 	info := new(cache.ActivityInfo)
 	info.Name = in.Name
@@ -114,7 +116,6 @@ func (mine *ActivityService)AddOne(ctx context.Context, in *pb.ReqActivityAdd, o
 	info.Type = uint8(in.Type)
 	info.Opuses = make([]proxy.OpusInfo, 0, 1)
 	info.SubmitLimit = uint8(in.Limit)
-	info.Persons = make([]proxy.PersonInfo, 0 ,1)
 	if in.Prize != nil {
 		info.Prize = &proxy.PrizeInfo{
 			Name: in.Prize.Name,
@@ -164,6 +165,11 @@ func (mine *ActivityService)GetStatistic(ctx context.Context, in *pb.RequestFilt
 		out.Count = cache.Context().GetActivityCount(in.Owner)
 	}else if in.Key == "clone" {
 		out.Count = cache.Context().GetActivityCloneCount(in.Owner)
+	}else if in.Key == "template_participant" {
+		list := cache.Context().GetActivitiesByTemplate(in.Owner, in.Value)
+		for _, info := range list {
+			out.Count = out.Count + info.Participant
+		}
 	}
 	out.Status = outLog(path, out)
 	return nil
@@ -296,6 +302,32 @@ func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUp
 	return nil
 }
 
+func (mine *ActivityService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+	path := "activity.updateByFilter"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
+	if in.Key == "participant" {
+		if in.Value == "" {
+			out.Status = outError(path,"the activity participant value is empty", pbstatus.ResultStatus_Empty)
+			return nil
+		}
+		num,er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+		er = nosql.UpdateActivityParticipant(in.Uid, uint32(num))
+		if er != nil {
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+	}
+	out.Status = outLog(path, out)
+	return nil
+}
 
 func (mine *ActivityService)UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
 	path := "activity.updateTags"
@@ -480,18 +512,19 @@ func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.AppendPerson(in.Owner, in.Flag)
-	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.List = info.GetEntities()
-	out.Status = outLog(path, out)
+	out.Status = outError(path,"the fun not implement", pbstatus.ResultStatus_Empty)
+	//info := cache.Context().GetActivity(in.Uid)
+	//if info == nil {
+	//	out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+	//	return nil
+	//}
+	//err := info.AppendPerson(in.Owner, in.Flag)
+	//if err != nil {
+	//	out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+	//	return nil
+	//}
+	//out.List = info.GetEntities()
+	//out.Status = outLog(path, out)
 	return nil
 }
 
@@ -502,18 +535,19 @@ func (mine *ActivityService)SubtractOne(ctx context.Context, in *pb.RequestInfo,
 		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.SubtractPerson(in.Owner)
-	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.List = info.GetEntities()
-	out.Status = outLog(path, out)
+	out.Status = outError(path,"the fun not implement", pbstatus.ResultStatus_Empty)
+	//info := cache.Context().GetActivity(in.Uid)
+	//if info == nil {
+	//	out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+	//	return nil
+	//}
+	//err := info.SubtractPerson(in.Owner)
+	//if err != nil {
+	//	out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+	//	return nil
+	//}
+	//out.List = info.GetEntities()
+	//out.Status = outLog(path, out)
 	return nil
 }
 

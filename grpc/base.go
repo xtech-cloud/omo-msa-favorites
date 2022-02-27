@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/micro/go-micro/v2/logger"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -10,6 +11,9 @@ import (
 )
 
 func stringToUints(source, split string) ([]uint8,error) {
+	if source == "" {
+		return nil, errors.New("the source string is empty")
+	}
 	arr := make([]uint8, 0, 3)
 	if strings.Contains(source, split) {
 		ss := strings.Split(source, split)

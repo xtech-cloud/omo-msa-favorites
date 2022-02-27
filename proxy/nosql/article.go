@@ -22,6 +22,7 @@ type Article struct {
 	Subtitle string `json:"subtitle" bson:"subtitle"`
 	Body     string `json:"body" bson:"body"`
 	Owner    string `json:"owner" bson:"owner"`
+	Author   string `json:"author" bson:"author"`
 	Type     uint8  `json:"type" bson:"type"`
 
 	Assets  []string `json:"assets" bson:"assets"`

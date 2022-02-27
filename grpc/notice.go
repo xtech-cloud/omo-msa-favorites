@@ -6,6 +6,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
+	"strconv"
 )
 
 type NoticeService struct {}
@@ -19,6 +20,7 @@ func switchNotice(info *cache.NoticeInfo) *pb.NoticeInfo {
 	tmp.Creator = info.Creator
 	tmp.Operator = info.Operator
 	tmp.Name = info.Name
+	tmp.Type = uint32(info.Type)
 	tmp.Body = info.Body
 	tmp.Subtitle = info.Subtitle
 	tmp.Owner = info.Owner
@@ -43,6 +45,7 @@ func (mine *NoticeService)AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out *
 	info.Tags = make([]string, 0, 1)
 	info.Targets = in.Targets
 	info.Owner = in.Owner
+	info.Type = uint8(in.Type)
 	info.Status = cache.MessageStatusDraft
 	err := cache.Context().CreateNotice(info)
 	if err != nil {
@@ -112,9 +115,16 @@ func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out
 		//	return nil
 		//}
 	}else if in.Key == "targets" {
-		max, pages, array = cache.Context().GetNoticesByTargets(in.Owner, in.List, cache.MessageStatusAgree, in.Page, in.Number)
+		max, pages, array = cache.Context().GetNoticesByTargets(in.Owner, in.List, cache.MessageStatusAgree, cache.NoticeToFamily, in.Page, in.Number)
 	}else if in.Key == "array" {
 		array = cache.Context().GetNoticesByList(in.List)
+	}else if in.Key == "type" {
+		tp,er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
+		array = cache.Context().GetNoticesByType(in.Owner, uint32(tp))
 	}else{
 		array = cache.Context().GetNoticesByOwner(in.Owner)
 	}
@@ -125,6 +135,18 @@ func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out
 	out.Total = max
 	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
+	return nil
+}
+
+func (mine *NoticeService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+	path := "notice.updateByFilter"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
+
+	out.Status = outLog(path, out)
 	return nil
 }
 

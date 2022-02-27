@@ -2,8 +2,6 @@ package cache
 
 import (
 	"errors"
-	"fmt"
-	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
@@ -42,11 +40,12 @@ type ActivityInfo struct {
 	Date        proxy.DateInfo
 	Place       proxy.PlaceInfo
 	Prize       *proxy.PrizeInfo
+	Participant uint32
 
 	Assets   []string
 	Tags     []string
 	Targets []string //具体的班级，场景等
-	Persons []proxy.PersonInfo
+	//Persons []proxy.PersonInfo
 	Opuses []proxy.OpusInfo //获奖作品
 }
 
@@ -82,7 +81,7 @@ func (mine *cacheContext)CreateActivity(info *ActivityInfo) error {
 	db.Prize = info.Prize
 	db.Template = info.Template
 	db.Opuses = make([]proxy.OpusInfo, 0, 1)
-	db.Participants = make([]string, 0, 1)
+	db.Participant = 0
 	db.Tags = info.Tags
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
@@ -95,10 +94,10 @@ func (mine *cacheContext)CreateActivity(info *ActivityInfo) error {
 	if db.Targets == nil {
 		db.Targets = make([]string, 0, 1)
 	}
-	db.Persons = info.Persons
-	if db.Persons == nil {
-		db.Persons = make([]proxy.PersonInfo, 0, 1)
-	}
+	//db.Persons = info.Persons
+	//if db.Persons == nil {
+	//	db.Persons = make([]proxy.PersonInfo, 0, 1)
+	//}
 
 	err := nosql.CreateActivity(db)
 	if err == nil {
@@ -311,28 +310,29 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 	mine.Tags = db.Tags
 	mine.Targets = db.Targets
 	mine.SubmitLimit = db.Limit
-	mine.Persons = db.Persons
+	mine.Participant = db.Participant
+	//mine.Persons = db.Persons
 	mine.Status = db.Status
 
-	if mine.Targets == nil || len(mine.Targets) < 1{
-		mine.Targets = make([]string, 0 ,15)
-		for i := 0;i < 15;i += 1 {
-			mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
-		}
+	if mine.Targets == nil {
+		mine.Targets = make([]string, 0 ,1)
+		//for i := 0;i < 15;i += 1 {
+		//	mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
+		//}
 		_ = nosql.UpdateActivityTargets(mine.UID, mine.Operator, mine.Targets)
 	}
 	if mine.Assets == nil {
 		mine.Assets = make([]string, 0, 1)
 		_ = nosql.UpdateActivityAssets(mine.UID, mine.Operator, mine.Assets)
 	}
-	if mine.Persons == nil {
-		mine.Persons = make([]proxy.PersonInfo, 0, 1)
-	}
-	if db.Participants != nil && len(db.Participants) > 0 {
-		for _, item := range db.Participants {
-			mine.Persons = append(mine.Persons, proxy.PersonInfo{Entity: "", Event: item})
-		}
-	}
+	//if mine.Persons == nil {
+	//	mine.Persons = make([]proxy.PersonInfo, 0, 1)
+	//}
+	//if db.Participants != nil && len(db.Participants) > 0 {
+	//	for _, item := range db.Participants {
+	//		mine.Persons = append(mine.Persons, proxy.PersonInfo{Entity: "", Event: item})
+	//	}
+	//}
 	mine.Opuses = db.Opuses
 	if mine.Opuses == nil {
 		mine.Opuses = make([]proxy.OpusInfo, 0, 1)
@@ -340,13 +340,13 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 	}
 }
 
-func (mine *ActivityInfo)GetEntities() []*pb.PairInfo {
-	list := make([]*pb.PairInfo, 0, len(mine.Persons))
-	for _, person := range mine.Persons {
-		list = append(list, &pb.PairInfo{Key: person.Entity, Value: person.Event})
-	}
-	return list
-}
+//func (mine *ActivityInfo)GetEntities() []*pb.PairInfo {
+//	list := make([]*pb.PairInfo, 0, len(mine.Persons))
+//	for _, person := range mine.Persons {
+//		list = append(list, &pb.PairInfo{Key: person.Entity, Value: person.Event})
+//	}
+//	return list
+//}
 
 func (mine *ActivityInfo)UpdateBase(name, remark, require,operator string, date proxy.DateInfo, place proxy.PlaceInfo) error {
 	if len(name) < 1 {
@@ -382,6 +382,9 @@ func (mine *ActivityInfo)UpdateStatus(operator string, st uint8) error {
 	if err == nil {
 		mine.Status = st
 		mine.Operator = operator
+		if st == ActivityStatusPublish || st == ActivityStatusRelease {
+			_ = cacheCtx.updateRecord(mine.Owner, ObserveActivity, 1)
+		}
 	}
 	return err
 }
@@ -477,23 +480,23 @@ func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
 //	return false
 //}
 
-func (mine *ActivityInfo)HadPersonByEvent(uid string) bool {
-	for _, item := range mine.Persons {
-		if item.Event == uid {
-			return true
-		}
-	}
-	return false
-}
-
-func (mine *ActivityInfo)HadPerson(uid string) bool {
-	for _, item := range mine.Persons {
-		if item.Entity == uid {
-			return true
-		}
-	}
-	return false
-}
+//func (mine *ActivityInfo)HadPersonByEvent(uid string) bool {
+//	for _, item := range mine.Persons {
+//		if item.Event == uid {
+//			return true
+//		}
+//	}
+//	return false
+//}
+//
+//func (mine *ActivityInfo)HadPerson(uid string) bool {
+//	for _, item := range mine.Persons {
+//		if item.Entity == uid {
+//			return true
+//		}
+//	}
+//	return false
+//}
 
 func (mine *ActivityInfo)HadTargets(arr []string) bool {
 	if mine.Targets == nil || len(mine.Targets) < 1 {
@@ -537,36 +540,36 @@ func (mine *ActivityInfo)HadTargets(arr []string) bool {
 //	return er
 //}
 
-func (mine *ActivityInfo)AppendPerson(uid, event string) error {
-	if mine.HadPersonByEvent(event) {
-		return nil
-	}
-	person := proxy.PersonInfo{Entity: uid, Event: event}
-	er := nosql.AppendActivityPerson(mine.UID, person)
-	if er == nil {
-		mine.Persons = append(mine.Persons, person)
-	}
-	return er
-}
-
-func (mine *ActivityInfo) SubtractPerson(uid string) error {
-	if !mine.HadPersonByEvent(uid) {
-		return nil
-	}
-	er := nosql.SubtractActivityPerson(mine.UID, uid)
-	if er == nil {
-		for i := 0;i < len(mine.Persons);i += 1 {
-			if mine.Persons[i].Entity == uid {
-				if i == len(mine.Persons) - 1 {
-					mine.Persons = append(mine.Persons[:i])
-				}else{
-					mine.Persons = append(mine.Persons[:i], mine.Persons[i+1:]...)
-				}
-
-				break
-			}
-		}
-	}
-	return er
-}
+//func (mine *ActivityInfo)AppendPerson(uid, event string) error {
+//	if mine.HadPersonByEvent(event) {
+//		return nil
+//	}
+//	person := proxy.PersonInfo{Entity: uid, Event: event}
+//	er := nosql.AppendActivityPerson(mine.UID, person)
+//	if er == nil {
+//		mine.Persons = append(mine.Persons, person)
+//	}
+//	return er
+//}
+//
+//func (mine *ActivityInfo) SubtractPerson(uid string) error {
+//	if !mine.HadPersonByEvent(uid) {
+//		return nil
+//	}
+//	er := nosql.SubtractActivityPerson(mine.UID, uid)
+//	if er == nil {
+//		for i := 0;i < len(mine.Persons);i += 1 {
+//			if mine.Persons[i].Entity == uid {
+//				if i == len(mine.Persons) - 1 {
+//					mine.Persons = append(mine.Persons[:i])
+//				}else{
+//					mine.Persons = append(mine.Persons[:i], mine.Persons[i+1:]...)
+//				}
+//
+//				break
+//			}
+//		}
+//	}
+//	return er
+//}
 

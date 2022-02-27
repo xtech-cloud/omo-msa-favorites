@@ -11,6 +11,13 @@ import (
 	"time"
 )
 
+const (
+	ObserveActivity = 1
+	ObserveNotice = 2
+	ObserveFav = 3
+	ObserveArticle = 4
+)
+
 type BaseInfo struct {
 	ID         uint64 `json:"-"`
 	UID        string `json:"uid"`
@@ -22,7 +29,7 @@ type BaseInfo struct {
 }
 
 type cacheContext struct {
-	//boxes []*OwnerInfo
+
 }
 
 var cacheCtx *cacheContext

@@ -299,18 +299,27 @@ func (mine *FavoriteInfo) UpdateStatus(st uint8, operator string) error {
 	if err == nil {
 		mine.Status = st
 		mine.Operator = operator
+		if st == FavStatusPublish {
+			_ = cacheCtx.updateRecord(mine.Owner, ObserveFav, 1)
+		}
 	}
 	return err
 }
 
 func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
-	if list == nil {
-		return errors.New("the list of keys is nil")
-	}
-	err := nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, list)
-	if err == nil {
-		mine.Keys = list
-		mine.Operator = operator
+	var err error
+	if list == nil || len(list) < 1{
+		err = nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, make([]string, 0, 1))
+		if err == nil {
+			mine.Keys = make([]string, 0, 1)
+			mine.Operator = operator
+		}
+	}else{
+		err = nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, list)
+		if err == nil {
+			mine.Keys = list
+			mine.Operator = operator
+		}
 	}
 	return err
 }
@@ -388,8 +397,9 @@ func (mine *FavoriteInfo) UpdateTarget(uid, effect, skin, operator string, slots
 }
 
 func (mine *FavoriteInfo) UpdateTargets(operator string, targets []string) error {
-	array := make([]*proxy.ShowingInfo, 0, len(mine.Targets))
+	var array []*proxy.ShowingInfo
 	if targets != nil {
+		array = make([]*proxy.ShowingInfo, 0, len(mine.Targets))
 		for _, item := range targets {
 			info := new(proxy.ShowingInfo)
 			info.Target = item
@@ -398,6 +408,8 @@ func (mine *FavoriteInfo) UpdateTargets(operator string, targets []string) error
 			info.Slots = make([]string, 0, 1)
 			array = append(array, info)
 		}
+	}else{
+		array = make([]*proxy.ShowingInfo, 0, 1)
 	}
 	err := nosql.UpdateFavoriteTargets(mine.table, mine.UID, operator, array)
 	if err == nil {

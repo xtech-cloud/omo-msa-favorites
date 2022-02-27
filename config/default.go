@@ -13,7 +13,7 @@ const defaultJson string = `{
 	},
 	"database": {
 		"name": "rgsCloud",
-		"ip": "127.0.0.1",
+		"ip": "192.168.1.31",
 		"port": "27017",
 		"user": "root",
 		"password": "pass2019",

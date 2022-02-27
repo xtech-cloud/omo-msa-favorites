@@ -19,6 +19,7 @@ type Notice struct {
 	Operator    string             `json:"operator" bson:"operator"`
 
 	Status   uint8  `json:"status" bson:"status"`
+	Type     uint8  `json:"type" bson:"type"`
 	Subtitle string `json:"subtitle" bson:"subtitle"`
 	Body     string `json:"body" bson:"body"`
 	Owner    string `json:"owner" bson:"owner"`
@@ -66,13 +67,13 @@ func GetNoticeCount() int64 {
 	return num
 }
 
-func GetNoticesByTargets(st uint8, targets []string) ([]*Notice, error) {
+func GetNoticesByTargets(st, tp uint8, targets []string) ([]*Notice, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}, bson.M{"targets": bson.M{"$ne": nil}}}, "deleteAt": def}
+	filter := bson.M{"status": st, "type":tp, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}, bson.M{"targets": bson.M{"$ne": nil}}}, "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -89,13 +90,13 @@ func GetNoticesByTargets(st uint8, targets []string) ([]*Notice, error) {
 	return items, nil
 }
 
-func GetNoticesByOTargets(owner string, st uint8, targets []string) ([]*Notice, error) {
+func GetNoticesByOTargets(owner string, st, tp uint8, targets []string) ([]*Notice, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"owner": owner, "status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "type": tp, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -115,6 +116,25 @@ func GetNoticesByOTargets(owner string, st uint8, targets []string) ([]*Notice, 
 func GetNoticesByOwner(owner string) ([]*Notice, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
+	cursor, err1 := findMany(TableNotice, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Notice, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Notice)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetNoticesByType(owner string, tp uint32) ([]*Notice, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "type":tp, "deleteAt": def}
 	cursor, err1 := findMany(TableNotice, filter, 0)
 	if err1 != nil {
 		return nil, err1

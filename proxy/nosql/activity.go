@@ -28,6 +28,8 @@ type Activity struct {
 	Status       uint8              `json:"status" bson:"status"`
 	Show         uint8 				`json:"show" bson:"show"`
 
+	Participant  uint32 `json:"participant" bson:"participant"` //活动参与人数
+
 	Organizer    string             `json:"organizer" bson:"organizer"`
 	Template     string 			`json:"template" bson:"template"`
 	Place        proxy.PlaceInfo    `json:"place" bson:"place"`
@@ -199,7 +201,7 @@ func GetActivitiesByStates(owner string, states []uint8) ([]*Activity, error) {
 	for _, st := range states {
 		in = append(in, bson.M{"status":st})
 	}
-	filter := bson.M{"owner":owner, "$or":bson.A{in}, "deleteAt": def}
+	filter := bson.M{"owner":owner, "$or":in, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -316,6 +318,12 @@ func UpdateActivityLimit(uid, operator string, num uint8) error {
 
 func UpdateActivityStatus(uid, operator string, st uint8) error {
 	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityParticipant(uid string, count uint32) error {
+	msg := bson.M{"participant": count, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }

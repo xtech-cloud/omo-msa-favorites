@@ -24,7 +24,8 @@ type ArticleInfo struct {
 	BaseInfo
 	Status   MessageStatus
 	Type     uint8  //
-	Owner    string //该展览所属组织机构，scene, class等
+	Owner    string //该课件所属组织机构，scene, class等
+	Author   string
 	Subtitle string
 	Body     string
 	Tags     []string
@@ -42,6 +43,7 @@ func (mine *cacheContext)CreateArticle(info *ArticleInfo) error {
 	db.Body = info.Body
 	db.Owner = info.Owner
 	db.Type = info.Type
+	db.Author = info.Author
 	db.Status = uint8(info.Status)
 	db.Creator = info.Creator
 	db.Operator = info.Operator
@@ -190,6 +192,7 @@ func (mine *ArticleInfo) initInfo(db *nosql.Article) {
 	mine.Body = db.Body
 	mine.Type = db.Type
 	mine.Owner = db.Owner
+	mine.Author = db.Author
 	mine.Tags = db.Tags
 	mine.Targets = db.Targets
 	mine.Status = MessageStatus(db.Status)
@@ -246,6 +249,9 @@ func (mine *ArticleInfo) UpdateStatus(st MessageStatus, operator string) error {
 	if err == nil {
 		mine.Status = st
 		mine.Operator = operator
+		if st == MessageStatusAgree {
+			_ = cacheCtx.updateRecord(mine.Owner, ObserveArticle, 1)
+		}
 	}
 	return err
 }

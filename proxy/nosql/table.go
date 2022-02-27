@@ -21,4 +21,6 @@ const (
 	TableArticle = "articles"
 
 	TableNotice = "notices"
+
+	TableRecord = "records_msg"
 )
