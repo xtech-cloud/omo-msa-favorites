@@ -7,7 +7,9 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
+	"omo.msa.favorite/tool"
 	"strconv"
+	"time"
 )
 
 type FavoriteService struct {}
@@ -391,20 +393,36 @@ func (mine *FavoriteService)SubtractKey(ctx context.Context, in *pb.RequestInfo,
 func (mine *FavoriteService)UpdateTargets(ctx context.Context, in *pb.ReqFavoriteTargets, out *pb.ReplyInfo) error {
 	path := "favorite.updateTargets"
 	inLog(path, in)
+	if in.Owner == "" {
+		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
 	if in.List == nil || len(in.List) < 1 {
 		out.Status = outError(path,"the favorite list is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	for _, uid := range in.List {
-		info := cache.Context().GetFavorite(uid, false)
-		if info == nil {
-			out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
-			return nil
-		}
-		err := info.UpdateTargets(in.Operator, in.Targets)
-		if err != nil {
-			out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
-			return nil
+	empty := false
+	if in.Targets == nil || len(in.Targets) <1 {
+		empty = true
+	}
+	arr := cache.Context().GetFavoritesByOwner(in.Owner, false)
+	for _, info := range arr {
+		if tool.HasItem(in.List, info.UID) {
+			if empty {
+				_ = info.UpdateTargets(in.Operator, nil)
+			}else{
+				for _, target := range in.Targets {
+					_ = info.AppendSimpleTarget(target)
+				}
+			}
+		}else{
+			if empty {
+
+			}else{
+				for _, target := range in.Targets {
+					_ = info.SubtractTarget(target)
+				}
+			}
 		}
 	}
 
@@ -446,7 +464,7 @@ func (mine *FavoriteService)AppendTarget(ctx context.Context, in *pb.ReqFavorite
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Skin: in.Skin, Slots: in.Slots})
+	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Skin: in.Skin, Slots: in.Slots, UpdatedAt: time.Now()})
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

@@ -204,9 +204,6 @@ func (mine *cacheContext) GetFavoritesByTargets(owner string, array []string, pa
 		}
 	}
 
-	if num < 1 {
-		num = 10
-	}
 	if len(all) < 1 {
 		return 0, 0, make([]*FavoriteInfo, 0, 1)
 	}
@@ -386,6 +383,7 @@ func (mine *FavoriteInfo) UpdateTarget(uid, effect, skin, operator string, slots
 			info.Effect = effect
 			info.Skin = skin
 			info.Slots = slots
+			info.UpdatedAt = time.Now()
 		}
 		array = append(array, info)
 	}
@@ -406,6 +404,7 @@ func (mine *FavoriteInfo) UpdateTargets(operator string, targets []string) error
 			info.Effect = ""
 			info.Skin = ""
 			info.Slots = make([]string, 0, 1)
+			info.UpdatedAt = time.Now()
 			array = append(array, info)
 		}
 	}else{
@@ -429,14 +428,37 @@ func (mine *FavoriteInfo) AppendTarget(show *proxy.ShowingInfo) error {
 	return er
 }
 
-func (mine *FavoriteInfo) SubtractTarget(uid string) error {
-	if !mine.HadTarget(uid) {
+func (mine *FavoriteInfo) AppendSimpleTarget(target string) error {
+	if target == "" {
+		return errors.New("the target is empty")
+	}
+	if mine.HadTarget(target) {
 		return nil
 	}
-	er := nosql.SubtractFavoriteTarget(mine.table, mine.UID, uid)
+	show := new(proxy.ShowingInfo)
+	show.Target = target
+	show.Effect = ""
+	show.Skin = ""
+	show.Slots = make([]string, 0, 1)
+	show.UpdatedAt = time.Now()
+	er := nosql.AppendFavoriteTarget(mine.table, mine.UID, show)
+	if er == nil {
+		mine.Targets = append(mine.Targets, show)
+	}
+	return er
+}
+
+func (mine *FavoriteInfo) SubtractTarget(sn string) error {
+	if sn == "" {
+		return errors.New("the target is empty")
+	}
+	if !mine.HadTarget(sn) {
+		return nil
+	}
+	er := nosql.SubtractFavoriteTarget(mine.table, mine.UID, sn)
 	if er == nil {
 		for i := 0; i < len(mine.Targets); i += 1 {
-			if mine.Targets[i].Target == uid {
+			if mine.Targets[i].Target == sn {
 				if i == len(mine.Targets)-1 {
 					mine.Targets = append(mine.Targets[:i])
 				} else {

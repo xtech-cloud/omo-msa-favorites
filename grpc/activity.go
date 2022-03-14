@@ -321,7 +321,7 @@ func (mine *ActivityService)UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		}
 		er = nosql.UpdateActivityParticipant(in.Uid, uint32(num))
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}

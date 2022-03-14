@@ -9,7 +9,11 @@ import (
 	"time"
 )
 
-const ArticleTypeDef = 0
+const (
+	ArticleLesson = 0 //课件
+	ArticleAnnounce = 1 //校园公告
+	ArticleNews = 2 //区新闻
+)
 
 const (
 	MessageStatusDraft MessageStatus = 0

@@ -1,5 +1,7 @@
 package proxy
 
+import "time"
+
 type EntityInfo struct {
 	UID string `json:"uid" bson:"uid"`
 	Name string `json:"name" bson:"name"`
@@ -47,4 +49,5 @@ type ShowingInfo struct {
 	Effect string `json:"effect" bson:"effect"`
 	Skin string `json:"skin" bson:"skin"`
 	Slots []string `json:"slots" bson:"slots"`
+	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
 }

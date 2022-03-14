@@ -48,7 +48,7 @@ func (mine *ArticleService)AddOne(ctx context.Context, in *pb.ReqArticleAdd, out
 	info.Assets = in.Assets
 	info.Owner = in.Owner
 	info.Status = cache.MessageStatusDraft
-	info.Type = cache.ArticleTypeDef
+	info.Type = uint8(in.Type)
 	err := cache.Context().CreateArticle(info)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
