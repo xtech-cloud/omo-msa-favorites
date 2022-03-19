@@ -39,10 +39,9 @@ func InitData() error {
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
 	if err == nil {
-		table := getFavoriteTable(false)
-		num := nosql.GetFavoriteCount(table)
-		count := nosql.GetRepertoryCount()
-		logger.Infof("the person favorite count = %d and the repertory count = %d", num, count)
+		num := nosql.GetDisplayCount()
+		count := nosql.GetFavoriteCount()
+		logger.Infof("the person favorite count = %d and the display count = %d", count, num)
 
 		db,_ := nosql.GetActivity("616e7f56e1fd51b21c857b26")
 		if db != nil {

@@ -46,6 +46,8 @@ func main() {
 	_ = proto.RegisterArticleServiceHandler(service.Server(), new(grpc.ArticleService))
 	_ = proto.RegisterNoticeServiceHandler(service.Server(), new(grpc.NoticeService))
 	_ = proto.RegisterMessageServiceHandler(service.Server(), new(grpc.MessageService))
+	_ = proto.RegisterDisplayServiceHandler(service.Server(), new(grpc.DisplayService))
+	_ = proto.RegisterSheetServiceHandler(service.Server(), new(grpc.SheetService))
 
 	app, _ := filepath.Abs(os.Args[0])
 

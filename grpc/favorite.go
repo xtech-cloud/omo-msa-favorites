@@ -6,10 +6,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
-	"omo.msa.favorite/proxy"
-	"omo.msa.favorite/tool"
 	"strconv"
-	"time"
 )
 
 type FavoriteService struct {}
@@ -28,10 +25,8 @@ func switchFavorite(info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Owner = info.Owner
 	tmp.Type = uint32(info.Type)
 	tmp.Tags = info.Tags
-	tmp.Origin = info.Origin
 	tmp.Status = uint32(info.Status)
 	tmp.Keys = info.GetKeys()
-	tmp.Targets = info.GetTargets()
 	return tmp
 }
 
@@ -42,15 +37,8 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	if len(in.Origin) > 0 {
-		tmp := cache.Context().GetFavoriteByOrigin(in.Owner, in.Origin, in.Person)
-		if tmp != nil {
-			out.Info = switchFavorite(tmp)
-			out.Status = outLog(path, out)
-			return nil
-		}
-	}
-	if cache.Context().HadFavoriteByName(in.Owner, in.Name, uint8(in.Type), in.Person) {
+
+	if cache.Context().HadFavoriteByName(in.Owner, in.Name, uint8(in.Type)) {
 		out.Status = outError(path,"the name is repeated", pbstatus.ResultStatus_Repeated)
 		return nil
 	}
@@ -61,11 +49,10 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	info.Creator = in.Operator
 	info.Tags = in.Tags
 	info.Keys = in.Keys
-	info.Origin = in.Origin
 	info.Owner = in.Owner
 	info.Status = uint8(in.Status)
 	info.Type = uint8(in.Type)
-	err := cache.Context().CreateFavorite(info, in.Person)
+	err := cache.Context().CreateFavorite(info)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -82,7 +69,7 @@ func (mine *FavoriteService)GetOne(ctx context.Context, in *pb.RequestInfo, out 
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -100,23 +87,6 @@ func (mine *FavoriteService)GetStatistic(ctx context.Context, in *pb.RequestFilt
 	return nil
 }
 
-func (mine *FavoriteService)GetByOrigin(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyFavoriteInfo) error {
-	path := "favorite.getByOrigin"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetFavoriteByOrigin(in.Owner, in.Uid, in.Person)
-	if info == nil {
-		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	out.Info = switchFavorite(info)
-	out.Status = outLog(path, out)
-	return nil
-}
-
 func (mine *FavoriteService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
 	path := "favorite.removeOne"
 	inLog(path, in)
@@ -124,7 +94,7 @@ func (mine *FavoriteService)RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	err := cache.Context().RemoveFavorite(in.Uid, in.Operator, in.Person)
+	err := cache.Context().RemoveFavorite(in.Uid, in.Operator)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -143,9 +113,9 @@ func (mine *FavoriteService)GetList(ctx context.Context, in *pb.ReqFavoriteList,
 	}else{
 		var array []*cache.FavoriteInfo
 		if in.Type > 0 {
-			array = cache.Context().GetFavoritesByType(in.Owner, uint8(in.Type), in.Person)
+			array = cache.Context().GetFavoritesByType(in.Owner, uint8(in.Type))
 		}else{
-			array = cache.Context().GetFavoritesByOwner(in.Owner, in.Person)
+			array = cache.Context().GetFavoritesByOwner(in.Owner)
 		}
 
 		out.List = make([]*pb.FavoriteInfo, 0, len(array))
@@ -160,7 +130,7 @@ func (mine *FavoriteService)GetList(ctx context.Context, in *pb.ReqFavoriteList,
 func (mine *FavoriteService)GetByList(ctx context.Context, in *pb.RequestList, out *pb.ReplyFavoriteList) error {
 	path := "favorite.getByList"
 	inLog(path, in)
-	array := cache.Context().GetFavoritesByList(in.Person, in.List)
+	array := cache.Context().GetFavoritesByList(in.List)
 	out.List = make([]*pb.FavoriteInfo, 0, len(array))
 	for _, val := range array {
 		out.List = append(out.List, switchFavorite(val))
@@ -175,11 +145,7 @@ func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	var array []*cache.FavoriteInfo
 	var max uint32 = 0
 	var pages uint32 = 0
-	if in.Key == "target" {
-
-	}else if in.Key == "targets" {
-		max, pages, array = cache.Context().GetFavoritesByTargets(in.Owner, in.List, in.Page, in.Number)
-	}else if in.Key == "status" {
+	if in.Key == "status" {
 		if in.List != nil && len(in.List) > 1 {
 			for _, val := range in.List {
 				st, er := strconv.ParseUint(val, 10, 32)
@@ -187,7 +153,7 @@ func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 					out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
 					return nil
 				}
-				arr := cache.Context().GetFavoritesByStatus(in.Owner, uint8(st), in.Person)
+				arr := cache.Context().GetFavoritesByStatus(in.Owner, uint8(st))
 				if len(arr) > 0 {
 					array = append(array, arr...)
 				}
@@ -198,7 +164,7 @@ func (mine *FavoriteService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 				out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
 				return nil
 			}
-			array = cache.Context().GetFavoritesByStatus(in.Owner, uint8(st), in.Person)
+			array = cache.Context().GetFavoritesByStatus(in.Owner, uint8(st))
 		}
 	}
 	out.List = make([]*pb.FavoriteInfo, 0, len(array))
@@ -230,7 +196,7 @@ func (mine *FavoriteService)UpdateBase(ctx context.Context, in *pb.ReqFavoriteUp
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -259,7 +225,7 @@ func (mine *FavoriteService)UpdateMeta(ctx context.Context, in *pb.ReqFavoriteMe
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -282,7 +248,7 @@ func (mine *FavoriteService)UpdateStatus(ctx context.Context, in *pb.RequestStat
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -308,7 +274,7 @@ func (mine *FavoriteService)UpdateTags(ctx context.Context, in *pb.ReqFavoriteTa
 		out.Status = outError(path,"the favorite tags is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -330,7 +296,7 @@ func (mine *FavoriteService)UpdateKeys(ctx context.Context, in *pb.ReqFavoriteKe
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -353,7 +319,7 @@ func (mine *FavoriteService)AppendKey(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -375,7 +341,7 @@ func (mine *FavoriteService)SubtractKey(ctx context.Context, in *pb.RequestInfo,
 		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
+	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -386,112 +352,6 @@ func (mine *FavoriteService)SubtractKey(ctx context.Context, in *pb.RequestInfo,
 		return nil
 	}
 	out.Keys = info.GetKeys()
-	out.Status = outLog(path, out)
-	return nil
-}
-
-func (mine *FavoriteService)UpdateTargets(ctx context.Context, in *pb.ReqFavoriteTargets, out *pb.ReplyInfo) error {
-	path := "favorite.updateTargets"
-	inLog(path, in)
-	if in.Owner == "" {
-		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	if in.List == nil || len(in.List) < 1 {
-		out.Status = outError(path,"the favorite list is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	empty := false
-	if in.Targets == nil || len(in.Targets) <1 {
-		empty = true
-	}
-	arr := cache.Context().GetFavoritesByOwner(in.Owner, false)
-	for _, info := range arr {
-		if tool.HasItem(in.List, info.UID) {
-			if empty {
-				_ = info.UpdateTargets(in.Operator, nil)
-			}else{
-				for _, target := range in.Targets {
-					_ = info.AppendSimpleTarget(target)
-				}
-			}
-		}else{
-			if empty {
-
-			}else{
-				for _, target := range in.Targets {
-					_ = info.SubtractTarget(target)
-				}
-			}
-		}
-	}
-
-	out.Status = outLog(path, out)
-	return nil
-}
-
-func (mine *FavoriteService)UpdateTarget(ctx context.Context, in *pb.ReqFavoriteTarget, out *pb.ReplyFavoriteTargets) error {
-	path := "favorite.updateTarget"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
-	if info == nil {
-		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.UpdateTarget(in.Target, in.Effect, in.Skin, in.Operator, in.Slots)
-	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.Targets = info.GetTargets()
-	out.Status = outLog(path, out)
-	return nil
-}
-
-func (mine *FavoriteService)AppendTarget(ctx context.Context, in *pb.ReqFavoriteTarget, out *pb.ReplyFavoriteTargets) error {
-	path := "favorite.appendTarget"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
-	if info == nil {
-		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Skin: in.Skin, Slots: in.Slots, UpdatedAt: time.Now()})
-	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.Targets = info.GetTargets()
-	out.Status = outLog(path, out)
-	return nil
-}
-
-func (mine *FavoriteService)SubtractTarget(ctx context.Context, in *pb.ReqFavoriteTarget, out *pb.ReplyFavoriteTargets) error {
-	path := "favorite.subtractTarget"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the favorite uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetFavorite(in.Uid, in.Person)
-	if info == nil {
-		out.Status = outError(path,"the favorite not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.SubtractTarget(in.Target)
-	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.Targets = info.GetTargets()
 	out.Status = outLog(path, out)
 	return nil
 }

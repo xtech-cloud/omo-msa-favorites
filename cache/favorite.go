@@ -2,55 +2,33 @@ package cache
 
 import (
 	"errors"
-	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"time"
-)
-
-const (
-	FavStatusDraft   uint8 = 0 //草稿
-	FavStatusCheck   uint8 = 1 // 审核中
-	FavStatusPending uint8 = 2 // 审核通过，待发布或者释放
-	FavStatusPublish uint8 = 3 // 发布成功
 )
 
 type FavoriteInfo struct {
 	BaseInfo
 	Status  uint8
 	Type    uint8  //
-	Owner   string //该展览所属组织机构，scene, class等
+	Owner   string //该展览所属用户等
 	Cover   string
 	Remark  string
-	Origin  string //布展数据来源，比如活动
 	Meta    string //
-	table   string
 	Tags    []string
 	Keys    []string
-	Targets []*proxy.ShowingInfo //目标设备
 }
 
-func getFavoriteTable(person bool) string {
-	if person {
-		return nosql.TableFavorite + "_person"
-	} else {
-		return nosql.TableFavorite + "_scene"
-	}
-}
-
-func (mine *cacheContext) CreateFavorite(info *FavoriteInfo, person bool) error {
-	table := getFavoriteTable(person)
+func (mine *cacheContext) CreateFavorite(info *FavoriteInfo) error {
 	db := new(nosql.Favorite)
 	db.UID = primitive.NewObjectID()
-	db.ID = nosql.GetFavoriteNextID(table)
+	db.ID = nosql.GetFavoriteNextID()
 	db.CreatedTime = time.Now()
 	db.Cover = info.Cover
 	db.Name = info.Name
 	db.Remark = info.Remark
 	db.Owner = info.Owner
 	db.Type = info.Type
-	db.Origin = info.Origin
 	db.Status = info.Status
 	db.Creator = info.Creator
 	db.Operator = info.Operator
@@ -62,12 +40,8 @@ func (mine *cacheContext) CreateFavorite(info *FavoriteInfo, person bool) error 
 	if db.Keys == nil {
 		db.Keys = make([]string, 0, 1)
 	}
-	db.Targets = info.Targets
-	if db.Targets == nil {
-		db.Targets = make([]*proxy.ShowingInfo, 0, 1)
-	}
 
-	err := nosql.CreateFavorite(table, db)
+	err := nosql.CreateFavorite(db)
 	if err == nil {
 		info.UID = db.UID.Hex()
 		info.CreateTime = db.CreatedTime
@@ -77,9 +51,8 @@ func (mine *cacheContext) CreateFavorite(info *FavoriteInfo, person bool) error 
 	return err
 }
 
-func (mine *cacheContext) HadFavoriteByName(owner, name string, tp uint8, person bool) bool {
-	table := getFavoriteTable(person)
-	fav, err := nosql.GetFavoriteByName(table, owner, name, tp)
+func (mine *cacheContext) HadFavoriteByName(owner, name string, tp uint8) bool {
+	fav, err := nosql.GetFavoriteByName(owner, name, tp)
 	if err != nil {
 		return false
 	}
@@ -90,42 +63,28 @@ func (mine *cacheContext) HadFavoriteByName(owner, name string, tp uint8, person
 	}
 }
 
-func (mine *cacheContext) RemoveFavorite(uid, operator string, person bool) error {
-	table := getFavoriteTable(person)
-	err := nosql.RemoveFavorite(table, uid, operator)
+func (mine *cacheContext) RemoveFavorite(uid, operator string) error {
+	err := nosql.RemoveFavorite(uid, operator)
 	return err
 }
 
-func (mine *cacheContext) GetFavorite(uid string, person bool) *FavoriteInfo {
-	table := getFavoriteTable(person)
-	db, err := nosql.GetFavorite(table, uid)
+func (mine *cacheContext) GetFavorite(uid string) *FavoriteInfo {
+	db, err := nosql.GetFavorite(uid)
 	if err == nil {
 		info := new(FavoriteInfo)
-		info.initInfo(db, table)
+		info.initInfo(db)
 		return info
 	}
 	return nil
 }
 
-func (mine *cacheContext) GetFavoriteByOrigin(user, uid string, person bool) *FavoriteInfo {
-	table := getFavoriteTable(person)
-	db, err := nosql.GetFavoriteByOrigin(table, user, uid)
-	if err == nil {
-		info := new(FavoriteInfo)
-		info.initInfo(db, table)
-		return info
-	}
-	return nil
-}
-
-func (mine *cacheContext) GetFavoritesByOwner(uid string, person bool) []*FavoriteInfo {
-	table := getFavoriteTable(person)
-	array, err := nosql.GetFavoritesByOwner(table, uid)
+func (mine *cacheContext) GetFavoritesByOwner(uid string) []*FavoriteInfo {
+	array, err := nosql.GetFavoritesByOwner(uid)
 	if err == nil {
 		list := make([]*FavoriteInfo, 0, len(array))
 		for _, item := range array {
 			info := new(FavoriteInfo)
-			info.initInfo(item, table)
+			info.initInfo(item)
 			list = append(list, info)
 		}
 		return list
@@ -133,14 +92,13 @@ func (mine *cacheContext) GetFavoritesByOwner(uid string, person bool) []*Favori
 	return nil
 }
 
-func (mine *cacheContext) GetFavoritesByStatus(uid string, st uint8, person bool) []*FavoriteInfo {
-	table := getFavoriteTable(person)
-	array, err := nosql.GetFavoritesByStatus(table, uid, st)
+func (mine *cacheContext) GetFavoritesByStatus(uid string, st uint8) []*FavoriteInfo {
+	array, err := nosql.GetFavoritesByStatus(uid, st)
 	if err == nil {
 		list := make([]*FavoriteInfo, 0, len(array))
 		for _, item := range array {
 			info := new(FavoriteInfo)
-			info.initInfo(item, table)
+			info.initInfo(item)
 			list = append(list, info)
 		}
 		return list
@@ -148,20 +106,19 @@ func (mine *cacheContext) GetFavoritesByStatus(uid string, st uint8, person bool
 	return nil
 }
 
-func (mine *cacheContext) GetFavoritesByType(owner string, kind uint8, person bool) []*FavoriteInfo {
-	table := getFavoriteTable(person)
+func (mine *cacheContext) GetFavoritesByType(owner string, kind uint8) []*FavoriteInfo {
 	var array []*nosql.Favorite
 	var err error
 	if kind == 1 {
-		array, err = nosql.GetFavoritesByType(table, kind)
+		array, err = nosql.GetFavoritesByType(kind)
 	} else {
-		array, err = nosql.GetFavoritesByOwnerTP(table, owner, kind)
+		array, err = nosql.GetFavoritesByOwnerTP(owner, kind)
 	}
 	if err == nil {
 		list := make([]*FavoriteInfo, 0, len(array))
 		for _, item := range array {
 			info := new(FavoriteInfo)
-			info.initInfo(item, table)
+			info.initInfo(item)
 			list = append(list, info)
 		}
 		return list
@@ -169,17 +126,16 @@ func (mine *cacheContext) GetFavoritesByType(owner string, kind uint8, person bo
 	return nil
 }
 
-func (mine *cacheContext) GetFavoritesByList(person bool, array []string) []*FavoriteInfo {
+func (mine *cacheContext) GetFavoritesByList(array []string) []*FavoriteInfo {
 	if array == nil || len(array) < 1 {
 		return make([]*FavoriteInfo, 0, 1)
 	}
-	table := getFavoriteTable(person)
 	list := make([]*FavoriteInfo, 0, 1)
 	for _, s := range array {
-		db, _ := nosql.GetFavorite(table, s)
+		db, _ := nosql.GetFavorite(s)
 		if db != nil {
 			info := new(FavoriteInfo)
-			info.initInfo(db, table)
+			info.initInfo(db)
 			list = append(list, info)
 		}
 	}
@@ -187,31 +143,7 @@ func (mine *cacheContext) GetFavoritesByList(person bool, array []string) []*Fav
 	return list
 }
 
-func (mine *cacheContext) GetFavoritesByTargets(owner string, array []string, page, num uint32) (uint32, uint32, []*FavoriteInfo) {
-	if array == nil || len(array) < 1 {
-		return 0, 0, make([]*FavoriteInfo, 0, 1)
-	}
-	all := make([]*FavoriteInfo, 0, 10)
-	table := getFavoriteTable(false)
-	for _, s := range array {
-		db, _ := nosql.GetFavoritesByTarget(table, owner, s)
-		if db != nil {
-			for _, item := range db {
-				info := new(FavoriteInfo)
-				info.initInfo(item, table)
-				all = append(all, info)
-			}
-		}
-	}
-
-	if len(all) < 1 {
-		return 0, 0, make([]*FavoriteInfo, 0, 1)
-	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*FavoriteInfo)
-}
-
-func (mine *FavoriteInfo) initInfo(db *nosql.Favorite, table string) {
+func (mine *FavoriteInfo) initInfo(db *nosql.Favorite) {
 	mine.UID = db.UID.Hex()
 	mine.Remark = db.Remark
 	mine.ID = db.ID
@@ -223,31 +155,16 @@ func (mine *FavoriteInfo) initInfo(db *nosql.Favorite, table string) {
 	mine.Cover = db.Cover
 	mine.Type = db.Type
 	mine.Owner = db.Owner
-	mine.Origin = db.Origin
 	mine.Tags = db.Tags
 	mine.Keys = db.Keys
-	mine.table = table
 	mine.Status = db.Status
-	mine.Targets = db.Targets
 	if mine.Keys == nil {
 		mine.Keys = make([]string, 0, 1)
-	}
-	if mine.Targets == nil {
-		mine.Targets = make([]*proxy.ShowingInfo, 0, 1)
-		_ = nosql.UpdateFavoriteTargets(mine.table, mine.UID, mine.Operator, mine.Targets)
 	}
 }
 
 func (mine *FavoriteInfo) GetKeys() []string {
 	return mine.Keys
-}
-
-func (mine *FavoriteInfo) GetTargets() []*pb.ShowInfo {
-	list := make([]*pb.ShowInfo, 0, len(mine.Targets))
-	for _, item := range mine.Targets {
-		list = append(list, &pb.ShowInfo{Target: item.Target, Effect: item.Effect, Skin: item.Skin, Slots: item.Slots})
-	}
-	return list
 }
 
 func (mine *FavoriteInfo) UpdateBase(name, remark, operator string) error {
@@ -257,7 +174,7 @@ func (mine *FavoriteInfo) UpdateBase(name, remark, operator string) error {
 	if len(remark) < 1 {
 		remark = mine.Remark
 	}
-	err := nosql.UpdateFavoriteBase(mine.table, mine.UID, name, remark, operator)
+	err := nosql.UpdateFavoriteBase(mine.UID, name, remark, operator)
 	if err == nil {
 		mine.Name = name
 		mine.Remark = remark
@@ -274,7 +191,7 @@ func (mine *FavoriteInfo) UpdateTags(operator string, tags []string) error {
 	if tags == nil {
 		return errors.New("the list of tags is nil")
 	}
-	err := nosql.UpdateFavoriteTags(mine.table, mine.UID, operator, tags)
+	err := nosql.UpdateFavoriteTags(mine.UID, operator, tags)
 	if err == nil {
 		mine.Tags = tags
 		mine.Operator = operator
@@ -283,7 +200,7 @@ func (mine *FavoriteInfo) UpdateTags(operator string, tags []string) error {
 }
 
 func (mine *FavoriteInfo) UpdateCover(cover, operator string) error {
-	err := nosql.UpdateFavoriteCover(mine.table, mine.UID, cover, operator)
+	err := nosql.UpdateFavoriteCover(mine.UID, cover, operator)
 	if err == nil {
 		mine.Cover = cover
 		mine.Operator = operator
@@ -292,7 +209,7 @@ func (mine *FavoriteInfo) UpdateCover(cover, operator string) error {
 }
 
 func (mine *FavoriteInfo) UpdateStatus(st uint8, operator string) error {
-	err := nosql.UpdateFavoriteState(mine.table, mine.UID, operator, st)
+	err := nosql.UpdateFavoriteState(mine.UID, operator, st)
 	if err == nil {
 		mine.Status = st
 		mine.Operator = operator
@@ -306,13 +223,13 @@ func (mine *FavoriteInfo) UpdateStatus(st uint8, operator string) error {
 func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
 	var err error
 	if list == nil || len(list) < 1{
-		err = nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, make([]string, 0, 1))
+		err = nosql.UpdateFavoriteKeys(mine.UID, operator, make([]string, 0, 1))
 		if err == nil {
 			mine.Keys = make([]string, 0, 1)
 			mine.Operator = operator
 		}
 	}else{
-		err = nosql.UpdateFavoriteEntity(mine.table, mine.UID, operator, list)
+		err = nosql.UpdateFavoriteKeys(mine.UID, operator, list)
 		if err == nil {
 			mine.Keys = list
 			mine.Operator = operator
@@ -330,20 +247,11 @@ func (mine *FavoriteInfo) HadKey(uid string) bool {
 	return false
 }
 
-func (mine *FavoriteInfo) HadTarget(uid string) bool {
-	for _, item := range mine.Targets {
-		if item.Target == uid {
-			return true
-		}
-	}
-	return false
-}
-
 func (mine *FavoriteInfo) AppendKey(uid string) error {
 	if mine.HadKey(uid) {
 		return nil
 	}
-	er := nosql.AppendFavoriteKey(mine.table, mine.UID, uid)
+	er := nosql.AppendFavoriteKey(mine.UID, uid)
 	if er == nil {
 		mine.Keys = append(mine.Keys, uid)
 	}
@@ -354,7 +262,7 @@ func (mine *FavoriteInfo) SubtractKey(uid string) error {
 	if !mine.HadKey(uid) {
 		return nil
 	}
-	er := nosql.SubtractFavoriteKey(mine.table, mine.UID, uid)
+	er := nosql.SubtractFavoriteKey(mine.UID, uid)
 	if er == nil {
 		for i := 0; i < len(mine.Keys); i += 1 {
 			if mine.Keys[i] == uid {
@@ -362,107 +270,6 @@ func (mine *FavoriteInfo) SubtractKey(uid string) error {
 					mine.Keys = append(mine.Keys[:i])
 				} else {
 					mine.Keys = append(mine.Keys[:i], mine.Keys[i+1:]...)
-				}
-				break
-			}
-		}
-	}
-	return er
-}
-
-func (mine *FavoriteInfo) UpdateTarget(uid, effect, skin, operator string, slots []string) error {
-	if !mine.HadTarget(uid) {
-		return nil
-	}
-	if slots == nil {
-		slots = make([]string, 0, 1)
-	}
-	array := make([]*proxy.ShowingInfo, 0, len(mine.Targets))
-	for _, info := range mine.Targets {
-		if info.Target == uid {
-			info.Effect = effect
-			info.Skin = skin
-			info.Slots = slots
-			info.UpdatedAt = time.Now()
-		}
-		array = append(array, info)
-	}
-	err := nosql.UpdateFavoriteTargets(mine.table, mine.UID, operator, array)
-	if err == nil {
-		mine.Targets = array
-	}
-	return err
-}
-
-func (mine *FavoriteInfo) UpdateTargets(operator string, targets []string) error {
-	var array []*proxy.ShowingInfo
-	if targets != nil {
-		array = make([]*proxy.ShowingInfo, 0, len(mine.Targets))
-		for _, item := range targets {
-			info := new(proxy.ShowingInfo)
-			info.Target = item
-			info.Effect = ""
-			info.Skin = ""
-			info.Slots = make([]string, 0, 1)
-			info.UpdatedAt = time.Now()
-			array = append(array, info)
-		}
-	}else{
-		array = make([]*proxy.ShowingInfo, 0, 1)
-	}
-	err := nosql.UpdateFavoriteTargets(mine.table, mine.UID, operator, array)
-	if err == nil {
-		mine.Targets = array
-	}
-	return err
-}
-
-func (mine *FavoriteInfo) AppendTarget(show *proxy.ShowingInfo) error {
-	if mine.HadTarget(show.Target) {
-		_ = mine.SubtractTarget(show.Target)
-	}
-	er := nosql.AppendFavoriteTarget(mine.table, mine.UID, show)
-	if er == nil {
-		mine.Targets = append(mine.Targets, show)
-	}
-	return er
-}
-
-func (mine *FavoriteInfo) AppendSimpleTarget(target string) error {
-	if target == "" {
-		return errors.New("the target is empty")
-	}
-	if mine.HadTarget(target) {
-		return nil
-	}
-	show := new(proxy.ShowingInfo)
-	show.Target = target
-	show.Effect = ""
-	show.Skin = ""
-	show.Slots = make([]string, 0, 1)
-	show.UpdatedAt = time.Now()
-	er := nosql.AppendFavoriteTarget(mine.table, mine.UID, show)
-	if er == nil {
-		mine.Targets = append(mine.Targets, show)
-	}
-	return er
-}
-
-func (mine *FavoriteInfo) SubtractTarget(sn string) error {
-	if sn == "" {
-		return errors.New("the target is empty")
-	}
-	if !mine.HadTarget(sn) {
-		return nil
-	}
-	er := nosql.SubtractFavoriteTarget(mine.table, mine.UID, sn)
-	if er == nil {
-		for i := 0; i < len(mine.Targets); i += 1 {
-			if mine.Targets[i].Target == sn {
-				if i == len(mine.Targets)-1 {
-					mine.Targets = append(mine.Targets[:i])
-				} else {
-					mine.Targets = append(mine.Targets[:i], mine.Targets[i+1:]...)
 				}
 				break
 			}
