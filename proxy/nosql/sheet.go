@@ -22,7 +22,7 @@ type Sheet struct {
 	Owner       string    `json:"owner" bson:"owner"`
 	Quote       string    `json:"quote" bson:"quote"`
 	Status       uint8 	  `json:"status" bson:"status"`
-	Type       uint8 	  `json:"type" bson:"type"`
+	Product       uint8 	  `json:"product" bson:"product"`
 	Keys    []string  `json:"keys" bson:"keys"`
 }
 
@@ -87,7 +87,7 @@ func GetSheetByName(owner, name string) (*Sheet, error) {
 		return nil, errors.New("db owner or name is empty of GetSheetByName")
 	}
 	filter := bson.M{"owner":owner, "name": name, "deleteAt": new(time.Time)}
-	result, err := findOneBy(TableFavorite, filter)
+	result, err := findOneBy(TableSheet, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -97,6 +97,62 @@ func GetSheetByName(owner, name string) (*Sheet, error) {
 		return nil, err1
 	}
 	return model, nil
+}
+
+func GetSheetByQuote(owner, quote string, tp uint8) (*Sheet, error) {
+	if len(owner) < 2 || len(quote) < 2{
+		return nil, errors.New("db owner or quote is empty of GetSheetByQuote")
+	}
+	filter := bson.M{"owner":owner, "quote": quote, "product":tp, "deleteAt": new(time.Time)}
+	result, err := findOneBy(TableSheet, filter)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Sheet)
+	err1 := result.Decode(&model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
+func GetSheetByQuote2(quote string, tp uint8) (*Sheet, error) {
+	if len(quote) < 2{
+		return nil, errors.New("db quote is empty of GetSheetByQuote")
+	}
+	filter := bson.M{"quote": quote, "product":tp, "deleteAt": new(time.Time)}
+	result, err := findOneBy(TableSheet, filter)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Sheet)
+	err1 := result.Decode(&model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
+func GetSheetsByQuote(quote string) ([]*Sheet, error) {
+	if len(quote) < 2{
+		return nil, errors.New("db quote is empty of GetSheetByQuote")
+	}
+	def := new(time.Time)
+	filter := bson.M{"quote": quote, "deleteAt": def}
+	cursor, err1 := findMany(TableSheet, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Sheet, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Sheet)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
 }
 
 func GetSheetsByOwner(owner string) ([]*Sheet, error) {
@@ -120,7 +176,7 @@ func GetSheetsByOwner(owner string) ([]*Sheet, error) {
 
 func GetSheetsByOwnerTP(owner string, tp uint8) ([]*Sheet, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "type":tp, "deleteAt": def}
+	filter := bson.M{"owner": owner, "product":tp, "deleteAt": def}
 	cursor, err1 := findMany(TableSheet, filter, 0)
 	if err1 != nil {
 		return nil, err1

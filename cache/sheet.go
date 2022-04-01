@@ -9,7 +9,7 @@ import (
 type SheetInfo struct {
 	BaseInfo
 	Status  uint8
-	Type    uint8
+	ProductType  uint8
 	Owner   string //该展览表所属用户等
 	Remark  string
 	Quote    string //
@@ -25,7 +25,7 @@ func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
 	db.Remark = info.Remark
 	db.Owner = info.Owner
 	db.Status = info.Status
-	db.Type = info.Type
+	db.Product = info.ProductType
 	db.Creator = info.Creator
 	db.Operator = info.Operator
 	db.Quote = info.Quote
@@ -72,6 +72,23 @@ func (mine *cacheContext) GetSheet(uid string) *SheetInfo {
 	return nil
 }
 
+func (mine *cacheContext) GetSheetBy(owner, quote string, tp uint32) *SheetInfo {
+	var db *nosql.Sheet
+	var err error
+	if len(owner) > 1 {
+		db, err = nosql.GetSheetByQuote(owner, quote, uint8(tp))
+	}else{
+		db, err = nosql.GetSheetByQuote2(quote, uint8(tp))
+	}
+
+	if err == nil {
+		info := new(SheetInfo)
+		info.initInfo(db)
+		return info
+	}
+	return nil
+}
+
 func (mine *cacheContext) GetSheetsByOwner(uid string) []*SheetInfo {
 	array, err := nosql.GetSheetsByOwner(uid)
 	if err == nil {
@@ -86,7 +103,20 @@ func (mine *cacheContext) GetSheetsByOwner(uid string) []*SheetInfo {
 	return nil
 }
 
-func (mine *cacheContext) GetSheetsByOwnerTP(uid string, tp uint8) []*SheetInfo {
+func (mine *cacheContext) GetSheetsByQuote(quote string) []*SheetInfo {
+	array, err := nosql.GetSheetsByQuote(quote)
+	list := make([]*SheetInfo, 0, 4)
+	if err == nil {
+		for _, item := range array {
+			info := new(SheetInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+	}
+	return list
+}
+
+func (mine *cacheContext) GetSheetsByProduct(uid string, tp uint8) []*SheetInfo {
 	array, err := nosql.GetSheetsByOwnerTP(uid, tp)
 	if err == nil {
 		list := make([]*SheetInfo, 0, len(array))
@@ -111,8 +141,9 @@ func (mine *SheetInfo) initInfo(db *nosql.Sheet) {
 	mine.Operator = db.Operator
 	mine.Owner = db.Owner
 	mine.Status = db.Status
-	mine.Type = db.Type
+	mine.ProductType = db.Product
 	mine.Quote = db.Quote
+	mine.Keys = db.Keys
 	if mine.Keys == nil {
 		mine.Keys = make([]string, 0, 1)
 	}

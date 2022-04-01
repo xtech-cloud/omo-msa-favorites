@@ -6,6 +6,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
+	"strconv"
 )
 
 type SheetService struct {}
@@ -22,6 +23,7 @@ func switchSheet(info *cache.SheetInfo) *pb.SheetInfo {
 	tmp.Operator = info.Operator
 	tmp.Owner = info.Owner
 	tmp.Quote = info.Quote
+	tmp.Type = uint32(info.ProductType)
 	tmp.Status = uint32(info.Status)
 	tmp.Keys = info.Keys
 	return tmp
@@ -35,16 +37,22 @@ func (mine *SheetService)AddOne(ctx context.Context, in *pb.ReqSheetAdd, out *pb
 		return nil
 	}
 
-	if cache.Context().HadSheetByName(in.Owner, in.Name) {
-		out.Status = outError(path,"the name is repeated", pbstatus.ResultStatus_Repeated)
+	if in.Type < 1 {
+		out.Status = outError(path,"the type is 0", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+
+	//if cache.Context().HadSheetByName(in.Owner, in.Name) {
+	//	out.Status = outError(path,"the name is repeated", pbstatus.ResultStatus_Repeated)
+	//	return nil
+	//}
 	info := new(cache.SheetInfo)
 	info.Name = in.Name
 	info.Remark = in.Remark
 	info.Creator = in.Operator
 	info.Keys = in.Keys
 	info.Owner = in.Owner
+	info.ProductType = uint8(in.Type)
 	info.Status = uint8(in.Status)
 	info.Quote = in.Quote
 	err := cache.Context().CreateSheet(info)
@@ -60,11 +68,19 @@ func (mine *SheetService)AddOne(ctx context.Context, in *pb.ReqSheetAdd, out *pb
 func (mine *SheetService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplySheetInfo) error {
 	path := "sheet.getOne"
 	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the sheet uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
+
+	var info *cache.SheetInfo
+	if len(in.Uid) > 1 {
+		info = cache.Context().GetSheet(in.Uid)
+	}else{
+		tp,er := strconv.ParseUint(in.Flag, 10, 32)
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+		info = cache.Context().GetSheetBy(in.Owner, in.Operator, uint32(tp))
 	}
-	info := cache.Context().GetSheet(in.Uid)
+
 	if info == nil {
 		out.Status = outError(path,"the sheet not found", pbstatus.ResultStatus_NotExisted)
 		return nil
@@ -108,6 +124,8 @@ func (mine *SheetService)GetByFilter(ctx context.Context, in *pb.RequestFilter, 
 	var pages uint32 = 0
 	if in.Key == "" {
 		array = cache.Context().GetSheetsByOwner(in.Owner)
+	}else if in.Key == "quote" {
+		array = cache.Context().GetSheetsByQuote(in.Value)
 	}else{
 
 	}
@@ -206,7 +224,7 @@ func (mine *SheetService)UpdateKeys(ctx context.Context, in *pb.ReqSheetKeys, ou
 }
 
 func (mine *SheetService)AppendKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplySheetKeys) error {
-	path := "sheet.appendEntity"
+	path := "sheet.appendKey"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path,"the sheet uid is empty", pbstatus.ResultStatus_Empty)
@@ -228,7 +246,7 @@ func (mine *SheetService)AppendKey(ctx context.Context, in *pb.RequestInfo, out 
 }
 
 func (mine *SheetService)SubtractKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplySheetKeys) error {
-	path := "sheet.subtractEntity"
+	path := "sheet.subtractKey"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path,"the sheet uid is empty", pbstatus.ResultStatus_Empty)

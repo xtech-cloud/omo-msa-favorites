@@ -540,6 +540,8 @@ github.com/xtech-cloud/omo-msp-favorites v1.7.1 h1:ruTTjq2yZWrtd4GmXODkopaX0AjWi
 github.com/xtech-cloud/omo-msp-favorites v1.7.1/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
 github.com/xtech-cloud/omo-msp-favorites v1.7.2 h1:6z/vYJxIqsi4khh2Zn1MB8xQ21unTlrt7Uezrrh2UjQ=
 github.com/xtech-cloud/omo-msp-favorites v1.7.2/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
+github.com/xtech-cloud/omo-msp-favorites v1.7.4 h1:ZHM2lDmJP7WchZ0py3zR5GepBdrg9imSAmIWGNffDKo=
+github.com/xtech-cloud/omo-msp-favorites v1.7.4/go.mod h1:maEtxehL0SCje9JMNDrSpM+yE+wvYTvAfe2JL+VtwVI=
 github.com/xtech-cloud/omo-msp-status v1.0.1 h1:FfqriKg4T6PKTI7+o//KBiZPMhZqhfSnwff/MB4y6D4=
 github.com/xtech-cloud/omo-msp-status v1.0.1/go.mod h1:TZEgM32ZnapuqmsPPdStqgBeeWE708h6YBxb1qtbMFk=
 go.etcd.io/bbolt v1.3.4 h1:hi1bXHMVrlQh6WwxAy+qZCV/SYIlqo+Ushwdpa4tAKg=
