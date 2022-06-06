@@ -13,6 +13,7 @@ const (
 	ArticleLesson = 0 //课件
 	ArticleAnnounce = 1 //校园公告
 	ArticleNews = 2 //区新闻
+	ArticleResident = 3 //格桑码新闻
 )
 
 const (

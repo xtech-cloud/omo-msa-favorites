@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	NoticeToFamily = 0
-	NoticeToSchool = 1
-	NoticeToWebsite = 2
+	NoticeToFamily = 0 //对应家长
+	NoticeToSchool = 1 //对应学校
+	NoticeToWebsite = 2 //对应网站
+	NoticeToResident = 3 //对格桑码居民
+	NoticeToRoute = 4 //对应
 )
 
 type NoticeInfo struct {

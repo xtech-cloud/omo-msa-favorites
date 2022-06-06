@@ -23,6 +23,7 @@ func switchFavorite(info *cache.FavoriteInfo) *pb.FavoriteInfo {
 	tmp.Creator = info.Creator
 	tmp.Operator = info.Operator
 	tmp.Owner = info.Owner
+	tmp.Meta = info.Meta
 	tmp.Type = uint32(info.Type)
 	tmp.Tags = info.Tags
 	tmp.Status = uint32(info.Status)
@@ -52,6 +53,7 @@ func (mine *FavoriteService)AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, o
 	info.Owner = in.Owner
 	info.Status = uint8(in.Status)
 	info.Type = uint8(in.Type)
+	info.Meta = in.Origin
 	err := cache.Context().CreateFavorite(info)
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)

@@ -33,6 +33,7 @@ func (mine *cacheContext) CreateFavorite(info *FavoriteInfo) error {
 	db.Creator = info.Creator
 	db.Operator = info.Operator
 	db.Tags = info.Tags
+	db.Meta = info.Meta
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
 	}
@@ -155,6 +156,7 @@ func (mine *FavoriteInfo) initInfo(db *nosql.Favorite) {
 	mine.Cover = db.Cover
 	mine.Type = db.Type
 	mine.Owner = db.Owner
+	mine.Meta = db.Meta
 	mine.Tags = db.Tags
 	mine.Keys = db.Keys
 	mine.Status = db.Status

@@ -96,6 +96,11 @@ func (mine *DisplayService)GetStatistic(ctx context.Context, in *pb.RequestFilte
 	path := "display.getStatistic"
 	inLog(path, in)
 
+	if in.Key == "type" {
+		tp := parseStringToInt(in.Value)
+		array := cache.Context().GetDisplaysByType(in.Owner, uint8(tp))
+		out.Count = uint32(len(array))
+	}
 	out.Status = outLog(path, out)
 	return nil
 }

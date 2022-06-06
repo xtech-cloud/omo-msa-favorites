@@ -81,3 +81,27 @@ func ByteString(p []byte) string {
 	}
 	return string(p)
 }
+
+func parseString(src string, sep string) (string, int) {
+	arr := strings.Split(src, sep)
+	if len(arr) < 2 {
+		return "", -1
+	}
+	st,er := strconv.ParseInt(arr[1], 10, 32)
+	if er != nil {
+		return "", -1
+	}
+	return arr[0], int(st)
+}
+
+func parseStringToInt(src string) int {
+	if src == "" {
+		return -1
+	}
+	st,er := strconv.ParseInt(src, 10, 32)
+	if er != nil {
+		return -1
+	}
+	return int(st)
+}
+

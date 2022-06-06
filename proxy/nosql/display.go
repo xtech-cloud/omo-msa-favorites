@@ -247,28 +247,28 @@ func GetDisplaysByTarget(owner, target string) ([]*Display, error) {
 	return items, nil
 }
 
-func GetDisplaysByTargets(st uint8, targets []string) ([]*Display, error) {
-	def := new(time.Time)
-	in := bson.A{}
-	for _, target := range targets {
-		in = append(in, target)
-	}
-	filter := bson.M{"status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
-	cursor, err1 := findMany(TableDisplay, filter, 0)
-	if err1 != nil {
-		return nil, err1
-	}
-	var items = make([]*Display, 0, 20)
-	for cursor.Next(context.Background()) {
-		var node = new(Display)
-		if err := cursor.Decode(&node); err != nil {
-			return nil, err
-		} else {
-			items = append(items, node)
-		}
-	}
-	return items, nil
-}
+//func GetDisplaysByTargets(st uint8, targets []string) ([]*Display, error) {
+//	def := new(time.Time)
+//	in := bson.A{}
+//	for _, target := range targets {
+//		in = append(in, target)
+//	}
+//	filter := bson.M{"status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
+//	cursor, err1 := findMany(TableDisplay, filter, 0)
+//	if err1 != nil {
+//		return nil, err1
+//	}
+//	var items = make([]*Display, 0, 20)
+//	for cursor.Next(context.Background()) {
+//		var node = new(Display)
+//		if err := cursor.Decode(&node); err != nil {
+//			return nil, err
+//		} else {
+//			items = append(items, node)
+//		}
+//	}
+//	return items, nil
+//}
 
 func UpdateDisplayBase(uid, name, remark, operator string) error {
 	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}

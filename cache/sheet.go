@@ -12,8 +12,8 @@ type SheetInfo struct {
 	ProductType  uint8
 	Owner   string //该展览表所属用户等
 	Remark  string
-	Quote    string //
-	Keys    []string
+	Quote    string //关联的对象，可能是班级UID，场景UID等
+	Keys    []string //展览uid集合
 }
 
 func (mine *cacheContext) CreateSheet(info *SheetInfo) error {

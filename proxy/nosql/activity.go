@@ -178,7 +178,8 @@ func GetActivitiesByOTargets(owner string, st uint8, targets []string) ([]*Activ
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"owner":owner, "status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	//filter := bson.M{"owner":owner, "status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
+	filter := bson.M{"owner":owner, "status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}} , "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
