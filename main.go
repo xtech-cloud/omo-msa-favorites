@@ -48,6 +48,7 @@ func main() {
 	_ = proto.RegisterMessageServiceHandler(service.Server(), new(grpc.MessageService))
 	_ = proto.RegisterDisplayServiceHandler(service.Server(), new(grpc.DisplayService))
 	_ = proto.RegisterSheetServiceHandler(service.Server(), new(grpc.SheetService))
+	_ = proto.RegisterWordsServiceHandler(service.Server(), new(grpc.WordsService))
 
 	app, _ := filepath.Abs(os.Args[0])
 

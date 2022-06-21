@@ -25,4 +25,5 @@ const (
 	TableRecord = "records_msg"
 	TableDisplay = "displays"
 	TableSheet = "display_sheets" // 展览列表
+	TableWords = "words"
 )
