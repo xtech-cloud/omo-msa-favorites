@@ -73,7 +73,12 @@ func (mine *WordsService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb
 func (mine *WordsService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "words.getStatistic"
 	inLog(path, in)
-
+	if in.Key == "template" {
+		arr := cache.Context().GetWordsByQuote(in.Owner, in.Value)
+		out.Count = uint32(len(arr))
+	}
+	out.Owner = in.Owner
+	out.Key = in.Key
 	out.Status = outLog(path, out)
 	return nil
 }

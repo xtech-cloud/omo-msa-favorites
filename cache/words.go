@@ -106,6 +106,20 @@ func (mine *cacheContext) GetWordsByOwner(uid string) []*WordsInfo {
 	return nil
 }
 
+func (mine *cacheContext) GetWordsByQuote(owner, quote string) []*WordsInfo {
+	array, err := nosql.GetWordsByQuote(owner, quote)
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, item := range array {
+			info := new(WordsInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
 func (mine *cacheContext) GetWordsByTarget(uid string) []*WordsInfo {
 	array, err := nosql.GetWordsByTarget(uid)
 	if err == nil {
