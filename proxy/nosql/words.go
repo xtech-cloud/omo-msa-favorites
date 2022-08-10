@@ -85,6 +85,25 @@ func GetWordsByOwnerType(owner string, tp uint8) ([]*Words, error) {
 	return items, nil
 }
 
+func GetWordsByCreator(owner, user, target string, tp uint8) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "creator":user, "target":target, "type": tp, "deleteAt": def}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetWordsByOwner(owner string) ([]*Words, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}

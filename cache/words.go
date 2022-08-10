@@ -63,6 +63,21 @@ func (mine *cacheContext) GetWords(uid string) *WordsInfo {
 	return nil
 }
 
+func (mine *cacheContext) GetWordsByToday(owner, user, target string) *WordsInfo {
+	dbs, err := nosql.GetWordsByCreator(owner, user, target, 1)
+	if err == nil {
+		now := time.Now()
+		for _, db := range dbs {
+			if db.CreatedTime.Year() == now.Year() && db.CreatedTime.Day() == now.Day() {
+				info := new(WordsInfo)
+				info.initInfo(db)
+				return info
+			}
+		}
+	}
+	return nil
+}
+
 func (mine *cacheContext) GetWordsByOwnerTP(owner string, tp WordsType) []*WordsInfo {
 	array, err := nosql.GetWordsByOwnerType(owner, uint8(tp))
 	if err == nil {

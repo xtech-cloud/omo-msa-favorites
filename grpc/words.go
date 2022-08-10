@@ -55,9 +55,10 @@ func (mine *WordsService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb
 	inLog(path, in)
 
 	var info *cache.WordsInfo
-	if len(in.Uid) > 1 {
+	if len(in.Flag) < 2 {
 		info = cache.Context().GetWords(in.Uid)
-	}else{
+	}else if in.Flag == "today" {
+		info = cache.Context().GetWordsByToday(in.Owner, in.Operator, in.Uid)
 	}
 
 	if info == nil {
