@@ -68,7 +68,7 @@ func (mine *cacheContext) GetWordsByToday(owner, user, target string) *WordsInfo
 	if err == nil {
 		now := time.Now()
 		for _, db := range dbs {
-			if db.CreatedTime.Year() == now.Year() && db.CreatedTime.Day() == now.Day() {
+			if db.CreatedTime.Year() == now.Year() && db.CreatedTime.Month() == now.Month() && db.CreatedTime.Day() == now.Day() {
 				info := new(WordsInfo)
 				info.initInfo(db)
 				return info
