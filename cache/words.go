@@ -10,6 +10,7 @@ const (
 	WordsTypeBless  WordsType = 0 //
 	WordsTypePerson WordsType = 1 //
 	WordsTypeImage  WordsType = 2
+	WordsTypeOther  WordsType = 3
 )
 
 type WordsType uint8
@@ -17,15 +18,16 @@ type WordsType uint8
 type WordsInfo struct {
 	BaseInfo
 	Type   WordsType
-	Owner  string //该展览表所属用户等
+	Owner  string //
 	Words  string
 	Target string //
 	Asset  string
+	Device string
 	Weight int32
 	Quote  string
 }
 
-func (mine *cacheContext) CreateWords(words, owner, target, operator,quote,asset string, tp WordsType) (*WordsInfo, error) {
+func (mine *cacheContext) CreateWords(words, owner, target, sn, operator,quote,asset string, tp WordsType) (*WordsInfo, error) {
 	db := new(nosql.Words)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetWordsNextID()
@@ -39,6 +41,8 @@ func (mine *cacheContext) CreateWords(words, owner, target, operator,quote,asset
 	db.Target = target
 	db.Quote = quote
 	db.Asset = asset
+	db.Device = sn
+	db.Weight = 0
 	err := nosql.CreateWords(db)
 	if err == nil {
 		info := new(WordsInfo)
@@ -134,6 +138,20 @@ func (mine *cacheContext) GetWordsByTarget(uid string) []*WordsInfo {
 	return nil
 }
 
+func (mine *cacheContext) GetWordsByUser(uid string) []*WordsInfo {
+	array, err := nosql.GetWordsByUser(uid)
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, item := range array {
+			info := new(WordsInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
 func (mine *WordsInfo) initInfo(db *nosql.Words) {
 	mine.UID = db.UID.Hex()
 	mine.Words = db.Words
@@ -144,8 +162,17 @@ func (mine *WordsInfo) initInfo(db *nosql.Words) {
 	mine.Creator = db.Creator
 	mine.Operator = db.Operator
 	mine.Owner = db.Owner
+	mine.Device = db.Device
 	mine.Target = db.Target
 	mine.Asset = db.Asset
 	mine.Weight = db.Weight
 	mine.Type = WordsType(db.Type)
+}
+
+func (mine *WordsInfo) UpdateWeight(weight int32, operator string) error {
+	err := nosql.UpdateWordsState(mine.UID, operator, weight)
+	if err == nil {
+		mine.Weight = weight
+	}
+	return err
 }

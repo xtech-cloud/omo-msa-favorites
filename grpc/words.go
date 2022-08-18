@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -25,6 +26,7 @@ func switchWords(info *cache.WordsInfo) *pb.WordsInfo {
 	tmp.Weight = uint32(info.Weight)
 	tmp.Asset = info.Asset
 	tmp.Type = uint32(info.Type)
+	tmp.Device = info.Device
 	return tmp
 }
 
@@ -40,7 +42,7 @@ func (mine *WordsService)AddOne(ctx context.Context, in *pb.ReqWordsAdd, out *pb
 		in.Target = in.Owner
 	}
 
-	info,err := cache.Context().CreateWords(in.Words, in.Owner, in.Target, in.Operator, in.Quote, in.Asset, cache.WordsType(in.Type))
+	info,err := cache.Context().CreateWords(in.Words, in.Owner, in.Target, in.Device, in.Operator, in.Quote, in.Asset, cache.WordsType(in.Type))
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -114,6 +116,10 @@ func (mine *WordsService)GetByFilter(ctx context.Context, in *pb.RequestFilter, 
 	}else if in.Key == "type" {
 		tp := parseStringToInt(in.Value)
 		array = cache.Context().GetWordsByOwnerTP(in.Owner, cache.WordsType(tp))
+	}else if in.Key == "user" {
+		array = cache.Context().GetWordsByUser(in.Value)
+	}else if in.Key == "quote" {
+		array = cache.Context().GetWordsByQuote(in.Owner, in.Value)
 	}else{
 
 	}
@@ -134,7 +140,23 @@ func (mine *WordsService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 		out.Status = outError(path,"the words uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	var info *cache.WordsInfo
+	var err error
+	if in.Key == "weight" {
+		info = cache.Context().GetWords(in.Uid)
+		if info == nil {
+			err = errors.New("not found the words")
+		}else{
+			w := parseStringToInt(in.Value)
+			err = info.UpdateWeight(int32(w), in.Operator)
+		}
+	}else{
+		err = errors.New("not defined the field key")
+	}
+	if err != nil {
+		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_Empty)
+		return nil
+	}
 	out.Status = outLog(path, out)
 	return nil
 }

@@ -25,6 +25,7 @@ type Words struct {
 	Asset  string `json:"asset" bson:"asset"`
 	Weight int32  `json:"weight" bson:"weight"`
 	Quote  string `json:"quote" bson:"quote"`
+	Device string `json:"device" bson:"device"`
 }
 
 func CreateWords(info *Words) error {
@@ -104,6 +105,25 @@ func GetWordsByCreator(owner, user, target string, tp uint8) ([]*Words, error) {
 	return items, nil
 }
 
+func GetWordsByUser(user string) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"creator":user, "deleteAt": def}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetWordsByOwner(owner string) ([]*Words, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
@@ -167,8 +187,8 @@ func UpdateWordsBase(uid, name, remark, operator string) error {
 	return err
 }
 
-func UpdateWordsState(uid, operator string, st uint8) error {
-	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
+func UpdateWordsState(uid, operator string, st int32) error {
+	msg := bson.M{"Weight": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableWords, uid, msg)
 	return err
 }
