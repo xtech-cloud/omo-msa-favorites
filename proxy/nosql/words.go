@@ -188,7 +188,7 @@ func UpdateWordsBase(uid, name, remark, operator string) error {
 }
 
 func UpdateWordsState(uid, operator string, st int32) error {
-	msg := bson.M{"Weight": st, "operator": operator, "updatedAt": time.Now()}
+	msg := bson.M{"weight": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableWords, uid, msg)
 	return err
 }
