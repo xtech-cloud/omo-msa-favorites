@@ -22,10 +22,10 @@ type Words struct {
 	Owner  string `json:"owner" bson:"owner"`
 	Target string `json:"target" bson:"target"` //
 	Type   uint8  `json:"type" bson:"type"`
-	Asset  string `json:"asset" bson:"asset"`
 	Weight int32  `json:"weight" bson:"weight"`
 	Quote  string `json:"quote" bson:"quote"`
 	Device string `json:"device" bson:"device"`
+	Assets  []string `json:"assets" bson:"assets"`
 }
 
 func CreateWords(info *Words) error {
@@ -199,8 +199,8 @@ func UpdateWordsQuote(uid, quote, operator string) error {
 	return err
 }
 
-func UpdateWordsKeys(uid, operator string, list []string) error {
-	msg := bson.M{"keys": list, "operator": operator, "updatedAt": time.Now()}
+func UpdateWordsAssets(uid, operator string, list []string) error {
+	msg := bson.M{"assets": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableWords, uid, msg)
 	return err
 }

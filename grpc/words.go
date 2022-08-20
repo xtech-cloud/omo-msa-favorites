@@ -24,7 +24,7 @@ func switchWords(info *cache.WordsInfo) *pb.WordsInfo {
 	tmp.Owner = info.Owner
 	tmp.Target = info.Target
 	tmp.Weight = uint32(info.Weight)
-	tmp.Asset = info.Asset
+	tmp.Assets = info.Assets
 	tmp.Type = uint32(info.Type)
 	tmp.Device = info.Device
 	return tmp
@@ -42,7 +42,7 @@ func (mine *WordsService)AddOne(ctx context.Context, in *pb.ReqWordsAdd, out *pb
 		in.Target = in.Owner
 	}
 
-	info,err := cache.Context().CreateWords(in.Words, in.Owner, in.Target, in.Device, in.Operator, in.Quote, in.Asset, cache.WordsType(in.Type))
+	info,err := cache.Context().CreateWords(in.Words, in.Owner, in.Target, in.Device, in.Operator, in.Quote, in.Assets, cache.WordsType(in.Type))
 	if err != nil {
 		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -149,6 +149,13 @@ func (mine *WordsService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 		}else{
 			w := parseStringToInt(in.Value)
 			err = info.UpdateWeight(int32(w), in.Operator)
+		}
+	}else if in.Key == "assets" {
+		info = cache.Context().GetWords(in.Uid)
+		if info == nil {
+			err = errors.New("not found the words")
+		}else{
+			err = info.UpdateAssets(in.List, in.Operator)
 		}
 	}else{
 		err = errors.New("not defined the field key")

@@ -21,13 +21,13 @@ type WordsInfo struct {
 	Owner  string //
 	Words  string
 	Target string //
-	Asset  string
 	Device string
 	Weight int32
 	Quote  string
+	Assets  []string
 }
 
-func (mine *cacheContext) CreateWords(words, owner, target, sn, operator,quote,asset string, tp WordsType) (*WordsInfo, error) {
+func (mine *cacheContext) CreateWords(words, owner, target, sn, operator,quote string, assets []string, tp WordsType) (*WordsInfo, error) {
 	db := new(nosql.Words)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetWordsNextID()
@@ -40,7 +40,7 @@ func (mine *cacheContext) CreateWords(words, owner, target, sn, operator,quote,a
 	db.Operator = operator
 	db.Target = target
 	db.Quote = quote
-	db.Asset = asset
+	db.Assets = assets
 	db.Device = sn
 	db.Weight = 0
 	err := nosql.CreateWords(db)
@@ -164,7 +164,7 @@ func (mine *WordsInfo) initInfo(db *nosql.Words) {
 	mine.Owner = db.Owner
 	mine.Device = db.Device
 	mine.Target = db.Target
-	mine.Asset = db.Asset
+	mine.Assets = db.Assets
 	mine.Weight = db.Weight
 	mine.Type = WordsType(db.Type)
 }
@@ -173,6 +173,16 @@ func (mine *WordsInfo) UpdateWeight(weight int32, operator string) error {
 	err := nosql.UpdateWordsState(mine.UID, operator, weight)
 	if err == nil {
 		mine.Weight = weight
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *WordsInfo) UpdateAssets(assets []string, operator string) error {
+	err := nosql.UpdateWordsAssets(mine.UID, operator, assets)
+	if err == nil {
+		mine.Assets = assets
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
