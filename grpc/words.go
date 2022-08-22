@@ -142,21 +142,18 @@ func (mine *WordsService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdat
 	}
 	var info *cache.WordsInfo
 	var err error
+	info = cache.Context().GetWords(in.Uid)
+	if info == nil {
+		out.Status = outError(path,"not found the words", pbstatus.ResultStatus_Empty)
+		return nil
+	}
 	if in.Key == "weight" {
-		info = cache.Context().GetWords(in.Uid)
-		if info == nil {
-			err = errors.New("not found the words")
-		}else{
-			w := parseStringToInt(in.Value)
-			err = info.UpdateWeight(int32(w), in.Operator)
-		}
+		w := parseStringToInt(in.Value)
+		err = info.UpdateWeight(int32(w), in.Operator)
 	}else if in.Key == "assets" {
-		info = cache.Context().GetWords(in.Uid)
-		if info == nil {
-			err = errors.New("not found the words")
-		}else{
-			err = info.UpdateAssets(in.List, in.Operator)
-		}
+		err = info.UpdateAssets(in.List, in.Operator)
+	}else if in.Key == "words" {
+		err = info.UpdateBase(in.Value, in.Operator)
 	}else{
 		err = errors.New("not defined the field key")
 	}

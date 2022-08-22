@@ -181,8 +181,8 @@ func GetWordsByTarget(target string) ([]*Words, error) {
 	return items, nil
 }
 
-func UpdateWordsBase(uid, name, remark, operator string) error {
-	msg := bson.M{"name": name, "remark": remark, "operator": operator, "updatedAt": time.Now()}
+func UpdateWordsBase(uid, words, operator string) error {
+	msg := bson.M{"words": words,  "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableWords, uid, msg)
 	return err
 }

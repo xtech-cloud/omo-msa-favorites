@@ -178,6 +178,15 @@ func (mine *WordsInfo) UpdateWeight(weight int32, operator string) error {
 	return err
 }
 
+func (mine *WordsInfo) UpdateBase(words, operator string) error {
+	err := nosql.UpdateWordsBase(mine.UID, words, operator)
+	if err == nil {
+		mine.Words = words
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
 func (mine *WordsInfo) UpdateAssets(assets []string, operator string) error {
 	err := nosql.UpdateWordsAssets(mine.UID, operator, assets)
 	if err == nil {
