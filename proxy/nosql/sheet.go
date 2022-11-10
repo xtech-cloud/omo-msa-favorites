@@ -13,17 +13,17 @@ type Sheet struct {
 	ID          uint64             `json:"id" bson:"id"`
 	Name        string             `json:"name" bson:"name"`
 	CreatedTime time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedTime time.Time `json:"updatedAt" bson:"updatedAt"`
-	DeleteTime  time.Time `json:"deleteAt" bson:"deleteAt"`
-	Creator     string    `json:"creator" bson:"creator"`
-	Operator    string    `json:"operator" bson:"operator"`
+	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
+	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
+	Creator     string             `json:"creator" bson:"creator"`
+	Operator    string             `json:"operator" bson:"operator"`
 
-	Remark      string    `json:"remark" bson:"remark"`
-	Owner       string    `json:"owner" bson:"owner"`
-	Quote       string    `json:"quote" bson:"quote"`
-	Status       uint8 	  `json:"status" bson:"status"`
-	Product       uint8 	  `json:"product" bson:"product"`
-	Keys    []string  `json:"keys" bson:"keys"`
+	Remark  string   `json:"remark" bson:"remark"`
+	Owner   string   `json:"owner" bson:"owner"`
+	Quote   string   `json:"quote" bson:"quote"`
+	Status  uint8    `json:"status" bson:"status"`
+	Product uint8    `json:"product" bson:"product"`
+	Keys    []string `json:"keys" bson:"keys"`
 }
 
 func CreateSheet(info *Sheet) error {
@@ -83,10 +83,10 @@ func GetSheetCount() int64 {
 }
 
 func GetSheetByName(owner, name string) (*Sheet, error) {
-	if len(owner) < 2 || len(name) < 2{
+	if len(owner) < 2 || len(name) < 2 {
 		return nil, errors.New("db owner or name is empty of GetSheetByName")
 	}
-	filter := bson.M{"owner":owner, "name": name, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "name": name, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableSheet, filter)
 	if err != nil {
 		return nil, err
@@ -100,10 +100,44 @@ func GetSheetByName(owner, name string) (*Sheet, error) {
 }
 
 func GetSheetByQuote(owner, quote string, tp uint8) (*Sheet, error) {
-	if len(owner) < 2 || len(quote) < 2{
+	if len(owner) < 2 || len(quote) < 2 {
 		return nil, errors.New("db owner or quote is empty of GetSheetByQuote")
 	}
-	filter := bson.M{"owner":owner, "quote": quote, "product":tp, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "quote": quote, "product": tp, "deleteAt": new(time.Time)}
+	result, err := findOneBy(TableSheet, filter)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Sheet)
+	err1 := result.Decode(&model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
+func GetSheetByQuote3(owner, quote string) (*Sheet, error) {
+	if len(owner) < 2 || len(quote) < 2 {
+		return nil, errors.New("db owner or quote is empty of GetSheetByQuote")
+	}
+	filter := bson.M{"owner": owner, "quote": quote, "deleteAt": new(time.Time)}
+	result, err := findOneBy(TableSheet, filter)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Sheet)
+	err1 := result.Decode(&model)
+	if err1 != nil {
+		return nil, err1
+	}
+	return model, nil
+}
+
+func GetSheetByQuote4(quote string) (*Sheet, error) {
+	if len(quote) < 2 {
+		return nil, errors.New("db owner or quote is empty of GetSheetByQuote")
+	}
+	filter := bson.M{"quote": quote, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableSheet, filter)
 	if err != nil {
 		return nil, err
@@ -117,10 +151,10 @@ func GetSheetByQuote(owner, quote string, tp uint8) (*Sheet, error) {
 }
 
 func GetSheetByQuote2(quote string, tp uint8) (*Sheet, error) {
-	if len(quote) < 2{
+	if len(quote) < 2 {
 		return nil, errors.New("db quote is empty of GetSheetByQuote")
 	}
-	filter := bson.M{"quote": quote, "product":tp, "deleteAt": new(time.Time)}
+	filter := bson.M{"quote": quote, "product": tp, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableSheet, filter)
 	if err != nil {
 		return nil, err
@@ -134,7 +168,7 @@ func GetSheetByQuote2(quote string, tp uint8) (*Sheet, error) {
 }
 
 func GetSheetsByQuote(quote string) ([]*Sheet, error) {
-	if len(quote) < 2{
+	if len(quote) < 2 {
 		return nil, errors.New("db quote is empty of GetSheetByQuote")
 	}
 	def := new(time.Time)
@@ -176,7 +210,7 @@ func GetSheetsByOwner(owner string) ([]*Sheet, error) {
 
 func GetSheetsByOwnerTP(owner string, tp uint8) ([]*Sheet, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "product":tp, "deleteAt": def}
+	filter := bson.M{"owner": owner, "product": tp, "deleteAt": def}
 	cursor, err1 := findMany(TableSheet, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -195,7 +229,7 @@ func GetSheetsByOwnerTP(owner string, tp uint8) ([]*Sheet, error) {
 
 func GetSheetsByStatus(owner string, st uint8) ([]*Sheet, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "status":st, "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "deleteAt": def}
 	cursor, err1 := findMany(TableSheet, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -219,19 +253,19 @@ func UpdateSheetBase(uid, name, remark, operator string) error {
 }
 
 func UpdateSheetState(uid, operator string, st uint8) error {
-	msg := bson.M{"status": st, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableSheet, uid, msg)
 	return err
 }
 
 func UpdateSheetQuote(uid, quote, operator string) error {
-	msg := bson.M{"quote": quote, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"quote": quote, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableSheet, uid, msg)
 	return err
 }
 
 func UpdateSheetKeys(uid, operator string, list []string) error {
-	msg := bson.M{"keys": list, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"keys": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableSheet, uid, msg)
 	return err
 }

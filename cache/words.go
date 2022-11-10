@@ -24,10 +24,10 @@ type WordsInfo struct {
 	Device string
 	Weight int32
 	Quote  string
-	Assets  []string
+	Assets []string
 }
 
-func (mine *cacheContext) CreateWords(words, owner, target, sn, operator,quote string, assets []string, tp WordsType) (*WordsInfo, error) {
+func (mine *cacheContext) CreateWords(words, owner, target, sn, operator, quote string, assets []string, tp WordsType) (*WordsInfo, error) {
 	db := new(nosql.Words)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetWordsNextID()
@@ -150,6 +150,26 @@ func (mine *cacheContext) GetWordsByUser(uid string) []*WordsInfo {
 		return list
 	}
 	return nil
+}
+
+func (mine *cacheContext) GetWordsCountByDevice(device string) (uint32, error) {
+	count, err := nosql.GetWordsCountByDevice(device)
+	return uint32(count), err
+}
+
+func (mine *cacheContext) GetWordsCountByToday(device string) (uint32, error) {
+	dbs, err := nosql.GetWordsByDevice(device)
+	if err != nil {
+		return 0, err
+	}
+	var count uint32 = 0
+	now := time.Now()
+	for _, db := range dbs {
+		if db.CreatedTime.Equal(now) {
+			count = count + 1
+		}
+	}
+	return count, nil
 }
 
 func (mine *WordsInfo) initInfo(db *nosql.Words) {

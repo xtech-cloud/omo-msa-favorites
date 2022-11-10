@@ -18,14 +18,14 @@ type Words struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Words  string `json:"words" bson:"words"`
-	Owner  string `json:"owner" bson:"owner"`
-	Target string `json:"target" bson:"target"` //
-	Type   uint8  `json:"type" bson:"type"`
-	Weight int32  `json:"weight" bson:"weight"`
-	Quote  string `json:"quote" bson:"quote"`
-	Device string `json:"device" bson:"device"`
-	Assets  []string `json:"assets" bson:"assets"`
+	Words  string   `json:"words" bson:"words"`
+	Owner  string   `json:"owner" bson:"owner"`
+	Target string   `json:"target" bson:"target"` //
+	Type   uint8    `json:"type" bson:"type"`
+	Weight int32    `json:"weight" bson:"weight"`
+	Quote  string   `json:"quote" bson:"quote"`
+	Device string   `json:"device" bson:"device"`
+	Assets []string `json:"assets" bson:"assets"`
 }
 
 func CreateWords(info *Words) error {
@@ -86,9 +86,40 @@ func GetWordsByOwnerType(owner string, tp uint8) ([]*Words, error) {
 	return items, nil
 }
 
+func GetWordsByDevice(device string) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"device": device, "deleteAt": def}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetWordsCountByDevice(device string) (int64, error) {
+	def := new(time.Time)
+	filter := bson.M{"device": device, "deleteAt": def}
+	return getCount(TableWords, filter)
+}
+
+func GetWordsCountByDate(device string) (int64, error) {
+	def := new(time.Time)
+	filter := bson.M{"device": device, "deleteAt": def}
+	return getCount(TableWords, filter)
+}
+
 func GetWordsByCreator(owner, user, target string, tp uint8) ([]*Words, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "creator":user, "target":target, "type": tp, "deleteAt": def}
+	filter := bson.M{"owner": owner, "creator": user, "target": target, "type": tp, "deleteAt": def}
 	cursor, err1 := findMany(TableWords, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -107,7 +138,7 @@ func GetWordsByCreator(owner, user, target string, tp uint8) ([]*Words, error) {
 
 func GetWordsByUser(user string) ([]*Words, error) {
 	def := new(time.Time)
-	filter := bson.M{"creator":user, "deleteAt": def}
+	filter := bson.M{"creator": user, "deleteAt": def}
 	cursor, err1 := findMany(TableWords, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -145,7 +176,7 @@ func GetWordsByOwner(owner string) ([]*Words, error) {
 
 func GetWordsByQuote(owner, quote string) ([]*Words, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "quote":quote, "deleteAt": def}
+	filter := bson.M{"owner": owner, "quote": quote, "deleteAt": def}
 	cursor, err1 := findMany(TableWords, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -182,7 +213,7 @@ func GetWordsByTarget(target string) ([]*Words, error) {
 }
 
 func UpdateWordsBase(uid, words, operator string) error {
-	msg := bson.M{"words": words,  "operator": operator, "updatedAt": time.Now()}
+	msg := bson.M{"words": words, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableWords, uid, msg)
 	return err
 }

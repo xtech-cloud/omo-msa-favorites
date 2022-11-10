@@ -8,12 +8,12 @@ import (
 
 type SheetInfo struct {
 	BaseInfo
-	Status  uint8
-	ProductType  uint8
-	Owner   string //该展览表所属用户等
-	Remark  string
-	Quote    string //关联的对象，可能是班级UID，场景UID等
-	Keys    []string //展览uid集合
+	Status      uint8
+	ProductType uint8
+	Owner       string //该展览表所属用户等
+	Remark      string
+	Quote       string   //关联的对象，可能是班级UID，场景UID等
+	Keys        []string //展览uid集合
 }
 
 func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
@@ -43,7 +43,6 @@ func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
 	}
 	return err
 }
-
 
 func (mine *cacheContext) HadSheetByName(owner, name string) bool {
 	fav, err := nosql.GetSheetByName(owner, name)
@@ -75,10 +74,18 @@ func (mine *cacheContext) GetSheet(uid string) *SheetInfo {
 func (mine *cacheContext) GetSheetBy(owner, quote string, tp uint32) *SheetInfo {
 	var db *nosql.Sheet
 	var err error
-	if len(owner) > 1 {
-		db, err = nosql.GetSheetByQuote(owner, quote, uint8(tp))
-	}else{
-		db, err = nosql.GetSheetByQuote2(quote, uint8(tp))
+	if tp < 1 {
+		if len(owner) > 1 {
+			db, err = nosql.GetSheetByQuote3(owner, quote)
+		} else {
+			db, err = nosql.GetSheetByQuote4(quote)
+		}
+	} else {
+		if len(owner) > 1 {
+			db, err = nosql.GetSheetByQuote(owner, quote, uint8(tp))
+		} else {
+			db, err = nosql.GetSheetByQuote2(quote, uint8(tp))
+		}
 	}
 
 	if err == nil {
@@ -188,13 +195,13 @@ func (mine *SheetInfo) UpdateStatus(st uint8, operator string) error {
 
 func (mine *SheetInfo) UpdateKeys(operator string, list []string) error {
 	var err error
-	if list == nil || len(list) < 1{
+	if list == nil || len(list) < 1 {
 		err = nosql.UpdateSheetKeys(mine.UID, operator, make([]string, 0, 1))
 		if err == nil {
 			mine.Keys = make([]string, 0, 1)
 			mine.Operator = operator
 		}
-	}else{
+	} else {
 		err = nosql.UpdateSheetKeys(mine.UID, operator, list)
 		if err == nil {
 			mine.Keys = list
