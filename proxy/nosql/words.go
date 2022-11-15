@@ -20,7 +20,7 @@ type Words struct {
 
 	Words  string   `json:"words" bson:"words"`
 	Owner  string   `json:"owner" bson:"owner"`
-	Target string   `json:"target" bson:"target"` //
+	Target string   `json:"target" bson:"target"` //给目标留言
 	Type   uint8    `json:"type" bson:"type"`
 	Weight int32    `json:"weight" bson:"weight"`
 	Quote  string   `json:"quote" bson:"quote"`
@@ -117,9 +117,9 @@ func GetWordsCountByDate(device string) (int64, error) {
 	return getCount(TableWords, filter)
 }
 
-func GetWordsByCreator(owner, user, target string, tp uint8) ([]*Words, error) {
+func GetWordsByCreator(owner, user, device string, tp uint8) ([]*Words, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "creator": user, "target": target, "type": tp, "deleteAt": def}
+	filter := bson.M{"owner": owner, "creator": user, "device": device, "type": tp, "deleteAt": def}
 	cursor, err1 := findMany(TableWords, filter, 0)
 	if err1 != nil {
 		return nil, err1

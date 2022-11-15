@@ -67,8 +67,8 @@ func (mine *cacheContext) GetWords(uid string) *WordsInfo {
 	return nil
 }
 
-func (mine *cacheContext) GetWordsByToday(owner, user, target string) *WordsInfo {
-	dbs, err := nosql.GetWordsByCreator(owner, user, target, 1)
+func (mine *cacheContext) GetWordsByToday(owner, user, device string) *WordsInfo {
+	dbs, err := nosql.GetWordsByCreator(owner, user, device, 1)
 	if err == nil {
 		now := time.Now()
 		for _, db := range dbs {

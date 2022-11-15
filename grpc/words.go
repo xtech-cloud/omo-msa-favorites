@@ -60,7 +60,7 @@ func (mine *WordsService) GetOne(ctx context.Context, in *pb.RequestInfo, out *p
 	if len(in.Flag) < 2 {
 		info = cache.Context().GetWords(in.Uid)
 	} else if in.Flag == "today" {
-		info = cache.Context().GetWordsByToday(in.Owner, in.Operator, in.Uid)
+		info = cache.Context().GetWordsByToday(in.Owner, in.Operator, in.Flag)
 	}
 
 	if info == nil {
