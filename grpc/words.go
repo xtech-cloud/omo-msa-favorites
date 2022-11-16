@@ -82,6 +82,8 @@ func (mine *WordsService) GetStatistic(ctx context.Context, in *pb.RequestFilter
 		out.Count, _ = cache.Context().GetWordsCountByDevice(in.Value)
 	} else if in.Key == "today" {
 		out.Count, _ = cache.Context().GetWordsCountByToday(in.Value)
+	} else {
+		out.Count, _ = cache.Context().GetWordsCountByScene(in.Owner)
 	}
 	out.Owner = in.Owner
 	out.Key = in.Key

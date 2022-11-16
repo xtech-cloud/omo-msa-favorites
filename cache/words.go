@@ -157,6 +157,11 @@ func (mine *cacheContext) GetWordsCountByDevice(device string) (uint32, error) {
 	return uint32(count), err
 }
 
+func (mine *cacheContext) GetWordsCountByScene(scene string) (uint32, error) {
+	count, err := nosql.GetWordsCountByScene(scene)
+	return uint32(count), err
+}
+
 func (mine *cacheContext) GetWordsCountByToday(device string) (uint32, error) {
 	dbs, err := nosql.GetWordsByDevice(device)
 	if err != nil {

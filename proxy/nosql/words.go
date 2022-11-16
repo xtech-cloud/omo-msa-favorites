@@ -111,6 +111,12 @@ func GetWordsCountByDevice(device string) (int64, error) {
 	return getCount(TableWords, filter)
 }
 
+func GetWordsCountByScene(owner string) (int64, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "deleteAt": def}
+	return getCount(TableWords, filter)
+}
+
 func GetWordsCountByDate(device string) (int64, error) {
 	def := new(time.Time)
 	filter := bson.M{"device": device, "deleteAt": def}
