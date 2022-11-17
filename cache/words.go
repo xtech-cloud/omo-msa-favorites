@@ -170,7 +170,7 @@ func (mine *cacheContext) GetWordsCountByToday(device string) (uint32, error) {
 	var count uint32 = 0
 	now := time.Now()
 	for _, db := range dbs {
-		if db.CreatedTime.Equal(now) {
+		if db.CreatedTime.Format("2006-01-02") == now.Format("2006-01-02") {
 			count = count + 1
 		}
 	}
