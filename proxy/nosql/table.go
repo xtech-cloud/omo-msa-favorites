@@ -11,7 +11,7 @@ const (
 	TableActivity = "activities"
 	/**
 	购买的别人的系列，主题等
-	 */
+	*/
 	TableRepertory = "repertories"
 	/**
 	数量自动增加
@@ -22,8 +22,9 @@ const (
 
 	TableNotice = "notices"
 
-	TableRecord = "records_msg"
-	TableDisplay = "displays"
-	TableSheet = "display_sheets" // 展览列表
-	TableWords = "words"
+	TableRecord     = "records_msg"
+	TableDisplay    = "displays"
+	TableSheet      = "display_sheets" // 展览列表
+	TableWords      = "words"
+	TableActRecords = "activity_records" //活动操作记录
 )

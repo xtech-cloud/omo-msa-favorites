@@ -12,7 +12,7 @@ import (
 	"strconv"
 )
 
-type ActivityService struct {}
+type ActivityService struct{}
 
 func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp := new(pb.ActivityInfo)
@@ -42,6 +42,7 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Targets = info.Targets
 	tmp.Prize = switchPrize(info.Prize)
 	tmp.Opuses = switchOpuses(info.Opuses)
+	tmp.Records = switchHistories(info)
 	return tmp
 }
 
@@ -76,23 +77,37 @@ func switchOpuses(list []proxy.OpusInfo) []*pb.OpusInfo {
 	return arr
 }
 
-func (mine *ActivityService)AddOne(ctx context.Context, in *pb.ReqActivityAdd, out *pb.ReplyActivityInfo) error {
+func switchHistories(info *cache.ActivityInfo) []*pb.RecordInfo {
+	dbs, _ := info.GetHistories()
+	arr := make([]*pb.RecordInfo, 0, len(dbs))
+	for _, item := range dbs {
+		tmp := new(pb.RecordInfo)
+		tmp.From = item.From
+		tmp.To = item.To
+		tmp.Remark = item.Remark
+		tmp.Option = uint32(item.Option)
+		arr = append(arr, tmp)
+	}
+	return arr
+}
+
+func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, out *pb.ReplyActivityInfo) error {
 	path := "activity.addOne"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
-		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 
 	if len(in.Template) > 1 {
 		list := cache.Context().GetActivitiesByTemplate(in.Owner, in.Template)
 		if len(list) > 0 {
-			out.Status = outError(path,"the activity had clone by this owner", pbstatus.ResultStatus_Repeated)
+			out.Status = outError(path, "the activity had clone by this owner", pbstatus.ResultStatus_Repeated)
 			return nil
 		}
 	}
 	if in.Targets == nil || len(in.Targets) < 1 {
-		out.Status = outError(path,"the activity targets is not empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity targets is not empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 
@@ -118,38 +133,37 @@ func (mine *ActivityService)AddOne(ctx context.Context, in *pb.ReqActivityAdd, o
 	info.SubmitLimit = uint8(in.Limit)
 	if in.Prize != nil {
 		info.Prize = &proxy.PrizeInfo{
-			Name: in.Prize.Name,
-			Desc: in.Prize.Desc,
+			Name:  in.Prize.Name,
+			Desc:  in.Prize.Desc,
 			Ranks: make([]proxy.RankInfo, 0, len(in.Prize.Ranks)),
 		}
 		for _, rank := range in.Prize.Ranks {
 			info.Prize.Ranks = append(info.Prize.Ranks, proxy.RankInfo{Name: rank.Name, Index: rank.Index, Count: rank.Count})
 		}
-	}else{
+	} else {
 		info.Prize = nil
 	}
 	err := cache.Context().CreateActivity(info)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-
 
 	out.Info = switchActivity(in.Owner, info)
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *ActivityService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyActivityInfo) error {
+func (mine *ActivityService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyActivityInfo) error {
 	path := "activity.getOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchActivity(in.Owner, info)
@@ -157,15 +171,15 @@ func (mine *ActivityService)GetOne(ctx context.Context, in *pb.RequestInfo, out 
 	return nil
 }
 
-func (mine *ActivityService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+func (mine *ActivityService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "activity.getStatistic"
 	inLog(path, in)
 	out.Key = in.Key
 	if in.Key == "create" {
 		out.Count = cache.Context().GetActivityCount(in.Owner)
-	}else if in.Key == "clone" {
+	} else if in.Key == "clone" {
 		out.Count = cache.Context().GetActivityCloneCount(in.Owner)
-	}else if in.Key == "template_participant" {
+	} else if in.Key == "template_participant" {
 		list := cache.Context().GetActivitiesByTemplate(in.Owner, in.Value)
 		for _, info := range list {
 			out.Count = out.Count + info.Participant
@@ -175,16 +189,16 @@ func (mine *ActivityService)GetStatistic(ctx context.Context, in *pb.RequestFilt
 	return nil
 }
 
-func (mine *ActivityService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
+func (mine *ActivityService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
 	path := "activity.removeOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	err := cache.Context().RemoveActivity(in.Uid, in.Operator)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Uid = in.Uid
@@ -193,7 +207,7 @@ func (mine *ActivityService)RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 	return nil
 }
 
-func (mine *ActivityService)GetList(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyActivityList) error {
+func (mine *ActivityService) GetList(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyActivityList) error {
 	path := "activity.getList"
 	inLog(path, in)
 	if len(in.Owner) > 1 {
@@ -206,14 +220,14 @@ func (mine *ActivityService)GetList(ctx context.Context, in *pb.RequestInfo, out
 		for _, val := range array {
 			out.List = append(out.List, switchActivity(in.Owner, val))
 		}
-	} else{
+	} else {
 		out.List = make([]*pb.ActivityInfo, 0, 1)
 	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }
 
-func (mine *ActivityService)GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyActivityList) error {
+func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyActivityList) error {
 	path := "activity.getByFilter"
 	inLog(path, in)
 	var array []*cache.ActivityInfo
@@ -221,28 +235,28 @@ func (mine *ActivityService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	var pages uint32 = 0
 	if in.Key == "targets" {
 		max, pages, array = cache.Context().GetActivitiesByTargets(in.Owner, in.List, cache.ActivityStatusPublish, in.Page, in.Number)
-	}else if in.Key == "status" {
-		arr,er := stringToUints(in.Value, ";")
+	} else if in.Key == "status" {
+		arr, er := stringToUints(in.Value, ";")
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 		max, pages, array = cache.Context().GetActivitiesByStatus(in.Owner, arr, in.Page, in.Number)
-	}else if in.Key == "opuses" {
+	} else if in.Key == "opuses" {
 
-	}else if in.Key == "organizer" {
+	} else if in.Key == "organizer" {
 		array = cache.Context().GetActivitiesByOrganizer(in.Value)
-	}else if in.Key == "template" {
+	} else if in.Key == "template" {
 		array = cache.Context().GetActivitiesByTemplate(in.Owner, in.Value)
-	}else if in.Key == "show" {
+	} else if in.Key == "show" {
 		st, er := strconv.ParseUint(in.Value, 10, 32)
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-		owners,er := stringToArray(in.Owner, ";")
+		owners, er := stringToArray(in.Owner, ";")
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 		max, pages, array = cache.Context().GetActivitiesByShow(owners, uint8(st), in.Page, in.Number)
@@ -257,16 +271,16 @@ func (mine *ActivityService)GetByFilter(ctx context.Context, in *pb.RequestFilte
 	return nil
 }
 
-func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUpdate, out *pb.ReplyActivityInfo) error {
+func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityUpdate, out *pb.ReplyActivityInfo) error {
 	path := "activity.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
@@ -294,7 +308,7 @@ func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUp
 	}
 
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchActivity(info.Owner, info)
@@ -302,26 +316,26 @@ func (mine *ActivityService)UpdateBase(ctx context.Context, in *pb.ReqActivityUp
 	return nil
 }
 
-func (mine *ActivityService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+func (mine *ActivityService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
 	path := "activity.updateByFilter"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	if in.Key == "participant" {
 		if in.Value == "" {
-			out.Status = outError(path,"the activity participant value is empty", pbstatus.ResultStatus_Empty)
+			out.Status = outError(path, "the activity participant value is empty", pbstatus.ResultStatus_Empty)
 			return nil
 		}
-		num,er := strconv.ParseUint(in.Value, 10, 32)
+		num, er := strconv.ParseUint(in.Value, 10, 32)
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 			return nil
 		}
 		er = nosql.UpdateActivityParticipant(in.Uid, uint32(num))
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}
@@ -329,25 +343,25 @@ func (mine *ActivityService)UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	return nil
 }
 
-func (mine *ActivityService)UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
+func (mine *ActivityService) UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
 	path := "activity.updateTags"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	if in.List == nil {
-		out.Status = outError(path,"the activity tags is nil", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity tags is nil", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	err := info.UpdateTags(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.List = info.Tags
@@ -355,22 +369,22 @@ func (mine *ActivityService)UpdateTags(ctx context.Context, in *pb.RequestList, 
 	return nil
 }
 
-func (mine *ActivityService)UpdateAssets(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
+func (mine *ActivityService) UpdateAssets(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
 	path := "activity.updateAssets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateAssets(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.List = info.Assets
@@ -378,26 +392,26 @@ func (mine *ActivityService)UpdateAssets(ctx context.Context, in *pb.RequestList
 	return nil
 }
 
-func (mine *ActivityService)UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
+func (mine *ActivityService) UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyList) error {
 	path := "activity.updateTargets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	if in.List == nil {
-		out.Status = outError(path,"the activity targets is nil", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity targets is nil", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateTargets(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.List = info.Targets
@@ -405,22 +419,22 @@ func (mine *ActivityService)UpdateTargets(ctx context.Context, in *pb.RequestLis
 	return nil
 }
 
-func (mine *ActivityService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
+func (mine *ActivityService) UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "activity.updateTargets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateStatus(in.Operator, uint8(in.Status))
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 
@@ -428,26 +442,26 @@ func (mine *ActivityService)UpdateStatus(ctx context.Context, in *pb.RequestStat
 	return nil
 }
 
-func (mine *ActivityService)UpdateOpuses(ctx context.Context, in *pb.ReqActivityOpuses, out *pb.ReplyInfo) error {
+func (mine *ActivityService) UpdateOpuses(ctx context.Context, in *pb.ReqActivityOpuses, out *pb.ReplyInfo) error {
 	path := "activity.updateOpuses"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
-	list :=make([]proxy.OpusInfo, 0, len(in.List))
+	list := make([]proxy.OpusInfo, 0, len(in.List))
 	for _, opus := range in.List {
 		list = append(list, proxy.OpusInfo{Rank: opus.Rank, Asset: opus.Asset, Remark: opus.Remark})
 	}
 	err = info.UpdateOpuses(in.Operator, list)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 
@@ -455,16 +469,16 @@ func (mine *ActivityService)UpdateOpuses(ctx context.Context, in *pb.ReqActivity
 	return nil
 }
 
-func (mine *ActivityService)UpdatePrize(ctx context.Context, in *pb.ReqActivityPrize, out *pb.ReplyInfo) error {
+func (mine *ActivityService) UpdatePrize(ctx context.Context, in *pb.ReqActivityPrize, out *pb.ReplyInfo) error {
 	path := "activity.updatePrize"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
@@ -474,7 +488,7 @@ func (mine *ActivityService)UpdatePrize(ctx context.Context, in *pb.ReqActivityP
 	}
 	err = info.UpdatePrize(in.Operator, in.Name, in.Desc, list)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 
@@ -482,22 +496,22 @@ func (mine *ActivityService)UpdatePrize(ctx context.Context, in *pb.ReqActivityP
 	return nil
 }
 
-func (mine *ActivityService)UpdateShow(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
+func (mine *ActivityService) UpdateShow(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "activity.updateShow"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetActivity(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateShowState(in.Operator, uint8(in.Status))
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 
@@ -505,14 +519,14 @@ func (mine *ActivityService)UpdateShow(ctx context.Context, in *pb.RequestState,
 	return nil
 }
 
-func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyPairList) error {
+func (mine *ActivityService) AppendOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyPairList) error {
 	path := "activity.appendEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	out.Status = outError(path,"the fun not implement", pbstatus.ResultStatus_Empty)
+	out.Status = outError(path, "the fun not implement", pbstatus.ResultStatus_Empty)
 	//info := cache.Context().GetActivity(in.Uid)
 	//if info == nil {
 	//	out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
@@ -528,14 +542,14 @@ func (mine *ActivityService)AppendOne(ctx context.Context, in *pb.RequestInfo, o
 	return nil
 }
 
-func (mine *ActivityService)SubtractOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyPairList) error {
+func (mine *ActivityService) SubtractOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyPairList) error {
 	path := "activity.subtractEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the activity uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	out.Status = outError(path,"the fun not implement", pbstatus.ResultStatus_Empty)
+	out.Status = outError(path, "the fun not implement", pbstatus.ResultStatus_Empty)
 	//info := cache.Context().GetActivity(in.Uid)
 	//if info == nil {
 	//	out.Status = outError(path,"the activity not found", pbstatus.ResultStatus_NotExisted)
@@ -550,4 +564,3 @@ func (mine *ActivityService)SubtractOne(ctx context.Context, in *pb.RequestInfo,
 	//out.Status = outLog(path, out)
 	return nil
 }
-

@@ -10,17 +10,25 @@ import (
 )
 
 const (
-	ActivityStatusDraft  uint8 = 0 //草稿
-	ActivityStatusCheck  uint8 = 1 // 审核中
+	ActivityStatusDraft   uint8 = 0 //草稿
+	ActivityStatusCheck   uint8 = 1 // 审核中
 	ActivityStatusPending uint8 = 2 // 审核通过，待发布或者释放
-	ActivityStatusRelease  uint8 = 3 // 释放成功
-	ActivityStatusPublish  uint8 = 4 // 发布成功
-	ActivityStatusAbandon  uint8 = 5 // 活动废弃
+	ActivityStatusRelease uint8 = 3 // 释放成功
+	ActivityStatusPublish uint8 = 4 // 发布成功
+	ActivityStatusAbandon uint8 = 5 // 活动废弃
 )
 
 const (
 	ActivityTypeSchool uint32 = 0
 )
+
+const (
+	OptionAgree  OptionType = 1 //审核同意
+	OptionRefuse OptionType = 2 //审核拒绝
+	OptionSwitch OptionType = 3 //切换关联
+)
+
+type OptionType uint8
 
 type ActivityInfo struct {
 	Type        uint8
@@ -29,11 +37,11 @@ type ActivityInfo struct {
 	ShowResult  uint8 // 是否展示结果
 	BaseInfo
 
-	Owner       string
-	Cover       string //
-	Remark      string // 活动介绍
-	Organizer   string // 组织者
-	Require     string // 活动要求
+	Owner     string
+	Cover     string //
+	Remark    string // 活动介绍
+	Organizer string // 组织者
+	Require   string // 活动要求
 
 	Template string //活动模板
 
@@ -42,24 +50,24 @@ type ActivityInfo struct {
 	Prize       *proxy.PrizeInfo
 	Participant uint32
 
-	Assets   []string
-	Tags     []string
+	Assets  []string
+	Tags    []string
 	Targets []string //具体的班级，场景等
 	//Persons []proxy.PersonInfo
 	Opuses []proxy.OpusInfo //获奖作品
 }
 
-func (mine *cacheContext)GetActivity(uid string) *ActivityInfo {
-	db,err := nosql.GetActivity(uid)
-	if err == nil{
-		info:= new(ActivityInfo)
+func (mine *cacheContext) GetActivity(uid string) *ActivityInfo {
+	db, err := nosql.GetActivity(uid)
+	if err == nil {
+		info := new(ActivityInfo)
 		info.initInfo(db)
 		return info
 	}
 	return nil
 }
 
-func (mine *cacheContext)CreateActivity(info *ActivityInfo) error {
+func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db := new(nosql.Activity)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetActivityNextID()
@@ -107,8 +115,8 @@ func (mine *cacheContext)CreateActivity(info *ActivityInfo) error {
 }
 
 func (mine *cacheContext) GetActivitiesByOrganizer(uid string) []*ActivityInfo {
-	array,err := nosql.GetActivityByOrganizer(uid)
-	if err == nil{
+	array, err := nosql.GetActivityByOrganizer(uid)
+	if err == nil {
 		list := make([]*ActivityInfo, 0, len(array))
 		for _, item := range array {
 			info := new(ActivityInfo)
@@ -120,24 +128,24 @@ func (mine *cacheContext) GetActivitiesByOrganizer(uid string) []*ActivityInfo {
 	return make([]*ActivityInfo, 0, 1)
 }
 
-func (mine *cacheContext)RemoveActivity(uid, operator string) error {
+func (mine *cacheContext) RemoveActivity(uid, operator string) error {
 	err := nosql.RemoveActivity(uid, operator)
 	return err
 }
 
-func (mine *cacheContext)GetActivityCount(owner string) uint32 {
+func (mine *cacheContext) GetActivityCount(owner string) uint32 {
 	num := nosql.GetActivityCountByOwner(owner)
 	return uint32(num)
 }
 
-func (mine *cacheContext)GetActivityCloneCount(owner string) uint32 {
+func (mine *cacheContext) GetActivityCloneCount(owner string) uint32 {
 	num := nosql.GetActivityCountByClone(owner)
 	return uint32(num)
 }
 
-func (mine *cacheContext)GetActivitiesByOwner(uid string, usable bool) []*ActivityInfo {
-	array,err := nosql.GetActivitiesByOwner(uid)
-	if err == nil{
+func (mine *cacheContext) GetActivitiesByOwner(uid string, usable bool) []*ActivityInfo {
+	array, err := nosql.GetActivitiesByOwner(uid)
+	if err == nil {
 		list := make([]*ActivityInfo, 0, len(array))
 		for _, item := range array {
 			if usable {
@@ -146,7 +154,7 @@ func (mine *cacheContext)GetActivitiesByOwner(uid string, usable bool) []*Activi
 					info.initInfo(item)
 					list = append(list, info)
 				}
-			}else{
+			} else {
 				info := new(ActivityInfo)
 				info.initInfo(item)
 				list = append(list, info)
@@ -157,17 +165,17 @@ func (mine *cacheContext)GetActivitiesByOwner(uid string, usable bool) []*Activi
 	return make([]*ActivityInfo, 0, 1)
 }
 
-func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string,st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string, st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
 	all := make([]*ActivityInfo, 0, 10)
 	var dbs []*nosql.Activity
 	var er error
-	if len(owner) < 1{
-		dbs,er = nosql.GetActivitiesByTargets(st, array)
-	}else{
-		dbs,er = nosql.GetActivitiesByOTargets(owner,st, array)
+	if len(owner) < 1 {
+		dbs, er = nosql.GetActivitiesByTargets(st, array)
+	} else {
+		dbs, er = nosql.GetActivitiesByOTargets(owner, st, array)
 	}
 	if er == nil {
 		for _, db := range dbs {
@@ -186,23 +194,23 @@ func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string,st
 	return max, pages, list.([]*ActivityInfo)
 }
 
-func (mine *cacheContext) GetAllActivitiesByTargets(owner string,st uint8, tm uint64, array []string) []*ActivityInfo {
+func (mine *cacheContext) GetAllActivitiesByTargets(owner string, st uint8, tm uint64, array []string) []*ActivityInfo {
 	if array == nil || len(array) < 1 {
 		return make([]*ActivityInfo, 0, 1)
 	}
 	all := make([]*ActivityInfo, 0, 20)
 	var dbs []*nosql.Activity
 	var er error
-	if len(owner) < 1{
-		dbs,er = nosql.GetActivitiesByTargets(st, array)
-	}else{
-		dbs,er = nosql.GetActivitiesByOTargets(owner, st, array)
+	if len(owner) < 1 {
+		dbs, er = nosql.GetActivitiesByTargets(st, array)
+	} else {
+		dbs, er = nosql.GetActivitiesByOTargets(owner, st, array)
 	}
 	if er == nil {
 		var secs int64 = -3600 * 24 * 7
 		for _, db := range dbs {
 			start := ParseTime(db.Date.Start)
-			if start - int64(tm) > secs {
+			if start-int64(tm) > secs {
 				info := new(ActivityInfo)
 				info.initInfo(db)
 				all = append(all, info)
@@ -274,7 +282,7 @@ func (mine *cacheContext) GetActivitiesByTemplate(owner, template string) []*Act
 				all = append(all, info)
 			}
 		}
-	}else{
+	} else {
 		dbs, _ := nosql.GetActivitiesByOwnTemplate(owner, template)
 		if dbs != nil {
 			for _, item := range dbs {
@@ -287,7 +295,7 @@ func (mine *cacheContext) GetActivitiesByTemplate(owner, template string) []*Act
 	return all
 }
 
-func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
+func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	mine.UID = db.UID.Hex()
 	mine.Remark = db.Remark
 	mine.ID = db.ID
@@ -315,7 +323,7 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 	mine.Status = db.Status
 
 	if mine.Targets == nil {
-		mine.Targets = make([]string, 0 ,1)
+		mine.Targets = make([]string, 0, 1)
 		//for i := 0;i < 15;i += 1 {
 		//	mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
 		//}
@@ -325,14 +333,6 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 		mine.Assets = make([]string, 0, 1)
 		_ = nosql.UpdateActivityAssets(mine.UID, mine.Operator, mine.Assets)
 	}
-	//if mine.Persons == nil {
-	//	mine.Persons = make([]proxy.PersonInfo, 0, 1)
-	//}
-	//if db.Participants != nil && len(db.Participants) > 0 {
-	//	for _, item := range db.Participants {
-	//		mine.Persons = append(mine.Persons, proxy.PersonInfo{Entity: "", Event: item})
-	//	}
-	//}
 	mine.Opuses = db.Opuses
 	if mine.Opuses == nil {
 		mine.Opuses = make([]proxy.OpusInfo, 0, 1)
@@ -340,15 +340,7 @@ func (mine *ActivityInfo)initInfo(db *nosql.Activity)  {
 	}
 }
 
-//func (mine *ActivityInfo)GetEntities() []*pb.PairInfo {
-//	list := make([]*pb.PairInfo, 0, len(mine.Persons))
-//	for _, person := range mine.Persons {
-//		list = append(list, &pb.PairInfo{Key: person.Entity, Value: person.Event})
-//	}
-//	return list
-//}
-
-func (mine *ActivityInfo)UpdateBase(name, remark, require,operator string, date proxy.DateInfo, place proxy.PlaceInfo) error {
+func (mine *ActivityInfo) UpdateBase(name, remark, require, operator string, date proxy.DateInfo, place proxy.PlaceInfo) error {
 	if len(name) < 1 {
 		name = mine.Name
 	}
@@ -377,9 +369,10 @@ func (mine *ActivityInfo)UpdateBase(name, remark, require,operator string, date 
 	return err
 }
 
-func (mine *ActivityInfo)UpdateStatus(operator string, st uint8) error {
+func (mine *ActivityInfo) UpdateStatus(operator string, st uint8) error {
 	err := nosql.UpdateActivityStatus(mine.UID, operator, st)
 	if err == nil {
+		mine.createHistory(operator, "", mine.Status, st)
 		mine.Status = st
 		mine.Operator = operator
 		if st == ActivityStatusPublish || st == ActivityStatusRelease {
@@ -389,8 +382,8 @@ func (mine *ActivityInfo)UpdateStatus(operator string, st uint8) error {
 	return err
 }
 
-// 更新活动评奖要求
-func (mine *ActivityInfo)UpdatePrize(operator, name, desc string, ranks []proxy.RankInfo) error {
+// UpdatePrize 更新活动评奖要求
+func (mine *ActivityInfo) UpdatePrize(operator, name, desc string, ranks []proxy.RankInfo) error {
 	prize := proxy.PrizeInfo{Name: name, Desc: desc, Ranks: ranks}
 	err := nosql.UpdateActivityPrize(mine.UID, operator, &prize)
 	if err == nil {
@@ -400,7 +393,7 @@ func (mine *ActivityInfo)UpdatePrize(operator, name, desc string, ranks []proxy.
 	return err
 }
 
-func (mine *ActivityInfo)UpdateShowState(operator string, st uint8) error {
+func (mine *ActivityInfo) UpdateShowState(operator string, st uint8) error {
 	err := nosql.UpdateActivityShowState(mine.UID, operator, st)
 	if err == nil {
 		mine.Status = st
@@ -409,7 +402,7 @@ func (mine *ActivityInfo)UpdateShowState(operator string, st uint8) error {
 	return err
 }
 
-func (mine *ActivityInfo)UpdateOpuses(operator string, opuses []proxy.OpusInfo) error {
+func (mine *ActivityInfo) UpdateOpuses(operator string, opuses []proxy.OpusInfo) error {
 	err := nosql.UpdateActivityOpuses(mine.UID, operator, opuses)
 	if err == nil {
 		mine.Opuses = opuses
@@ -418,7 +411,7 @@ func (mine *ActivityInfo)UpdateOpuses(operator string, opuses []proxy.OpusInfo) 
 	return err
 }
 
-func (mine *ActivityInfo)UpdateTargets(operator string, list []string) error {
+func (mine *ActivityInfo) UpdateTargets(operator string, list []string) error {
 	if list == nil {
 		return errors.New("the list of targets is nil")
 	}
@@ -430,7 +423,7 @@ func (mine *ActivityInfo)UpdateTargets(operator string, list []string) error {
 	return err
 }
 
-func (mine *ActivityInfo)UpdateTags(operator string, tags []string) error {
+func (mine *ActivityInfo) UpdateTags(operator string, tags []string) error {
 	if tags == nil {
 		return errors.New("the list of tag is nil")
 	}
@@ -442,7 +435,7 @@ func (mine *ActivityInfo)UpdateTags(operator string, tags []string) error {
 	return err
 }
 
-func (mine *ActivityInfo)UpdateAssetLimit(operator string, num uint8) error {
+func (mine *ActivityInfo) UpdateAssetLimit(operator string, num uint8) error {
 	err := nosql.UpdateActivityLimit(mine.UID, operator, num)
 	if err == nil {
 		mine.SubmitLimit = num
@@ -451,7 +444,7 @@ func (mine *ActivityInfo)UpdateAssetLimit(operator string, num uint8) error {
 	return err
 }
 
-func (mine *ActivityInfo)UpdateCover(cover, operator string) error {
+func (mine *ActivityInfo) UpdateCover(cover, operator string) error {
 	err := nosql.UpdateActivityCover(mine.UID, cover, operator)
 	if err == nil {
 		mine.Cover = cover
@@ -469,6 +462,60 @@ func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
 		mine.Assets = list
 	}
 	return err
+}
+
+func (mine *ActivityInfo) HadTargets(arr []string) bool {
+	if mine.Targets == nil || len(mine.Targets) < 1 {
+		return true
+	}
+	if arr == nil || len(arr) < 1 {
+		return false
+	}
+	for _, item := range arr {
+		if tool.HasItem(mine.Targets, item) {
+			return true
+		}
+	}
+	return false
+}
+
+func (mine *ActivityInfo) GetHistories() ([]*nosql.History, error) {
+	dbs, err := nosql.GetHistories(mine.UID)
+	if err != nil {
+		return nil, err
+	}
+	list := make([]*nosql.History, 0, len(dbs))
+	for _, db := range dbs {
+		if db.Option == uint8(OptionAgree) || db.Option == uint8(OptionRefuse) {
+			list = append(list, db)
+		}
+	}
+	return list, nil
+}
+
+func (mine *ActivityInfo) createHistory(operator, remark string, from, to uint8) {
+	opt := OptionAgree
+	if to > from {
+		opt = OptionAgree
+	} else {
+		opt = OptionRefuse
+	}
+
+	_ = mine.insertHistory(operator, remark, string(from), string(to), opt)
+}
+
+func (mine *ActivityInfo) insertHistory(operator, remark, from, to string, opt OptionType) error {
+	db := new(nosql.History)
+	db.UID = primitive.NewObjectID()
+	db.ID = nosql.GetRecordNextID()
+	db.Creator = operator
+	db.CreatedTime = time.Now()
+	db.Parent = mine.UID
+	db.From = from
+	db.To = to
+	db.Option = uint8(opt)
+	db.Remark = remark
+	return nosql.CreateHistory(db)
 }
 
 //func (mine *ActivityInfo)HadParticipant(uid string) bool {
@@ -497,22 +544,6 @@ func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
 //	}
 //	return false
 //}
-
-func (mine *ActivityInfo)HadTargets(arr []string) bool {
-	if mine.Targets == nil || len(mine.Targets) < 1 {
-		return true
-	}
-	if arr == nil || len(arr) < 1 {
-		return false
-	}
-	for _, item := range arr {
-		if tool.HasItem(mine.Targets, item) {
-			return true
-		}
-	}
-	return false
-}
-
 //func (mine *ActivityInfo)AppendParticipant(uid string) error {
 //	if mine.HadParticipant(uid) {
 //		return nil
@@ -572,4 +603,3 @@ func (mine *ActivityInfo)HadTargets(arr []string) bool {
 //	}
 //	return er
 //}
-
