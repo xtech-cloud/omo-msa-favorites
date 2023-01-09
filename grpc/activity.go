@@ -82,6 +82,7 @@ func switchHistories(info *cache.ActivityInfo) []*pb.RecordInfo {
 	arr := make([]*pb.RecordInfo, 0, len(dbs))
 	for _, item := range dbs {
 		tmp := new(pb.RecordInfo)
+		tmp.Operator = item.Creator
 		tmp.From = item.From
 		tmp.To = item.To
 		tmp.Remark = item.Remark
