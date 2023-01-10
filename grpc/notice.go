@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-type NoticeService struct {}
+type NoticeService struct{}
 
 func switchNotice(info *cache.NoticeInfo) *pb.NoticeInfo {
 	tmp := new(pb.NoticeInfo)
@@ -29,11 +29,11 @@ func switchNotice(info *cache.NoticeInfo) *pb.NoticeInfo {
 	return tmp
 }
 
-func (mine *NoticeService)AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out *pb.ReplyNoticeInfo) error {
+func (mine *NoticeService) AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out *pb.ReplyNoticeInfo) error {
 	path := "notice.addOne"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
-		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 
@@ -49,7 +49,7 @@ func (mine *NoticeService)AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out *
 	info.Status = cache.MessageStatusDraft
 	err := cache.Context().CreateNotice(info)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchNotice(info)
@@ -57,16 +57,16 @@ func (mine *NoticeService)AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out *
 	return nil
 }
 
-func (mine *NoticeService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyNoticeInfo) error {
+func (mine *NoticeService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyNoticeInfo) error {
 	path := "notice.getOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetNotice(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the notice not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the notice not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchNotice(info)
@@ -74,7 +74,7 @@ func (mine *NoticeService)GetOne(ctx context.Context, in *pb.RequestInfo, out *p
 	return nil
 }
 
-func (mine *NoticeService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+func (mine *NoticeService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "notice.getStatistic"
 	inLog(path, in)
 
@@ -82,16 +82,16 @@ func (mine *NoticeService)GetStatistic(ctx context.Context, in *pb.RequestFilter
 	return nil
 }
 
-func (mine *NoticeService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
+func (mine *NoticeService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
 	path := "notice.removeOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	err := cache.Context().RemoveNotice(in.Uid, in.Operator)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Uid = in.Uid
@@ -100,7 +100,7 @@ func (mine *NoticeService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out
 	return nil
 }
 
-func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyNoticeList) error {
+func (mine *NoticeService) GetList(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyNoticeList) error {
 	path := "notice.getList"
 	inLog(path, in)
 	var max uint32 = 0
@@ -114,18 +114,30 @@ func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out
 		//	out.Status = outError(path,er.Error(), pb.ResultStatus_DBException)
 		//	return nil
 		//}
-	}else if in.Key == "targets" {
+	} else if in.Key == "targets" {
 		max, pages, array = cache.Context().GetNoticesByTargets(in.Owner, in.List, cache.MessageStatusAgree, cache.NoticeToFamily, in.Page, in.Number)
-	}else if in.Key == "array" {
+	} else if in.Key == "array" {
 		array = cache.Context().GetNoticesByList(in.List)
-	}else if in.Key == "type" {
-		tp,er := strconv.ParseUint(in.Value, 10, 32)
+	} else if in.Key == "type" {
+		tp, er := strconv.ParseUint(in.Value, 10, 32)
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 		array = cache.Context().GetNoticesByType(in.Owner, uint32(tp))
-	}else{
+	} else if in.Key == "latest" {
+		tp, er := strconv.ParseUint(in.Value, 10, 32)
+		if er == nil {
+			info := cache.Context().GetLatestNotice(in.Owner, uint32(tp))
+			if info != nil {
+				array = make([]*cache.NoticeInfo, 0, 1)
+				array = append(array, info)
+			}
+		} else {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+	} else {
 		array = cache.Context().GetNoticesByOwner(in.Owner)
 	}
 	out.List = make([]*pb.NoticeInfo, 0, len(array))
@@ -138,11 +150,11 @@ func (mine *NoticeService)GetList(ctx context.Context, in *pb.RequestFilter, out
 	return nil
 }
 
-func (mine *NoticeService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+func (mine *NoticeService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
 	path := "notice.updateByFilter"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 
@@ -150,31 +162,31 @@ func (mine *NoticeService)UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 	return nil
 }
 
-func (mine *NoticeService)UpdateBase(ctx context.Context, in *pb.ReqNoticeUpdate, out *pb.ReplyNoticeInfo) error {
+func (mine *NoticeService) UpdateBase(ctx context.Context, in *pb.ReqNoticeUpdate, out *pb.ReplyNoticeInfo) error {
 	path := "notice.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetNotice(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the notice not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the notice not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	if in.Name != info.Name || in.Subtitle != info.Subtitle || in.Body != info.Body {
 		err = info.UpdateBase(in.Name, in.Subtitle, in.Body, in.Operator)
 		if err != nil {
-			out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}
 
-	if len(in.Targets) > 1{
+	if len(in.Targets) > 1 {
 		err = info.UpdateTargets(in.Operator, in.Targets)
 		if err != nil {
-			out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}
@@ -184,67 +196,66 @@ func (mine *NoticeService)UpdateBase(ctx context.Context, in *pb.ReqNoticeUpdate
 	return nil
 }
 
-func (mine *NoticeService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
+func (mine *NoticeService) UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "notice.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetNotice(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the notice not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the notice not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateStatus(cache.MessageStatus(in.Status), "")
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-
-func (mine *NoticeService)UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
+func (mine *NoticeService) UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
 	path := "notice.updateTags"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetNotice(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the notice not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the notice not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateTags(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *NoticeService)UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
+func (mine *NoticeService) UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
 	path := "notice.updateTargets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the notice uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetNotice(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the notice not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the notice not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateTargets(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)

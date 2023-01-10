@@ -8,9 +8,10 @@ import (
 	"omo.msa.favorite/cache"
 	"sort"
 	"strconv"
+	"time"
 )
 
-type MessageService struct {}
+type MessageService struct{}
 
 func switchActivityMessage(info *cache.ActivityInfo, entity string) *pb.MessageInfo {
 	tmp := new(pb.MessageInfo)
@@ -44,39 +45,19 @@ func switchNoticeMessage(info *cache.NoticeInfo, entity string) *pb.MessageInfo 
 	return tmp
 }
 
-func (mine *MessageService)GetByFilter(ctx context.Context, in *pb.ReqMessageFilter, out *pb.ReplyMessages) error {
+func (mine *MessageService) GetByFilter(ctx context.Context, in *pb.ReqMessageFilter, out *pb.ReplyMessages) error {
 	path := "message.getByFilter"
 	inLog(path, in)
 	all := make([]*pb.MessageInfo, 0, 200)
 	var max uint32 = 0
 	var pages uint32 = 0
 	if in.Key == "targets" {
-		for _, item := range in.List {
-			list1 := cache.Context().GetAllActivitiesByTargets(item.Owner,cache.ActivityStatusPublish, item.Time, item.Targets)
-			for _, info := range list1 {
-				tmp := getObserveMessage(info.UID, all)
-				if tmp == nil {
-					all = append(all, switchActivityMessage(info, item.Entity))
-				}else{
-					tmp.Entity = tmp.Entity+";"+item.Entity
-				}
-			}
-			list2 := cache.Context().GetAllNoticesByTargets(item.Owner, cache.MessageStatusAgree, item.Time, item.Targets)
-			for _, info := range list2 {
-				tmp := getObserveMessage(info.UID, all)
-				if tmp == nil {
-					all = append(all, switchNoticeMessage(info, item.Entity))
-				}else{
-					tmp.Entity = tmp.Entity+";"+item.Entity
-				}
-			}
-			//logger.Info(fmt.Sprintf("the entity of %s activity count = %d; notice count = %d", item.Entity, len(list1), len(list2)))
-		}
+		all = getObserves(in.List)
 	}
 	sort.Slice(all, func(i, j int) bool {
 		if all[i].Created > all[j].Created {
 			return true
-		}else{
+		} else {
 			return false
 		}
 	})
@@ -88,14 +69,14 @@ func (mine *MessageService)GetByFilter(ctx context.Context, in *pb.ReqMessageFil
 	return nil
 }
 
-func (mine *MessageService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+func (mine *MessageService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "message.getStatistic"
 	inLog(path, in)
 	out.Owner = in.Owner
 	if in.Key == "type" {
 		tp, er := strconv.ParseUint(in.Value, 10, 32)
 		if er != nil {
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 			return nil
 		}
 		out.Count = cache.Context().GetRecordCount(in.Owner, uint8(tp))
@@ -103,6 +84,43 @@ func (mine *MessageService)GetStatistic(ctx context.Context, in *pb.RequestFilte
 
 	out.Status = outLog(path, out)
 	return nil
+}
+
+func getObserves(list []*pb.TargetInfo) []*pb.MessageInfo {
+	all := make([]*pb.MessageInfo, 0, 200)
+	for _, item := range list {
+		list1 := cache.Context().GetAllActivitiesByStatus(item.Owner, cache.ActivityStatusPublish)
+		for _, info := range list1 {
+			if info.IsAlive() && info.HadTargets(item.Targets) {
+				tmp := getObserveMessage(info.UID, all)
+				if tmp == nil {
+					all = append(all, switchActivityMessage(info, item.Entity))
+				} else {
+					tmp.Entity = tmp.Entity + ";" + item.Entity
+				}
+			}
+		}
+		list2 := cache.Context().GetNoticesByStatus(item.Owner, cache.NoticeToFamily, cache.MessageStatusAgree)
+		var secs int64 = -3600 * 24 * 7
+		var from int64 = int64(item.Time)
+		if from < 1 {
+			from = time.Now().Unix()
+		}
+		for _, info := range list2 {
+			dif := info.CreateTime.Unix() - from
+			if dif > secs && info.HadTargets(item.Targets) {
+				tmp := getObserveMessage(info.UID, all)
+				if tmp == nil {
+					all = append(all, switchNoticeMessage(info, item.Entity))
+				} else {
+					tmp.Entity = tmp.Entity + ";" + item.Entity
+				}
+			}
+
+		}
+		//logger.Info(fmt.Sprintf("the entity of %s activity count = %d; notice count = %d", item.Entity, len(list1), len(list2)))
+	}
+	return all
 }
 
 func getObserveMessage(uid string, list []*pb.MessageInfo) *pb.MessageInfo {

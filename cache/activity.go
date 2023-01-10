@@ -220,6 +220,23 @@ func (mine *cacheContext) GetAllActivitiesByTargets(owner string, st uint8, tm u
 	return all
 }
 
+func (mine *cacheContext) GetAllActivitiesByStatus(owner string, state uint8) []*ActivityInfo {
+	if len(owner) < 1 {
+		return make([]*ActivityInfo, 0, 1)
+	}
+	all := make([]*ActivityInfo, 0, 10)
+	db, _ := nosql.GetActivitiesByStatus(owner, state)
+	if db != nil {
+		for _, item := range db {
+			info := new(ActivityInfo)
+			info.initInfo(item)
+			all = append(all, info)
+		}
+	}
+
+	return all
+}
+
 func (mine *cacheContext) GetActivitiesByStatus(owner string, states []uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if len(owner) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
@@ -322,8 +339,9 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	//mine.Persons = db.Persons
 	mine.Status = db.Status
 
-	if mine.Targets == nil {
+	if mine.Targets == nil || len(mine.Targets) > 16 {
 		mine.Targets = make([]string, 0, 1)
+		mine.Targets = append(mine.Targets, mine.Owner)
 		//for i := 0;i < 15;i += 1 {
 		//	mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
 		//}
@@ -464,8 +482,22 @@ func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
 	return err
 }
 
+func (mine *ActivityInfo) IsAlive() bool {
+	end, err := ParseDate2(mine.Date.Stop)
+	if err != nil {
+		return false
+	}
+	if end.Unix() > time.Now().Unix() {
+		return true
+	}
+	return false
+}
+
 func (mine *ActivityInfo) HadTargets(arr []string) bool {
 	if mine.Targets == nil || len(mine.Targets) < 1 {
+		return true
+	}
+	if tool.HasItem(mine.Targets, mine.Owner) {
 		return true
 	}
 	if arr == nil || len(arr) < 1 {
