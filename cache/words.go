@@ -1,16 +1,17 @@
 package cache
 
 import (
+	"github.com/micro/go-micro/v2/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy/nosql"
 	"time"
 )
 
 const (
-	WordsTypeBless  WordsType = 0 //
-	WordsTypePerson WordsType = 1 //
-	WordsTypeImage  WordsType = 2
-	WordsTypeOther  WordsType = 3
+	WordsTypeTemplate WordsType = 0 //
+	WordsTypeBless    WordsType = 1 //
+	WordsTypeImage    WordsType = 2
+	WordsTypeOther    WordsType = 3
 )
 
 type WordsType uint8
@@ -110,6 +111,56 @@ func (mine *cacheContext) GetWordsByOwner(uid string) []*WordsInfo {
 	return nil
 }
 
+func (mine *cacheContext) GetWordsByDate(owner, date string, before bool) []*WordsInfo {
+	now, er := time.Parse("2006-01-02", date)
+	if er != nil {
+		logger.Error("GetWordsByDate ...." + er.Error())
+		return nil
+	}
+	var array []*nosql.Words
+	var err error
+	if before {
+		array, err = nosql.GetWordsBeforeDate(owner, now)
+	} else {
+		array, err = nosql.GetWordsAfterDate(owner, now)
+	}
+
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, item := range array {
+			info := new(WordsInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
+func (mine *cacheContext) GetWordsByBetweenDate(owner, from, to string, tp WordsType) []*WordsInfo {
+	first, er := time.Parse("2006-01-02", from)
+	if er != nil {
+		logger.Error("GetWordsByDate .... from error that " + er.Error())
+		return nil
+	}
+	second, er := time.Parse("2006-01-02", to)
+	if er != nil {
+		logger.Error("GetWordsByDate ....to error that " + er.Error())
+		return nil
+	}
+	array, err := nosql.GetWordsBetweenDate(owner, first, second, uint8(tp))
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, item := range array {
+			info := new(WordsInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
 func (mine *cacheContext) GetWordsByQuote(owner, quote string) []*WordsInfo {
 	array, err := nosql.GetWordsByQuote(owner, quote)
 	if err == nil {
@@ -175,6 +226,11 @@ func (mine *cacheContext) GetWordsCountByToday(device string) (uint32, error) {
 		}
 	}
 	return count, nil
+}
+
+func (mine *cacheContext) GetWordsCountBetween(owner, from, to string, tp WordsType) (uint32, error) {
+	dbs := mine.GetWordsByBetweenDate(owner, from, to, tp)
+	return uint32(len(dbs)), nil
 }
 
 func (mine *WordsInfo) initInfo(db *nosql.Words) {

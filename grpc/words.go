@@ -82,6 +82,14 @@ func (mine *WordsService) GetStatistic(ctx context.Context, in *pb.RequestFilter
 		out.Count, _ = cache.Context().GetWordsCountByDevice(in.Value)
 	} else if in.Key == "today" {
 		out.Count, _ = cache.Context().GetWordsCountByToday(in.Value)
+	} else if in.Key == "between" {
+		if len(in.List) > 1 {
+			tp := cache.WordsType(parseStringToInt(in.Value))
+			out.Count, _ = cache.Context().GetWordsCountBetween(in.Owner, in.List[0], in.List[1], tp)
+		}
+	} else if in.Key == "click" {
+		//记录点击数量
+		out.Count = cache.Context().GetClickCount(in.Owner, in.Value)
 	} else {
 		out.Count, _ = cache.Context().GetWordsCountByScene(in.Owner)
 	}
@@ -126,8 +134,15 @@ func (mine *WordsService) GetByFilter(ctx context.Context, in *pb.RequestFilter,
 		array = cache.Context().GetWordsByUser(in.Value)
 	} else if in.Key == "quote" {
 		array = cache.Context().GetWordsByQuote(in.Owner, in.Value)
-	} else {
-
+	} else if in.Key == "date_before" {
+		array = cache.Context().GetWordsByDate(in.Owner, in.Value, true)
+	} else if in.Key == "date_after" {
+		array = cache.Context().GetWordsByDate(in.Owner, in.Value, false)
+	} else if in.Key == "date_between" {
+		if len(in.List) > 1 {
+			tp := cache.WordsType(parseStringToInt(in.Value))
+			array = cache.Context().GetWordsByBetweenDate(in.Owner, in.List[0], in.List[1], tp)
+		}
 	}
 	out.List = make([]*pb.WordsInfo, 0, len(array))
 	for _, val := range array {
@@ -160,6 +175,10 @@ func (mine *WordsService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 		err = info.UpdateAssets(in.List, in.Operator)
 	} else if in.Key == "words" {
 		err = info.UpdateBase(in.Value, in.Operator)
+	} else if in.Key == "click" {
+		//设置点击数量
+		num := parseStringToInt(in.Value)
+		err = cache.Context().UpdateClickCount(in.Owner, in.Uid, uint32(num))
 	} else {
 		err = errors.New("not defined the field key")
 	}

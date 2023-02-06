@@ -180,6 +180,63 @@ func GetWordsByOwner(owner string) ([]*Words, error) {
 	return items, nil
 }
 
+func GetWordsBeforeDate(owner string, date time.Time) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "deleteAt": def, "createdAt": bson.M{"$lte": date}}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetWordsAfterDate(owner string, date time.Time) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "deleteAt": def, "createdAt": bson.M{"$gte": date}}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetWordsBetweenDate(owner string, from, to time.Time, tp uint8) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def, "createdAt": bson.M{"$gte": from, "$lte": to}}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetWordsByQuote(owner, quote string) ([]*Words, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "quote": quote, "deleteAt": def}

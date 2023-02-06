@@ -17,9 +17,10 @@ type Record struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Type     uint8  `json:"type" bson:"type"`
-	Count    uint32 `json:"count" bson:"count"`
-	Owner    string `json:"owner" bson:"owner"`
+	Type  uint8  `json:"type" bson:"type"`
+	Count uint32 `json:"count" bson:"count"`
+	Owner string `json:"owner" bson:"owner"`
+	Begin string `json:"begin" bson:"begin"`
 }
 
 func CreateRecord(info *Record) error {
@@ -55,7 +56,22 @@ func GetRecordCount() int64 {
 
 func GetRecordsByType(owner string, tp uint8) (*Record, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "type":tp, "deleteAt": def}
+	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def}
+	result, err := findOneBy(TableRecord, filter)
+	if err != nil {
+		return nil, err
+	}
+	model := new(Record)
+	err = result.Decode(&model)
+	if err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+func GetRecordsByDate(owner, begin string, tp uint8) (*Record, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "begin": begin, "type": tp, "deleteAt": def}
 	result, err := findOneBy(TableRecord, filter)
 	if err != nil {
 		return nil, err

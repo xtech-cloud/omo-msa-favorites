@@ -16,6 +16,7 @@ const (
 	ObserveNotice   = 2
 	ObserveFav      = 3
 	ObserveArticle  = 4
+	ObserveClick    = 5
 )
 
 type BaseInfo struct {
