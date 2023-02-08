@@ -243,6 +243,7 @@ func (mine *WordsInfo) initInfo(db *nosql.Words) {
 	mine.Creator = db.Creator
 	mine.Operator = db.Operator
 	mine.Owner = db.Owner
+	mine.Quote = db.Quote
 	mine.Device = db.Device
 	mine.Target = db.Target
 	mine.Assets = db.Assets

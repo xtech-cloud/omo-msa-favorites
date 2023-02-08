@@ -23,6 +23,7 @@ func switchWords(info *cache.WordsInfo) *pb.WordsInfo {
 	tmp.Operator = info.Operator
 	tmp.Owner = info.Owner
 	tmp.Target = info.Target
+	tmp.Quote = info.Quote
 	tmp.Weight = uint32(info.Weight)
 	tmp.Assets = info.Assets
 	tmp.Type = uint32(info.Type)
