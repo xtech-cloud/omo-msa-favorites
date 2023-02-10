@@ -25,6 +25,7 @@ type WordsInfo struct {
 	Device string
 	Weight int32
 	Quote  string
+	Count  uint32
 	Assets []string
 }
 
@@ -44,6 +45,7 @@ func (mine *cacheContext) CreateWords(words, owner, target, sn, operator, quote 
 	db.Assets = assets
 	db.Device = sn
 	db.Weight = 0
+	db.Count = 0
 	err := nosql.CreateWords(db)
 	if err == nil {
 		info := new(WordsInfo)
@@ -248,13 +250,23 @@ func (mine *WordsInfo) initInfo(db *nosql.Words) {
 	mine.Target = db.Target
 	mine.Assets = db.Assets
 	mine.Weight = db.Weight
+	mine.Count = db.Count
 	mine.Type = WordsType(db.Type)
 }
 
 func (mine *WordsInfo) UpdateWeight(weight int32, operator string) error {
-	err := nosql.UpdateWordsState(mine.UID, operator, weight)
+	err := nosql.UpdateWordsWeight(mine.UID, operator, weight)
 	if err == nil {
 		mine.Weight = weight
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *WordsInfo) UpdateCount(count uint32, operator string) error {
+	err := nosql.UpdateWordsCount(mine.UID, operator, count)
+	if err == nil {
+		mine.Count = count
 		mine.UpdateTime = time.Now()
 	}
 	return err

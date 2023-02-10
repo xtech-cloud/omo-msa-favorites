@@ -25,6 +25,7 @@ type Words struct {
 	Weight int32    `json:"weight" bson:"weight"`
 	Quote  string   `json:"quote" bson:"quote"`
 	Device string   `json:"device" bson:"device"`
+	Count  uint32   `json:"count" bson:"count"` //点赞数量
 	Assets []string `json:"assets" bson:"assets"`
 }
 
@@ -281,8 +282,14 @@ func UpdateWordsBase(uid, words, operator string) error {
 	return err
 }
 
-func UpdateWordsState(uid, operator string, st int32) error {
+func UpdateWordsWeight(uid, operator string, st int32) error {
 	msg := bson.M{"weight": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableWords, uid, msg)
+	return err
+}
+
+func UpdateWordsCount(uid, operator string, num uint32) error {
+	msg := bson.M{"count": num, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableWords, uid, msg)
 	return err
 }

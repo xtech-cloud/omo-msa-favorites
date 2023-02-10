@@ -26,6 +26,7 @@ func switchWords(info *cache.WordsInfo) *pb.WordsInfo {
 	tmp.Quote = info.Quote
 	tmp.Weight = uint32(info.Weight)
 	tmp.Assets = info.Assets
+	tmp.Count = info.Count
 	tmp.Type = uint32(info.Type)
 	tmp.Device = info.Device
 	return tmp
@@ -172,6 +173,9 @@ func (mine *WordsService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 	if in.Key == "weight" {
 		w := parseStringToInt(in.Value)
 		err = info.UpdateWeight(int32(w), in.Operator)
+	} else if in.Key == "count" {
+		count := parseStringToInt(in.Value)
+		err = info.UpdateCount(uint32(count), in.Operator)
 	} else if in.Key == "assets" {
 		err = info.UpdateAssets(in.List, in.Operator)
 	} else if in.Key == "words" {
