@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"github.com/micro/go-micro/v2/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy/nosql"
@@ -233,6 +234,26 @@ func (mine *cacheContext) GetWordsCountByToday(device string) (uint32, error) {
 func (mine *cacheContext) GetWordsCountBetween(owner, from, to string, tp WordsType) (uint32, error) {
 	dbs := mine.GetWordsByBetweenDate(owner, from, to, tp)
 	return uint32(len(dbs)), nil
+}
+
+func (mine *cacheContext) UpdateWordsStars(owner, data string) error {
+	type Star struct {
+		UID   string `json:"uid"`
+		User  string `json:"user"`
+		Count uint32 `json:"count"`
+	}
+	list := make([]Star, 0, 40)
+	err := json.Unmarshal([]byte(data), list)
+	if err != nil {
+		return err
+	}
+	for _, star := range list {
+		er := nosql.UpdateWordsCount(star.UID, star.User, star.Count)
+		if err != nil {
+			return er
+		}
+	}
+	return nil
 }
 
 func (mine *WordsInfo) initInfo(db *nosql.Words) {

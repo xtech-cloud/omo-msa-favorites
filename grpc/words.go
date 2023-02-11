@@ -40,10 +40,6 @@ func (mine *WordsService) AddOne(ctx context.Context, in *pb.ReqWordsAdd, out *p
 		return nil
 	}
 
-	if len(in.Target) < 1 {
-		in.Target = in.Owner
-	}
-
 	info, err := cache.Context().CreateWords(in.Words, in.Owner, in.Target, in.Device, in.Operator, in.Quote, in.Assets, cache.WordsType(in.Type))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
