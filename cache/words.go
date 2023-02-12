@@ -285,6 +285,9 @@ func (mine *WordsInfo) UpdateWeight(weight int32, operator string) error {
 }
 
 func (mine *WordsInfo) UpdateCount(count uint32, operator string) error {
+	if count < mine.Count {
+		return nil
+	}
 	err := nosql.UpdateWordsCount(mine.UID, operator, count)
 	if err == nil {
 		mine.Count = count
