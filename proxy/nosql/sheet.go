@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"time"
 )
 
@@ -18,12 +19,12 @@ type Sheet struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Remark  string   `json:"remark" bson:"remark"`
-	Owner   string   `json:"owner" bson:"owner"`
-	Quote   string   `json:"quote" bson:"quote"`
-	Status  uint8    `json:"status" bson:"status"`
-	Product uint8    `json:"product" bson:"product"`
-	Keys    []string `json:"keys" bson:"keys"`
+	Remark   string                `json:"remark" bson:"remark"`
+	Owner    string                `json:"owner" bson:"owner"`
+	Quote    string                `json:"quote" bson:"quote"`
+	Status   uint8                 `json:"status" bson:"status"`
+	Product  uint8                 `json:"product" bson:"product"`
+	Contents []proxy.ContentWeight `json:"contents" bson:"contents"`
 }
 
 func CreateSheet(info *Sheet) error {
@@ -264,26 +265,26 @@ func UpdateSheetQuote(uid, quote, operator string) error {
 	return err
 }
 
-func UpdateSheetKeys(uid, operator string, list []string) error {
-	msg := bson.M{"keys": list, "operator": operator, "updatedAt": time.Now()}
+func UpdateSheetDisplay(uid, operator string, list []proxy.ContentWeight) error {
+	msg := bson.M{"contents": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableSheet, uid, msg)
 	return err
 }
 
-func AppendSheetKey(uid string, key string) error {
+func AppendSheetContent(uid string, display proxy.ContentWeight) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
-	msg := bson.M{"keys": key}
+	msg := bson.M{"contents": display}
 	_, err := appendElement(TableSheet, uid, msg)
 	return err
 }
 
-func SubtractSheetKey(uid, key string) error {
+func SubtractSheetContent(uid, content string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
-	msg := bson.M{"keys": key}
+	msg := bson.M{"contents": bson.M{"uid": content}}
 	_, err := removeElement(TableSheet, uid, msg)
 	return err
 }

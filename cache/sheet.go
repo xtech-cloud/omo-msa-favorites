@@ -2,18 +2,20 @@ package cache
 
 import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"time"
 )
 
+// 展览表集合
 type SheetInfo struct {
 	BaseInfo
 	Status      uint8
 	ProductType uint8
-	Owner       string //该展览表所属用户等
+	Owner       string //该展览表所属场景
 	Remark      string
-	Quote       string   //关联的对象，可能是班级UID，场景UID等
-	Keys        []string //展览uid集合
+	Quote       string                //关联的场所UID等
+	Contents    []proxy.ContentWeight //展览uid集合
 }
 
 func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
@@ -29,9 +31,9 @@ func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
 	db.Creator = info.Creator
 	db.Operator = info.Operator
 	db.Quote = info.Quote
-	db.Keys = info.Keys
-	if db.Keys == nil {
-		db.Keys = make([]string, 0, 1)
+	db.Contents = info.Contents
+	if db.Contents == nil {
+		db.Contents = make([]proxy.ContentWeight, 0, 1)
 	}
 
 	err := nosql.CreateSheet(db)
@@ -150,9 +152,9 @@ func (mine *SheetInfo) initInfo(db *nosql.Sheet) {
 	mine.Status = db.Status
 	mine.ProductType = db.Product
 	mine.Quote = db.Quote
-	mine.Keys = db.Keys
-	if mine.Keys == nil {
-		mine.Keys = make([]string, 0, 1)
+	mine.Contents = db.Contents
+	if mine.Contents == nil {
+		mine.Contents = make([]proxy.ContentWeight, 0, 1)
 	}
 }
 
@@ -193,18 +195,18 @@ func (mine *SheetInfo) UpdateStatus(st uint8, operator string) error {
 	return err
 }
 
-func (mine *SheetInfo) UpdateKeys(operator string, list []string) error {
+func (mine *SheetInfo) UpdateKeys(operator string, list []proxy.ContentWeight) error {
 	var err error
 	if list == nil || len(list) < 1 {
-		err = nosql.UpdateSheetKeys(mine.UID, operator, make([]string, 0, 1))
+		err = nosql.UpdateSheetDisplay(mine.UID, operator, make([]proxy.ContentWeight, 0, 1))
 		if err == nil {
-			mine.Keys = make([]string, 0, 1)
+			mine.Contents = make([]proxy.ContentWeight, 0, 1)
 			mine.Operator = operator
 		}
 	} else {
-		err = nosql.UpdateSheetKeys(mine.UID, operator, list)
+		err = nosql.UpdateSheetDisplay(mine.UID, operator, list)
 		if err == nil {
-			mine.Keys = list
+			mine.Contents = list
 			mine.Operator = operator
 		}
 	}
@@ -212,21 +214,25 @@ func (mine *SheetInfo) UpdateKeys(operator string, list []string) error {
 }
 
 func (mine *SheetInfo) HadKey(uid string) bool {
-	for _, item := range mine.Keys {
-		if item == uid {
+	for _, item := range mine.Contents {
+		if item.UID == uid {
 			return true
 		}
 	}
 	return false
 }
 
-func (mine *SheetInfo) AppendKey(uid string) error {
+func (mine *SheetInfo) AppendKey(uid string, weight uint32) error {
 	if mine.HadKey(uid) {
 		return nil
 	}
-	er := nosql.AppendSheetKey(mine.UID, uid)
+	tmp := proxy.ContentWeight{
+		UID:    uid,
+		Weight: weight,
+	}
+	er := nosql.AppendSheetContent(mine.UID, tmp)
 	if er == nil {
-		mine.Keys = append(mine.Keys, uid)
+		mine.Contents = append(mine.Contents, tmp)
 	}
 	return er
 }
@@ -235,14 +241,14 @@ func (mine *SheetInfo) SubtractKey(uid string) error {
 	if !mine.HadKey(uid) {
 		return nil
 	}
-	er := nosql.SubtractSheetKey(mine.UID, uid)
+	er := nosql.SubtractSheetContent(mine.UID, uid)
 	if er == nil {
-		for i := 0; i < len(mine.Keys); i += 1 {
-			if mine.Keys[i] == uid {
-				if i == len(mine.Keys)-1 {
-					mine.Keys = append(mine.Keys[:i])
+		for i := 0; i < len(mine.Contents); i += 1 {
+			if mine.Contents[i].UID == uid {
+				if i == len(mine.Contents)-1 {
+					mine.Contents = append(mine.Contents[:i])
 				} else {
-					mine.Keys = append(mine.Keys[:i], mine.Keys[i+1:]...)
+					mine.Contents = append(mine.Contents[:i], mine.Contents[i+1:]...)
 				}
 				break
 			}

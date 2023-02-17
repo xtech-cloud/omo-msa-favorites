@@ -20,14 +20,14 @@ type DisplayInfo struct {
 	BaseInfo
 	Status  uint8
 	Type    uint8  //
-	Owner   string //该展览所属组织机构，scene, class等
+	Owner   string //该展览所属组织机构，scene
 	Cover   string
 	Remark  string
 	Origin  string //布展数据来源，比如活动
 	Meta    string //
 	Tags    []string
 	Keys    []string
-	Targets []*proxy.ShowingInfo //目标设备
+	Targets []*proxy.ShowingInfo //目标效果配置
 }
 
 func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
@@ -285,13 +285,13 @@ func (mine *DisplayInfo) UpdateStatus(st uint8, operator string) error {
 
 func (mine *DisplayInfo) UpdateEntities(operator string, list []string) error {
 	var err error
-	if list == nil || len(list) < 1{
+	if list == nil || len(list) < 1 {
 		err = nosql.UpdateDisplayKeys(mine.UID, operator, make([]string, 0, 1))
 		if err == nil {
 			mine.Keys = make([]string, 0, 1)
 			mine.Operator = operator
 		}
-	}else{
+	} else {
 		err = nosql.UpdateDisplayKeys(mine.UID, operator, list)
 		if err == nil {
 			mine.Keys = list
@@ -387,7 +387,7 @@ func (mine *DisplayInfo) UpdateTargets(operator string, targets []string) error 
 			info.UpdatedAt = time.Now()
 			array = append(array, info)
 		}
-	}else{
+	} else {
 		array = make([]*proxy.ShowingInfo, 0, 1)
 	}
 	err := nosql.UpdateDisplayTargets(mine.UID, operator, array)
