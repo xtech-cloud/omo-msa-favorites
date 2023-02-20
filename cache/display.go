@@ -225,7 +225,7 @@ func (mine *DisplayInfo) GetKeys() []string {
 func (mine *DisplayInfo) GetTargets() []*pb.ShowInfo {
 	list := make([]*pb.ShowInfo, 0, len(mine.Targets))
 	for _, item := range mine.Targets {
-		list = append(list, &pb.ShowInfo{Target: item.Target, Effect: item.Effect, Skin: item.Skin, Slots: item.Slots})
+		list = append(list, &pb.ShowInfo{Target: item.Target, Effect: item.Effect, Skin: item.Alignment, Slots: item.Slots})
 	}
 	return list
 }
@@ -350,7 +350,7 @@ func (mine *DisplayInfo) SubtractKey(uid string) error {
 	return er
 }
 
-func (mine *DisplayInfo) UpdateTarget(uid, effect, skin, operator string, slots []string) error {
+func (mine *DisplayInfo) UpdateTarget(uid, effect, align, menu, operator string, slots []string) error {
 	if !mine.HadTarget(uid) {
 		return nil
 	}
@@ -361,8 +361,9 @@ func (mine *DisplayInfo) UpdateTarget(uid, effect, skin, operator string, slots 
 	for _, info := range mine.Targets {
 		if info.Target == uid {
 			info.Effect = effect
-			info.Skin = skin
+			info.Alignment = align
 			info.Slots = slots
+			info.Menu = menu
 			info.UpdatedAt = time.Now()
 		}
 		array = append(array, info)
@@ -382,7 +383,7 @@ func (mine *DisplayInfo) UpdateTargets(operator string, targets []string) error 
 			info := new(proxy.ShowingInfo)
 			info.Target = item
 			info.Effect = ""
-			info.Skin = ""
+			info.Alignment = ""
 			info.Slots = make([]string, 0, 1)
 			info.UpdatedAt = time.Now()
 			array = append(array, info)
@@ -418,7 +419,8 @@ func (mine *DisplayInfo) AppendSimpleTarget(target string) error {
 	show := new(proxy.ShowingInfo)
 	show.Target = target
 	show.Effect = ""
-	show.Skin = ""
+	show.Alignment = ""
+	show.Menu = ""
 	show.Slots = make([]string, 0, 1)
 	show.UpdatedAt = time.Now()
 	er := nosql.AppendDisplayTarget(mine.UID, show)

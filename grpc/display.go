@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type DisplayService struct {}
+type DisplayService struct{}
 
 func switchDisplay(info *cache.DisplayInfo) *pb.DisplayInfo {
 	tmp := new(pb.DisplayInfo)
@@ -35,11 +35,11 @@ func switchDisplay(info *cache.DisplayInfo) *pb.DisplayInfo {
 	return tmp
 }
 
-func (mine *DisplayService)AddOne(ctx context.Context, in *pb.ReqDisplayAdd, out *pb.ReplyDisplayInfo) error {
+func (mine *DisplayService) AddOne(ctx context.Context, in *pb.ReqDisplayAdd, out *pb.ReplyDisplayInfo) error {
 	path := "display.addOne"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
-		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	if len(in.Origin) > 0 {
@@ -51,7 +51,7 @@ func (mine *DisplayService)AddOne(ctx context.Context, in *pb.ReqDisplayAdd, out
 		}
 	}
 	if cache.Context().HadDisplayByName(in.Owner, in.Name, uint8(in.Type)) {
-		out.Status = outError(path,"the name is repeated", pbstatus.ResultStatus_Repeated)
+		out.Status = outError(path, "the name is repeated", pbstatus.ResultStatus_Repeated)
 		return nil
 	}
 	info := new(cache.DisplayInfo)
@@ -67,7 +67,7 @@ func (mine *DisplayService)AddOne(ctx context.Context, in *pb.ReqDisplayAdd, out
 	info.Type = uint8(in.Type)
 	err := cache.Context().CreateDisplay(info)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchDisplay(info)
@@ -75,16 +75,16 @@ func (mine *DisplayService)AddOne(ctx context.Context, in *pb.ReqDisplayAdd, out
 	return nil
 }
 
-func (mine *DisplayService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayInfo) error {
+func (mine *DisplayService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayInfo) error {
 	path := "display.getOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchDisplay(info)
@@ -92,7 +92,7 @@ func (mine *DisplayService)GetOne(ctx context.Context, in *pb.RequestInfo, out *
 	return nil
 }
 
-func (mine *DisplayService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+func (mine *DisplayService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "display.getStatistic"
 	inLog(path, in)
 
@@ -105,16 +105,16 @@ func (mine *DisplayService)GetStatistic(ctx context.Context, in *pb.RequestFilte
 	return nil
 }
 
-func (mine *DisplayService)GetByOrigin(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayInfo) error {
+func (mine *DisplayService) GetByOrigin(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayInfo) error {
 	path := "display.getByOrigin"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplayByOrigin(in.Owner, in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchDisplay(info)
@@ -122,16 +122,16 @@ func (mine *DisplayService)GetByOrigin(ctx context.Context, in *pb.RequestInfo, 
 	return nil
 }
 
-func (mine *DisplayService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
+func (mine *DisplayService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
 	path := "display.removeOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	err := cache.Context().RemoveDisplay(in.Uid, in.Operator)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Uid = in.Uid
@@ -140,16 +140,16 @@ func (mine *DisplayService)RemoveOne(ctx context.Context, in *pb.RequestInfo, ou
 	return nil
 }
 
-func (mine *DisplayService)GetList(ctx context.Context, in *pb.ReqDisplayList, out *pb.ReplyDisplayList) error {
+func (mine *DisplayService) GetList(ctx context.Context, in *pb.ReqDisplayList, out *pb.ReplyDisplayList) error {
 	path := "display.getList"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
 		out.List = make([]*pb.DisplayInfo, 0, 1)
-	}else{
+	} else {
 		var array []*cache.DisplayInfo
 		if in.Type > 0 {
 			array = cache.Context().GetDisplaysByType(in.Owner, uint8(in.Type))
-		}else{
+		} else {
 			array = cache.Context().GetDisplaysByOwner(in.Owner)
 		}
 
@@ -162,7 +162,7 @@ func (mine *DisplayService)GetList(ctx context.Context, in *pb.ReqDisplayList, o
 	return nil
 }
 
-func (mine *DisplayService)GetByList(ctx context.Context, in *pb.RequestList, out *pb.ReplyDisplayList) error {
+func (mine *DisplayService) GetByList(ctx context.Context, in *pb.RequestList, out *pb.ReplyDisplayList) error {
 	path := "display.getByList"
 	inLog(path, in)
 	array := cache.Context().GetDisplaysByList(in.List)
@@ -174,7 +174,7 @@ func (mine *DisplayService)GetByList(ctx context.Context, in *pb.RequestList, ou
 	return nil
 }
 
-func (mine *DisplayService)GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyDisplayList) error {
+func (mine *DisplayService) GetByFilter(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyDisplayList) error {
 	path := "display.getByFilter"
 	inLog(path, in)
 	var array []*cache.DisplayInfo
@@ -182,14 +182,14 @@ func (mine *DisplayService)GetByFilter(ctx context.Context, in *pb.RequestFilter
 	var pages uint32 = 0
 	if in.Key == "target" {
 
-	}else if in.Key == "targets" {
+	} else if in.Key == "targets" {
 		max, pages, array = cache.Context().GetDisplaysByTargets(in.Owner, in.List, in.Page, in.Number)
-	}else if in.Key == "status" {
+	} else if in.Key == "status" {
 		if in.List != nil && len(in.List) > 1 {
 			for _, val := range in.List {
 				st, er := strconv.ParseUint(val, 10, 32)
 				if er != nil {
-					out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+					out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 					return nil
 				}
 				arr := cache.Context().GetDisplaysByStatus(in.Owner, uint8(st))
@@ -197,10 +197,10 @@ func (mine *DisplayService)GetByFilter(ctx context.Context, in *pb.RequestFilter
 					array = append(array, arr...)
 				}
 			}
-		}else{
+		} else {
 			st, er := strconv.ParseUint(in.Value, 10, 32)
 			if er != nil {
-				out.Status = outError(path,er.Error(), pbstatus.ResultStatus_FormatError)
+				out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 				return nil
 			}
 			array = cache.Context().GetDisplaysByStatus(in.Owner, uint8(st))
@@ -216,11 +216,11 @@ func (mine *DisplayService)GetByFilter(ctx context.Context, in *pb.RequestFilter
 	return nil
 }
 
-func (mine *DisplayService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+func (mine *DisplayService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
 	path := "display.updateByFilter"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 
@@ -228,16 +228,16 @@ func (mine *DisplayService)UpdateByFilter(ctx context.Context, in *pb.RequestUpd
 	return nil
 }
 
-func (mine *DisplayService)UpdateBase(ctx context.Context, in *pb.ReqDisplayUpdate, out *pb.ReplyDisplayInfo) error {
+func (mine *DisplayService) UpdateBase(ctx context.Context, in *pb.ReqDisplayUpdate, out *pb.ReplyDisplayInfo) error {
 	path := "display.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
@@ -249,7 +249,7 @@ func (mine *DisplayService)UpdateBase(ctx context.Context, in *pb.ReqDisplayUpda
 	}
 
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchDisplay(info)
@@ -257,22 +257,22 @@ func (mine *DisplayService)UpdateBase(ctx context.Context, in *pb.ReqDisplayUpda
 	return nil
 }
 
-func (mine *DisplayService)UpdateMeta(ctx context.Context, in *pb.ReqDisplayMeta, out *pb.ReplyDisplayInfo) error {
+func (mine *DisplayService) UpdateMeta(ctx context.Context, in *pb.ReqDisplayMeta, out *pb.ReplyDisplayInfo) error {
 	path := "display.updateMeta"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateMeta(in.Operator, in.Meta)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchDisplay(info)
@@ -280,47 +280,47 @@ func (mine *DisplayService)UpdateMeta(ctx context.Context, in *pb.ReqDisplayMeta
 	return nil
 }
 
-func (mine *DisplayService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
+func (mine *DisplayService) UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "display.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateStatus(uint8(in.Status), in.Operator)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *DisplayService)UpdateTags(ctx context.Context, in *pb.ReqDisplayTags, out *pb.ReplyDisplayInfo) error {
+func (mine *DisplayService) UpdateTags(ctx context.Context, in *pb.ReqDisplayTags, out *pb.ReplyDisplayInfo) error {
 	path := "display.updateTags"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	if in.Tags == nil || len(in.Tags) < 1 {
-		out.Status = outError(path,"the display tags is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display tags is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	err := info.UpdateTags(in.Operator, in.Tags)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchDisplay(info)
@@ -328,22 +328,22 @@ func (mine *DisplayService)UpdateTags(ctx context.Context, in *pb.ReqDisplayTags
 	return nil
 }
 
-func (mine *DisplayService)UpdateKeys(ctx context.Context, in *pb.ReqDisplayKeys, out *pb.ReplyDisplayKeys) error {
+func (mine *DisplayService) UpdateKeys(ctx context.Context, in *pb.ReqDisplayKeys, out *pb.ReplyDisplayKeys) error {
 	path := "display.updateKeys"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateEntities(in.Operator, in.Keys)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Keys = info.GetKeys()
@@ -351,21 +351,21 @@ func (mine *DisplayService)UpdateKeys(ctx context.Context, in *pb.ReqDisplayKeys
 	return nil
 }
 
-func (mine *DisplayService)AppendKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayKeys) error {
+func (mine *DisplayService) AppendKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayKeys) error {
 	path := "display.appendEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	err := info.AppendKey(in.Flag)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Keys = info.GetKeys()
@@ -373,21 +373,21 @@ func (mine *DisplayService)AppendKey(ctx context.Context, in *pb.RequestInfo, ou
 	return nil
 }
 
-func (mine *DisplayService)SubtractKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayKeys) error {
+func (mine *DisplayService) SubtractKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayKeys) error {
 	path := "display.subtractEntity"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	err := info.SubtractKey(in.Flag)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Keys = info.GetKeys()
@@ -395,19 +395,19 @@ func (mine *DisplayService)SubtractKey(ctx context.Context, in *pb.RequestInfo, 
 	return nil
 }
 
-func (mine *DisplayService)UpdateTargets(ctx context.Context, in *pb.ReqDisplayTargets, out *pb.ReplyInfo) error {
+func (mine *DisplayService) UpdateTargets(ctx context.Context, in *pb.ReqDisplayTargets, out *pb.ReplyInfo) error {
 	path := "display.updateTargets"
 	inLog(path, in)
 	if in.Owner == "" {
-		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	if in.List == nil || len(in.List) < 1 {
-		out.Status = outError(path,"the display list is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display list is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	empty := false
-	if in.Targets == nil || len(in.Targets) <1 {
+	if in.Targets == nil || len(in.Targets) < 1 {
 		empty = true
 	}
 	arr := cache.Context().GetDisplaysByOwner(in.Owner)
@@ -415,15 +415,15 @@ func (mine *DisplayService)UpdateTargets(ctx context.Context, in *pb.ReqDisplayT
 		if tool.HasItem(in.List, info.UID) {
 			if empty {
 				_ = info.UpdateTargets(in.Operator, nil)
-			}else{
+			} else {
 				for _, target := range in.Targets {
 					_ = info.AppendSimpleTarget(target)
 				}
 			}
-		}else{
+		} else {
 			if empty {
 
-			}else{
+			} else {
 				for _, target := range in.Targets {
 					_ = info.SubtractTarget(target)
 				}
@@ -435,21 +435,21 @@ func (mine *DisplayService)UpdateTargets(ctx context.Context, in *pb.ReqDisplayT
 	return nil
 }
 
-func (mine *DisplayService)UpdateTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
+func (mine *DisplayService) UpdateTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
 	path := "display.updateTarget"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.UpdateTarget(in.Target, in.Effect, in.Skin, in.Operator, in.Slots)
+	err := info.UpdateTarget(in.Target, in.Effect, in.Skin, in.Menu, in.Operator, in.Slots)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Targets = info.GetTargets()
@@ -457,21 +457,21 @@ func (mine *DisplayService)UpdateTarget(ctx context.Context, in *pb.ReqDisplayTa
 	return nil
 }
 
-func (mine *DisplayService)AppendTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
+func (mine *DisplayService) AppendTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
 	path := "display.appendTarget"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Skin: in.Skin, Slots: in.Slots, UpdatedAt: time.Now()})
+	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Alignment: in.Skin, Menu: in.Menu, Slots: in.Slots, UpdatedAt: time.Now()})
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Targets = info.GetTargets()
@@ -479,25 +479,24 @@ func (mine *DisplayService)AppendTarget(ctx context.Context, in *pb.ReqDisplayTa
 	return nil
 }
 
-func (mine *DisplayService)SubtractTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
+func (mine *DisplayService) SubtractTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
 	path := "display.subtractTarget"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the display uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the display not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	err := info.SubtractTarget(in.Target)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Targets = info.GetTargets()
 	out.Status = outLog(path, out)
 	return nil
 }
-

@@ -47,7 +47,8 @@ type ShowingInfo struct {
 	//场所
 	Target    string    `json:"target" bson:"target"` //场所
 	Effect    string    `json:"effect" bson:"effect"` //展览的板式
-	Skin      string    `json:"skin" bson:"skin"`
+	Menu      string    `json:"menu" bson:"menu"`     //所属目录
+	Alignment string    `json:"align" bson:"align"`   //目录方向
 	Slots     []string  `json:"slots" bson:"slots"`
 	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
 }
