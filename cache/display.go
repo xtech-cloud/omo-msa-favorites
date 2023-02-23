@@ -2,9 +2,7 @@ package cache
 
 import (
 	"errors"
-	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"time"
 )
@@ -18,16 +16,18 @@ const (
 
 type DisplayInfo struct {
 	BaseInfo
-	Status  uint8
-	Type    uint8  //
-	Owner   string //该展览所属组织机构，scene
-	Cover   string
-	Remark  string
-	Origin  string //布展数据来源，比如活动
-	Meta    string //
-	Tags    []string
-	Keys    []string
-	Targets []*proxy.ShowingInfo //目标效果配置
+	Status uint8
+	Type   uint8  //
+	Owner  string //该展览所属组织机构，scene
+	Cover  string
+	Remark string
+	Origin string //布展数据来源，比如活动
+	Banner string //标语
+	Poster string //海报
+	Meta   string //
+	Tags   []string
+	Keys   []string
+	//Targets []*proxy.ShowingInfo //目标效果配置
 }
 
 func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
@@ -44,6 +44,8 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	db.Status = info.Status
 	db.Creator = info.Creator
 	db.Operator = info.Operator
+	db.Banner = info.Banner
+	db.Poster = info.Poster
 	db.Tags = info.Tags
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
@@ -52,10 +54,10 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	if db.Keys == nil {
 		db.Keys = make([]string, 0, 1)
 	}
-	db.Targets = info.Targets
-	if db.Targets == nil {
-		db.Targets = make([]*proxy.ShowingInfo, 0, 1)
-	}
+	//db.Targets = info.Targets
+	//if db.Targets == nil {
+	//	db.Targets = make([]*proxy.ShowingInfo, 0, 1)
+	//}
 
 	err := nosql.CreateDisplay(db)
 	if err == nil {
@@ -208,27 +210,29 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 	mine.Tags = db.Tags
 	mine.Keys = db.Keys
 	mine.Status = db.Status
-	mine.Targets = db.Targets
+	mine.Banner = db.Banner
+	mine.Poster = db.Poster
+	//mine.Targets = db.Targets
 	if mine.Keys == nil {
 		mine.Keys = make([]string, 0, 1)
 	}
-	if mine.Targets == nil {
-		mine.Targets = make([]*proxy.ShowingInfo, 0, 1)
-		_ = nosql.UpdateDisplayTargets(mine.UID, mine.Operator, mine.Targets)
-	}
+	//if mine.Targets == nil {
+	//	mine.Targets = make([]*proxy.ShowingInfo, 0, 1)
+	//	_ = nosql.UpdateDisplayTargets(mine.UID, mine.Operator, mine.Targets)
+	//}
 }
 
 func (mine *DisplayInfo) GetKeys() []string {
 	return mine.Keys
 }
 
-func (mine *DisplayInfo) GetTargets() []*pb.ShowInfo {
-	list := make([]*pb.ShowInfo, 0, len(mine.Targets))
-	for _, item := range mine.Targets {
-		list = append(list, &pb.ShowInfo{Target: item.Target, Effect: item.Effect, Skin: item.Alignment, Slots: item.Slots})
-	}
-	return list
-}
+//func (mine *DisplayInfo) GetTargets() []*pb.ShowInfo {
+//	list := make([]*pb.ShowInfo, 0, len(mine.Targets))
+//	for _, item := range mine.Targets {
+//		list = append(list, &pb.ShowInfo{Target: item.Target, Effect: item.Effect, Skin: item.Alignment, Slots: item.Slots})
+//	}
+//	return list
+//}
 
 func (mine *DisplayInfo) UpdateBase(name, remark, operator string) error {
 	if len(name) < 1 {
@@ -310,14 +314,14 @@ func (mine *DisplayInfo) HadKey(uid string) bool {
 	return false
 }
 
-func (mine *DisplayInfo) HadTarget(uid string) bool {
-	for _, item := range mine.Targets {
-		if item.Target == uid {
-			return true
-		}
-	}
-	return false
-}
+//func (mine *DisplayInfo) HadTarget(uid string) bool {
+//	for _, item := range mine.Targets {
+//		if item.Target == uid {
+//			return true
+//		}
+//	}
+//	return false
+//}
 
 func (mine *DisplayInfo) AppendKey(uid string) error {
 	if mine.HadKey(uid) {
@@ -350,105 +354,105 @@ func (mine *DisplayInfo) SubtractKey(uid string) error {
 	return er
 }
 
-func (mine *DisplayInfo) UpdateTarget(uid, effect, align, menu, operator string, slots []string) error {
-	if !mine.HadTarget(uid) {
-		return nil
-	}
-	if slots == nil {
-		slots = make([]string, 0, 1)
-	}
-	array := make([]*proxy.ShowingInfo, 0, len(mine.Targets))
-	for _, info := range mine.Targets {
-		if info.Target == uid {
-			info.Effect = effect
-			info.Alignment = align
-			info.Slots = slots
-			info.Menu = menu
-			info.UpdatedAt = time.Now()
-		}
-		array = append(array, info)
-	}
-	err := nosql.UpdateDisplayTargets(mine.UID, operator, array)
-	if err == nil {
-		mine.Targets = array
-	}
-	return err
-}
+//func (mine *DisplayInfo) UpdateTarget(uid, effect, align, menu, operator string, slots []string) error {
+//	if !mine.HadTarget(uid) {
+//		return nil
+//	}
+//	if slots == nil {
+//		slots = make([]string, 0, 1)
+//	}
+//	array := make([]*proxy.ShowingInfo, 0, len(mine.Targets))
+//	for _, info := range mine.Targets {
+//		if info.Target == uid {
+//			info.Effect = effect
+//			info.Alignment = align
+//			info.Slots = slots
+//			info.Menu = menu
+//			info.UpdatedAt = time.Now()
+//		}
+//		array = append(array, info)
+//	}
+//	err := nosql.UpdateDisplayTargets(mine.UID, operator, array)
+//	if err == nil {
+//		mine.Targets = array
+//	}
+//	return err
+//}
 
-func (mine *DisplayInfo) UpdateTargets(operator string, targets []string) error {
-	var array []*proxy.ShowingInfo
-	if targets != nil {
-		array = make([]*proxy.ShowingInfo, 0, len(mine.Targets))
-		for _, item := range targets {
-			info := new(proxy.ShowingInfo)
-			info.Target = item
-			info.Effect = ""
-			info.Alignment = ""
-			info.Slots = make([]string, 0, 1)
-			info.UpdatedAt = time.Now()
-			array = append(array, info)
-		}
-	} else {
-		array = make([]*proxy.ShowingInfo, 0, 1)
-	}
-	err := nosql.UpdateDisplayTargets(mine.UID, operator, array)
-	if err == nil {
-		mine.Targets = array
-	}
-	return err
-}
+//func (mine *DisplayInfo) UpdateTargets(operator string, targets []string) error {
+//	var array []*proxy.ShowingInfo
+//	if targets != nil {
+//		array = make([]*proxy.ShowingInfo, 0, len(mine.Targets))
+//		for _, item := range targets {
+//			info := new(proxy.ShowingInfo)
+//			info.Target = item
+//			info.Effect = ""
+//			info.Alignment = ""
+//			info.Slots = make([]string, 0, 1)
+//			info.UpdatedAt = time.Now()
+//			array = append(array, info)
+//		}
+//	} else {
+//		array = make([]*proxy.ShowingInfo, 0, 1)
+//	}
+//	err := nosql.UpdateDisplayTargets(mine.UID, operator, array)
+//	if err == nil {
+//		mine.Targets = array
+//	}
+//	return err
+//}
 
-func (mine *DisplayInfo) AppendTarget(show *proxy.ShowingInfo) error {
-	if mine.HadTarget(show.Target) {
-		_ = mine.SubtractTarget(show.Target)
-	}
-	er := nosql.AppendDisplayTarget(mine.UID, show)
-	if er == nil {
-		mine.Targets = append(mine.Targets, show)
-	}
-	return er
-}
+//func (mine *DisplayInfo) AppendTarget(show *proxy.ShowingInfo) error {
+//	if mine.HadTarget(show.Target) {
+//		_ = mine.SubtractTarget(show.Target)
+//	}
+//	er := nosql.AppendDisplayTarget(mine.UID, show)
+//	if er == nil {
+//		mine.Targets = append(mine.Targets, show)
+//	}
+//	return er
+//}
 
-func (mine *DisplayInfo) AppendSimpleTarget(target string) error {
-	if target == "" {
-		return errors.New("the target is empty")
-	}
-	if mine.HadTarget(target) {
-		return nil
-	}
-	show := new(proxy.ShowingInfo)
-	show.Target = target
-	show.Effect = ""
-	show.Alignment = ""
-	show.Menu = ""
-	show.Slots = make([]string, 0, 1)
-	show.UpdatedAt = time.Now()
-	er := nosql.AppendDisplayTarget(mine.UID, show)
-	if er == nil {
-		mine.Targets = append(mine.Targets, show)
-	}
-	return er
-}
+//func (mine *DisplayInfo) AppendSimpleTarget(target string) error {
+//	if target == "" {
+//		return errors.New("the target is empty")
+//	}
+//	if mine.HadTarget(target) {
+//		return nil
+//	}
+//	show := new(proxy.ShowingInfo)
+//	show.Target = target
+//	show.Effect = ""
+//	show.Alignment = ""
+//	show.Menu = ""
+//	show.Slots = make([]string, 0, 1)
+//	show.UpdatedAt = time.Now()
+//	er := nosql.AppendDisplayTarget(mine.UID, show)
+//	if er == nil {
+//		mine.Targets = append(mine.Targets, show)
+//	}
+//	return er
+//}
 
-func (mine *DisplayInfo) SubtractTarget(sn string) error {
-	if sn == "" {
-		return errors.New("the target is empty")
-	}
-	if !mine.HadTarget(sn) {
-		return nil
-	}
-	er := nosql.SubtractDisplayTarget(mine.UID, sn)
-	if er == nil {
-		for i := 0; i < len(mine.Targets); i += 1 {
-			if mine.Targets[i].Target == sn {
-				if i == len(mine.Targets)-1 {
-					mine.Targets = append(mine.Targets[:i])
-				} else {
-					mine.Targets = append(mine.Targets[:i], mine.Targets[i+1:]...)
-				}
-				break
-			}
-		}
-	}
-	return er
-}
+//func (mine *DisplayInfo) SubtractTarget(sn string) error {
+//	if sn == "" {
+//		return errors.New("the target is empty")
+//	}
+//	if !mine.HadTarget(sn) {
+//		return nil
+//	}
+//	er := nosql.SubtractDisplayTarget(mine.UID, sn)
+//	if er == nil {
+//		for i := 0; i < len(mine.Targets); i += 1 {
+//			if mine.Targets[i].Target == sn {
+//				if i == len(mine.Targets)-1 {
+//					mine.Targets = append(mine.Targets[:i])
+//				} else {
+//					mine.Targets = append(mine.Targets[:i], mine.Targets[i+1:]...)
+//				}
+//				break
+//			}
+//		}
+//	}
+//	return er
+//}

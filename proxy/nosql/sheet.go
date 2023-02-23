@@ -19,12 +19,12 @@ type Sheet struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Remark   string                `json:"remark" bson:"remark"`
-	Owner    string                `json:"owner" bson:"owner"`
-	Quote    string                `json:"quote" bson:"quote"`
-	Status   uint8                 `json:"status" bson:"status"`
-	Product  uint8                 `json:"product" bson:"product"`
-	Contents []proxy.ContentWeight `json:"contents" bson:"contents"`
+	Remark   string              `json:"remark" bson:"remark"`
+	Owner    string              `json:"owner" bson:"owner"`
+	Quote    string              `json:"quote" bson:"quote"`
+	Status   uint8               `json:"status" bson:"status"`
+	Product  uint8               `json:"product" bson:"product"`
+	Contents []proxy.ShowContent `json:"contents" bson:"contents"`
 }
 
 func CreateSheet(info *Sheet) error {
@@ -265,13 +265,13 @@ func UpdateSheetQuote(uid, quote, operator string) error {
 	return err
 }
 
-func UpdateSheetDisplay(uid, operator string, list []proxy.ContentWeight) error {
+func UpdateSheetDisplay(uid, operator string, list []proxy.ShowContent) error {
 	msg := bson.M{"contents": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableSheet, uid, msg)
 	return err
 }
 
-func AppendSheetContent(uid string, display proxy.ContentWeight) error {
+func AppendSheetContent(uid string, display proxy.ShowContent) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}

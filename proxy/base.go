@@ -45,15 +45,18 @@ type OpusInfo struct {
 
 type ShowingInfo struct {
 	//场所
-	Target    string    `json:"target" bson:"target"` //场所
-	Effect    string    `json:"effect" bson:"effect"` //展览的板式
-	Menu      string    `json:"menu" bson:"menu"`     //所属目录
-	Alignment string    `json:"align" bson:"align"`   //目录方向
-	Slots     []string  `json:"slots" bson:"slots"`
-	UpdatedAt time.Time `json:"updatedAt" bson:"updatedAt"`
+	string    `json:"target" bson:"target"` //场所
+	Effect    string                        `json:"effect" bson:"effect"` //展览的板式
+	Menu      string                        `json:"menu" bson:"menu"`     //所属目录
+	Alignment string                        `json:"align" bson:"align"`   //目录方向
+	Slots     []string                      `json:"slots" bson:"slots"`
+	UpdatedAt time.Time                     `json:"updatedAt" bson:"updatedAt"`
 }
 
-type ContentWeight struct {
-	UID    string `json:"uid" bson:"uid"`       //展览UID
-	Weight uint32 `json:"weight" bson:"weight"` //排序权重
+type ShowContent struct {
+	UID       string `json:"uid" bson:"uid"`       //展览UID
+	Weight    uint32 `json:"weight" bson:"weight"` //排序权重
+	Effect    string `json:"effect" bson:"effect"` //效果
+	Menu      string `json:"menu" bson:"menu"`     //所属目录
+	Alignment string `json:"align" bson:"align"`   //目录方向
 }

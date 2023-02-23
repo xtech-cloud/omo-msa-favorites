@@ -6,10 +6,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
-	"omo.msa.favorite/proxy"
-	"omo.msa.favorite/tool"
 	"strconv"
-	"time"
 )
 
 type DisplayService struct{}
@@ -29,9 +26,10 @@ func switchDisplay(info *cache.DisplayInfo) *pb.DisplayInfo {
 	tmp.Type = uint32(info.Type)
 	tmp.Tags = info.Tags
 	tmp.Origin = info.Origin
+	tmp.Banner = info.Banner
+	tmp.Poster = info.Poster
 	tmp.Status = uint32(info.Status)
 	tmp.Keys = info.GetKeys()
-	tmp.Targets = info.GetTargets()
 	return tmp
 }
 
@@ -395,108 +393,108 @@ func (mine *DisplayService) SubtractKey(ctx context.Context, in *pb.RequestInfo,
 	return nil
 }
 
-func (mine *DisplayService) UpdateTargets(ctx context.Context, in *pb.ReqDisplayTargets, out *pb.ReplyInfo) error {
-	path := "display.updateTargets"
-	inLog(path, in)
-	if in.Owner == "" {
-		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	if in.List == nil || len(in.List) < 1 {
-		out.Status = outError(path, "the display list is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	empty := false
-	if in.Targets == nil || len(in.Targets) < 1 {
-		empty = true
-	}
-	arr := cache.Context().GetDisplaysByOwner(in.Owner)
-	for _, info := range arr {
-		if tool.HasItem(in.List, info.UID) {
-			if empty {
-				_ = info.UpdateTargets(in.Operator, nil)
-			} else {
-				for _, target := range in.Targets {
-					_ = info.AppendSimpleTarget(target)
-				}
-			}
-		} else {
-			if empty {
+//func (mine *DisplayService) UpdateTargets(ctx context.Context, in *pb.ReqDisplayTargets, out *pb.ReplyInfo) error {
+//	path := "display.updateTargets"
+//	inLog(path, in)
+//	if in.Owner == "" {
+//		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
+//		return nil
+//	}
+//	if in.List == nil || len(in.List) < 1 {
+//		out.Status = outError(path, "the display list is empty", pbstatus.ResultStatus_Empty)
+//		return nil
+//	}
+//	empty := false
+//	if in.Targets == nil || len(in.Targets) < 1 {
+//		empty = true
+//	}
+//	arr := cache.Context().GetDisplaysByOwner(in.Owner)
+//	for _, info := range arr {
+//		if tool.HasItem(in.List, info.UID) {
+//			if empty {
+//				_ = info.UpdateTargets(in.Operator, nil)
+//			} else {
+//				for _, target := range in.Targets {
+//					_ = info.AppendSimpleTarget(target)
+//				}
+//			}
+//		} else {
+//			if empty {
+//
+//			} else {
+//				for _, target := range in.Targets {
+//					_ = info.SubtractTarget(target)
+//				}
+//			}
+//		}
+//	}
+//
+//	out.Status = outLog(path, out)
+//	return nil
+//}
 
-			} else {
-				for _, target := range in.Targets {
-					_ = info.SubtractTarget(target)
-				}
-			}
-		}
-	}
+//func (mine *DisplayService) UpdateTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
+//	path := "display.updateTarget"
+//	inLog(path, in)
+//	if len(in.Uid) < 1 {
+//		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
+//		return nil
+//	}
+//	info := cache.Context().GetDisplay(in.Uid)
+//	if info == nil {
+//		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
+//		return nil
+//	}
+//	err := info.UpdateTarget(in.Target, in.Effect, in.Skin, in.Menu, in.Operator, in.Slots)
+//	if err != nil {
+//		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+//		return nil
+//	}
+//	out.Targets = info.GetTargets()
+//	out.Status = outLog(path, out)
+//	return nil
+//}
 
-	out.Status = outLog(path, out)
-	return nil
-}
+//func (mine *DisplayService) AppendTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
+//	path := "display.appendTarget"
+//	inLog(path, in)
+//	if len(in.Uid) < 1 {
+//		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
+//		return nil
+//	}
+//	info := cache.Context().GetDisplay(in.Uid)
+//	if info == nil {
+//		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
+//		return nil
+//	}
+//	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Alignment: in.Skin, Menu: in.Menu, Slots: in.Slots, UpdatedAt: time.Now()})
+//	if err != nil {
+//		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+//		return nil
+//	}
+//	out.Targets = info.GetTargets()
+//	out.Status = outLog(path, out)
+//	return nil
+//}
 
-func (mine *DisplayService) UpdateTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
-	path := "display.updateTarget"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetDisplay(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.UpdateTarget(in.Target, in.Effect, in.Skin, in.Menu, in.Operator, in.Slots)
-	if err != nil {
-		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.Targets = info.GetTargets()
-	out.Status = outLog(path, out)
-	return nil
-}
-
-func (mine *DisplayService) AppendTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
-	path := "display.appendTarget"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetDisplay(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.AppendTarget(&proxy.ShowingInfo{Target: in.Target, Effect: in.Effect, Alignment: in.Skin, Menu: in.Menu, Slots: in.Slots, UpdatedAt: time.Now()})
-	if err != nil {
-		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.Targets = info.GetTargets()
-	out.Status = outLog(path, out)
-	return nil
-}
-
-func (mine *DisplayService) SubtractTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
-	path := "display.subtractTarget"
-	inLog(path, in)
-	if len(in.Uid) < 1 {
-		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
-	info := cache.Context().GetDisplay(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
-		return nil
-	}
-	err := info.SubtractTarget(in.Target)
-	if err != nil {
-		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
-		return nil
-	}
-	out.Targets = info.GetTargets()
-	out.Status = outLog(path, out)
-	return nil
-}
+//func (mine *DisplayService) SubtractTarget(ctx context.Context, in *pb.ReqDisplayTarget, out *pb.ReplyDisplayTargets) error {
+//	path := "display.subtractTarget"
+//	inLog(path, in)
+//	if len(in.Uid) < 1 {
+//		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
+//		return nil
+//	}
+//	info := cache.Context().GetDisplay(in.Uid)
+//	if info == nil {
+//		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
+//		return nil
+//	}
+//	err := info.SubtractTarget(in.Target)
+//	if err != nil {
+//		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+//		return nil
+//	}
+//	out.Targets = info.GetTargets()
+//	out.Status = outLog(path, out)
+//	return nil
+//}

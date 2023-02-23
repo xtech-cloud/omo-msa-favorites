@@ -14,8 +14,8 @@ type SheetInfo struct {
 	ProductType uint8
 	Owner       string //该展览表所属场景
 	Remark      string
-	Quote       string                //关联的场所UID等
-	Contents    []proxy.ContentWeight //展览uid集合
+	Quote       string              //关联的场所UID， 班级等
+	Contents    []proxy.ShowContent //展览集合
 }
 
 func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
@@ -33,7 +33,7 @@ func (mine *cacheContext) CreateSheet(info *SheetInfo) error {
 	db.Quote = info.Quote
 	db.Contents = info.Contents
 	if db.Contents == nil {
-		db.Contents = make([]proxy.ContentWeight, 0, 1)
+		db.Contents = make([]proxy.ShowContent, 0, 1)
 	}
 
 	err := nosql.CreateSheet(db)
@@ -154,7 +154,7 @@ func (mine *SheetInfo) initInfo(db *nosql.Sheet) {
 	mine.Quote = db.Quote
 	mine.Contents = db.Contents
 	if mine.Contents == nil {
-		mine.Contents = make([]proxy.ContentWeight, 0, 1)
+		mine.Contents = make([]proxy.ShowContent, 0, 1)
 	}
 }
 
@@ -195,12 +195,12 @@ func (mine *SheetInfo) UpdateStatus(st uint8, operator string) error {
 	return err
 }
 
-func (mine *SheetInfo) UpdateKeys(operator string, list []proxy.ContentWeight) error {
+func (mine *SheetInfo) UpdateKeys(operator string, list []proxy.ShowContent) error {
 	var err error
 	if list == nil || len(list) < 1 {
-		err = nosql.UpdateSheetDisplay(mine.UID, operator, make([]proxy.ContentWeight, 0, 1))
+		err = nosql.UpdateSheetDisplay(mine.UID, operator, make([]proxy.ShowContent, 0, 1))
 		if err == nil {
-			mine.Contents = make([]proxy.ContentWeight, 0, 1)
+			mine.Contents = make([]proxy.ShowContent, 0, 1)
 			mine.Operator = operator
 		}
 	} else {
@@ -213,7 +213,7 @@ func (mine *SheetInfo) UpdateKeys(operator string, list []proxy.ContentWeight) e
 	return err
 }
 
-func (mine *SheetInfo) HadKey(uid string) bool {
+func (mine *SheetInfo) HadContent(uid string) bool {
 	for _, item := range mine.Contents {
 		if item.UID == uid {
 			return true
@@ -222,13 +222,16 @@ func (mine *SheetInfo) HadKey(uid string) bool {
 	return false
 }
 
-func (mine *SheetInfo) AppendKey(uid string, weight uint32) error {
-	if mine.HadKey(uid) {
+func (mine *SheetInfo) AppendContent(uid, effect, menu, align string, weight uint32) error {
+	if mine.HadContent(uid) {
 		return nil
 	}
-	tmp := proxy.ContentWeight{
-		UID:    uid,
-		Weight: weight,
+	tmp := proxy.ShowContent{
+		UID:       uid,
+		Weight:    weight,
+		Effect:    effect,
+		Menu:      menu,
+		Alignment: align,
 	}
 	er := nosql.AppendSheetContent(mine.UID, tmp)
 	if er == nil {
@@ -237,8 +240,8 @@ func (mine *SheetInfo) AppendKey(uid string, weight uint32) error {
 	return er
 }
 
-func (mine *SheetInfo) SubtractKey(uid string) error {
-	if !mine.HadKey(uid) {
+func (mine *SheetInfo) SubtractContent(uid string) error {
+	if !mine.HadContent(uid) {
 		return nil
 	}
 	er := nosql.SubtractSheetContent(mine.UID, uid)

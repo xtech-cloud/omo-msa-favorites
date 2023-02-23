@@ -5,7 +5,6 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"omo.msa.favorite/proxy"
 	"time"
 )
 
@@ -14,20 +13,22 @@ type Display struct {
 	ID          uint64             `json:"id" bson:"id"`
 	Name        string             `json:"name" bson:"name"`
 	CreatedTime time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedTime time.Time `json:"updatedAt" bson:"updatedAt"`
-	DeleteTime  time.Time `json:"deleteAt" bson:"deleteAt"`
-	Creator     string    `json:"creator" bson:"creator"`
-	Operator    string    `json:"operator" bson:"operator"`
-	Cover       string    `json:"cover" bson:"cover"`
-	Remark      string    `json:"remark" bson:"remark"`
-	Owner       string    `json:"owner" bson:"owner"`
-	Status       uint8 	  `json:"status" bson:"status"`
-	Type        uint8     `json:"type" bson:"type"`
-	Origin      string    `json:"origin" bson:"origin"` //数据来源，可能是某次活动,或者是标准榜样
-	Meta        string 	  `json:"meta" bson:"meta"` //源数据
-	Tags        []string  `json:"tags" bsonL:"tags"`
-	Keys        []string  `json:"keys" bson:"keys"`
-	Targets     []*proxy.ShowingInfo `json:"targets" bson:"targets"`
+	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
+	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
+	Creator     string             `json:"creator" bson:"creator"`
+	Operator    string             `json:"operator" bson:"operator"`
+	Cover       string             `json:"cover" bson:"cover"`
+	Remark      string             `json:"remark" bson:"remark"`
+	Owner       string             `json:"owner" bson:"owner"`
+	Status      uint8              `json:"status" bson:"status"`
+	Type        uint8              `json:"type" bson:"type"`
+	Origin      string             `json:"origin" bson:"origin"` //数据来源，可能是某次活动,或者是标准榜样
+	Meta        string             `json:"meta" bson:"meta"`     //源数据
+	Banner      string             `json:"banner" bson:"banner"`
+	Poster      string             `json:"poster" bson:"poster"`
+	Tags        []string           `json:"tags" bsonL:"tags"`
+	Keys        []string           `json:"keys" bson:"keys"`
+	//Targets     []*proxy.ShowingInfo `json:"targets" bson:"targets"`
 }
 
 func CreateDisplay(info *Display) error {
@@ -100,10 +101,10 @@ func GetDisplayCount() int64 {
 }
 
 func GetDisplayByOrigin(owner, origin string) (*Display, error) {
-	if len(origin) < 2 || len(owner) < 2{
+	if len(origin) < 2 || len(owner) < 2 {
 		return nil, errors.New("db origin uid is empty of GetDisplay")
 	}
-	filter := bson.M{"owner":owner, "origin": origin, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "origin": origin, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableDisplay, filter)
 	if err != nil {
 		return nil, err
@@ -117,10 +118,10 @@ func GetDisplayByOrigin(owner, origin string) (*Display, error) {
 }
 
 func GetDisplayByName(owner, name string, tp uint8) (*Display, error) {
-	if len(owner) < 2 || len(name) < 2{
+	if len(owner) < 2 || len(name) < 2 {
 		return nil, errors.New("db owner or name is empty of GetDisplayByName")
 	}
-	filter := bson.M{"owner":owner, "name": name, "type":tp, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "name": name, "type": tp, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableDisplay, filter)
 	if err != nil {
 		return nil, err
@@ -154,7 +155,7 @@ func GetDisplaysByOwner(owner string) ([]*Display, error) {
 
 func GetDisplaysByStatus(owner string, st uint8) ([]*Display, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "status":st, "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "deleteAt": def}
 	cursor, err1 := findMany(TableDisplay, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -173,7 +174,7 @@ func GetDisplaysByStatus(owner string, st uint8) ([]*Display, error) {
 
 func GetDisplaysByProduct(owner string, st uint8) ([]*Display, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "status":st, "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "deleteAt": def}
 	cursor, err1 := findMany(TableDisplay, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -192,7 +193,7 @@ func GetDisplaysByProduct(owner string, st uint8) ([]*Display, error) {
 
 func GetDisplaysByOwnerTP(owner string, kind uint8) ([]*Display, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "type":kind, "deleteAt": def}
+	filter := bson.M{"owner": owner, "type": kind, "deleteAt": def}
 	cursor, err1 := findMany(TableDisplay, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -211,7 +212,7 @@ func GetDisplaysByOwnerTP(owner string, kind uint8) ([]*Display, error) {
 
 func GetDisplaysByType(kind uint8) ([]*Display, error) {
 	def := new(time.Time)
-	filter := bson.M{"type":kind, "deleteAt": def}
+	filter := bson.M{"type": kind, "deleteAt": def}
 	cursor, err1 := findMany(TableDisplay, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -230,7 +231,7 @@ func GetDisplaysByType(kind uint8) ([]*Display, error) {
 
 func GetDisplaysByTarget(owner, target string) ([]*Display, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner":owner, "targets.target": target , "deleteAt": def}
+	filter := bson.M{"owner": owner, "targets.target": target, "deleteAt": def}
 	cursor, err1 := findMany(TableDisplay, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -277,25 +278,25 @@ func UpdateDisplayBase(uid, name, remark, operator string) error {
 }
 
 func UpdateDisplayCover(uid, cover, operator string) error {
-	msg := bson.M{"cover": cover, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"cover": cover, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }
 
 func UpdateDisplayState(uid, operator string, st uint8) error {
-	msg := bson.M{"status": st, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }
 
 func UpdateDisplayTags(uid, operator string, tags []string) error {
-	msg := bson.M{"tags": tags, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"tags": tags, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }
 
 func UpdateDisplayKeys(uid, operator string, list []string) error {
-	msg := bson.M{"keys": list, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"keys": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }
@@ -318,26 +319,26 @@ func SubtractDisplayKey(uid, key string) error {
 	return err
 }
 
-func UpdateDisplayTargets(uid, operator string, list []*proxy.ShowingInfo) error {
-	msg := bson.M{"targets": list, "operator": operator, "updatedAt": time.Now()}
-	_, err := updateOne(TableDisplay, uid, msg)
-	return err
-}
+//func UpdateDisplayTargets(uid, operator string, list []*proxy.ShowingInfo) error {
+//	msg := bson.M{"targets": list, "operator": operator, "updatedAt": time.Now()}
+//	_, err := updateOne(TableDisplay, uid, msg)
+//	return err
+//}
 
-func AppendDisplayTarget(uid string, target *proxy.ShowingInfo) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"targets": target}
-	_, err := appendElement(TableDisplay, uid, msg)
-	return err
-}
+//func AppendDisplayTarget(uid string, target *proxy.ShowingInfo) error {
+//	if len(uid) < 1 {
+//		return errors.New("the uid is empty")
+//	}
+//	msg := bson.M{"targets": target}
+//	_, err := appendElement(TableDisplay, uid, msg)
+//	return err
+//}
 
-func SubtractDisplayTarget(uid, target string) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"targets": bson.M{"target":target}}
-	_, err := removeElement(TableDisplay, uid, msg)
-	return err
-}
+//func SubtractDisplayTarget(uid, target string) error {
+//	if len(uid) < 1 {
+//		return errors.New("the uid is empty")
+//	}
+//	msg := bson.M{"targets": bson.M{"target": target}}
+//	_, err := removeElement(TableDisplay, uid, msg)
+//	return err
+//}

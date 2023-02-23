@@ -30,10 +30,11 @@ func switchSheet(info *cache.SheetInfo) *pb.SheetInfo {
 	return tmp
 }
 
-func switchSheetContents(origin []proxy.ContentWeight) []*pb.ContentWeight {
-	contents := make([]*pb.ContentWeight, 0, len(origin))
+func switchSheetContents(origin []proxy.ShowContent) []*pb.SheetContent {
+	contents := make([]*pb.SheetContent, 0, len(origin))
 	for _, content := range origin {
-		contents = append(contents, &pb.ContentWeight{Uid: content.UID, Weight: content.Weight})
+		contents = append(contents, &pb.SheetContent{Uid: content.UID, Weight: content.Weight,
+			Effect: content.Effect, Menu: content.Menu, Align: content.Alignment})
 	}
 	return contents
 }
@@ -59,9 +60,9 @@ func (mine *SheetService) AddOne(ctx context.Context, in *pb.ReqSheetAdd, out *p
 	info.Name = in.Name
 	info.Remark = in.Remark
 	info.Creator = in.Operator
-	info.Contents = make([]proxy.ContentWeight, 0, len(in.Keys))
+	info.Contents = make([]proxy.ShowContent, 0, len(in.Keys))
 	for _, key := range in.Keys {
-		info.Contents = append(info.Contents, proxy.ContentWeight{UID: key.Uid, Weight: key.Weight})
+		info.Contents = append(info.Contents, proxy.ShowContent{UID: key.Uid, Weight: key.Weight})
 	}
 	info.Owner = in.Owner
 	info.ProductType = uint8(in.Type)
@@ -211,8 +212,8 @@ func (mine *SheetService) UpdateStatus(ctx context.Context, in *pb.RequestState,
 	return nil
 }
 
-func (mine *SheetService) UpdateKeys(ctx context.Context, in *pb.ReqSheetKeys, out *pb.ReplySheetKeys) error {
-	path := "sheet.updateKeys"
+func (mine *SheetService) UpdateContents(ctx context.Context, in *pb.ReqSheetContents, out *pb.ReplySheetContent) error {
+	path := "sheet.updateContents"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the sheet uid is empty", pbstatus.ResultStatus_Empty)
@@ -224,9 +225,10 @@ func (mine *SheetService) UpdateKeys(ctx context.Context, in *pb.ReqSheetKeys, o
 		return nil
 	}
 	var err error
-	list := make([]proxy.ContentWeight, 0, len(in.Keys))
-	for _, key := range in.Keys {
-		list = append(list, proxy.ContentWeight{Weight: key.Weight, UID: key.Uid})
+	list := make([]proxy.ShowContent, 0, len(in.List))
+	for _, key := range in.List {
+		list = append(list, proxy.ShowContent{Weight: key.Weight, UID: key.Uid,
+			Effect: key.Effect, Menu: key.Menu, Alignment: key.Align})
 	}
 
 	err = info.UpdateKeys(in.Operator, list)
@@ -234,13 +236,13 @@ func (mine *SheetService) UpdateKeys(ctx context.Context, in *pb.ReqSheetKeys, o
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Keys = switchSheetContents(info.Contents)
+	out.List = switchSheetContents(info.Contents)
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *SheetService) AppendKey(ctx context.Context, in *pb.ReqSheetContent, out *pb.ReplySheetKeys) error {
-	path := "sheet.appendKey"
+func (mine *SheetService) AppendContent(ctx context.Context, in *pb.ReqSheetContent, out *pb.ReplySheetContent) error {
+	path := "sheet.appendContent"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the sheet uid is empty", pbstatus.ResultStatus_Empty)
@@ -251,18 +253,18 @@ func (mine *SheetService) AppendKey(ctx context.Context, in *pb.ReqSheetContent,
 		out.Status = outError(path, "the sheet not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendKey(in.Content, in.Weight)
+	err := info.AppendContent(in.Content, in.Effect, in.Menu, in.Align, in.Weight)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Keys = switchSheetContents(info.Contents)
+	out.List = switchSheetContents(info.Contents)
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *SheetService) SubtractKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplySheetKeys) error {
-	path := "sheet.subtractKey"
+func (mine *SheetService) SubtractContent(ctx context.Context, in *pb.RequestInfo, out *pb.ReplySheetContent) error {
+	path := "sheet.subtractContent"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the sheet uid is empty", pbstatus.ResultStatus_Empty)
@@ -273,12 +275,12 @@ func (mine *SheetService) SubtractKey(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path, "the sheet not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractKey(in.Flag)
+	err := info.SubtractContent(in.Flag)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Keys = switchSheetContents(info.Contents)
+	out.List = switchSheetContents(info.Contents)
 	out.Status = outLog(path, out)
 	return nil
 }
