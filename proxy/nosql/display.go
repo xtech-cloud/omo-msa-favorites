@@ -5,29 +5,30 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"time"
 )
 
 type Display struct {
-	UID         primitive.ObjectID `bson:"_id"`
-	ID          uint64             `json:"id" bson:"id"`
-	Name        string             `json:"name" bson:"name"`
-	CreatedTime time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
-	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
-	Creator     string             `json:"creator" bson:"creator"`
-	Operator    string             `json:"operator" bson:"operator"`
-	Cover       string             `json:"cover" bson:"cover"`
-	Remark      string             `json:"remark" bson:"remark"`
-	Owner       string             `json:"owner" bson:"owner"`
-	Status      uint8              `json:"status" bson:"status"`
-	Type        uint8              `json:"type" bson:"type"`
-	Origin      string             `json:"origin" bson:"origin"` //数据来源，可能是某次活动,或者是标准榜样
-	Meta        string             `json:"meta" bson:"meta"`     //源数据
-	Banner      string             `json:"banner" bson:"banner"`
-	Poster      string             `json:"poster" bson:"poster"`
-	Tags        []string           `json:"tags" bsonL:"tags"`
-	Keys        []string           `json:"keys" bson:"keys"`
+	UID         primitive.ObjectID     `bson:"_id"`
+	ID          uint64                 `json:"id" bson:"id"`
+	Name        string                 `json:"name" bson:"name"`
+	CreatedTime time.Time              `json:"createdAt" bson:"createdAt"`
+	UpdatedTime time.Time              `json:"updatedAt" bson:"updatedAt"`
+	DeleteTime  time.Time              `json:"deleteAt" bson:"deleteAt"`
+	Creator     string                 `json:"creator" bson:"creator"`
+	Operator    string                 `json:"operator" bson:"operator"`
+	Cover       string                 `json:"cover" bson:"cover"`
+	Remark      string                 `json:"remark" bson:"remark"`
+	Owner       string                 `json:"owner" bson:"owner"`
+	Status      uint8                  `json:"status" bson:"status"`
+	Type        uint8                  `json:"type" bson:"type"`
+	Origin      string                 `json:"origin" bson:"origin"` //数据来源，可能是某次活动,或者是标准榜样
+	Meta        string                 `json:"meta" bson:"meta"`     //源数据
+	Banner      string                 `json:"banner" bson:"banner"`
+	Poster      string                 `json:"poster" bson:"poster"`
+	Tags        []string               `json:"tags" bsonL:"tags"`
+	Contents    []proxy.DisplayContent `json:"contents" bson:"contents"`
 	//Targets     []*proxy.ShowingInfo `json:"targets" bson:"targets"`
 }
 
@@ -295,17 +296,17 @@ func UpdateDisplayTags(uid, operator string, tags []string) error {
 	return err
 }
 
-func UpdateDisplayKeys(uid, operator string, list []string) error {
-	msg := bson.M{"keys": list, "operator": operator, "updatedAt": time.Now()}
+func UpdateDisplayKeys(uid, operator string, arr []proxy.DisplayContent) error {
+	msg := bson.M{"contents": arr, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }
 
-func AppendDisplayKey(uid string, key string) error {
+func AppendDisplayKey(uid string, content proxy.DisplayContent) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
-	msg := bson.M{"keys": key}
+	msg := bson.M{"contents": content}
 	_, err := appendElement(TableDisplay, uid, msg)
 	return err
 }
@@ -314,7 +315,7 @@ func SubtractDisplayKey(uid, key string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
-	msg := bson.M{"keys": key}
+	msg := bson.M{"contents": bson.M{"uid": key}}
 	_, err := removeElement(TableDisplay, uid, msg)
 	return err
 }

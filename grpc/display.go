@@ -6,6 +6,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
+	"omo.msa.favorite/proxy"
 	"strconv"
 )
 
@@ -29,7 +30,7 @@ func switchDisplay(info *cache.DisplayInfo) *pb.DisplayInfo {
 	tmp.Banner = info.Banner
 	tmp.Poster = info.Poster
 	tmp.Status = uint32(info.Status)
-	tmp.Keys = info.GetKeys()
+	tmp.Contents = info.GetContents()
 	return tmp
 }
 
@@ -58,7 +59,10 @@ func (mine *DisplayService) AddOne(ctx context.Context, in *pb.ReqDisplayAdd, ou
 	info.Cover = in.Cover
 	info.Creator = in.Operator
 	info.Tags = in.Tags
-	info.Keys = in.Keys
+	info.Contents = make([]proxy.DisplayContent, 0, len(in.Keys))
+	for _, key := range in.Keys {
+		info.Contents = append(info.Contents, proxy.DisplayContent{UID: key, Events: make([]string, 0, 1), Assets: make([]string, 0, 1)})
+	}
 	info.Origin = in.Origin
 	info.Owner = in.Owner
 	info.Status = uint8(in.Status)
@@ -326,8 +330,8 @@ func (mine *DisplayService) UpdateTags(ctx context.Context, in *pb.ReqDisplayTag
 	return nil
 }
 
-func (mine *DisplayService) UpdateKeys(ctx context.Context, in *pb.ReqDisplayKeys, out *pb.ReplyDisplayKeys) error {
-	path := "display.updateKeys"
+func (mine *DisplayService) UpdateContents(ctx context.Context, in *pb.ReqDisplayContents, out *pb.ReplyDisplayContents) error {
+	path := "display.updateContents"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
@@ -339,18 +343,18 @@ func (mine *DisplayService) UpdateKeys(ctx context.Context, in *pb.ReqDisplayKey
 		return nil
 	}
 	var err error
-	err = info.UpdateEntities(in.Operator, in.Keys)
+	err = info.UpdateEntities(in.Operator, in.Contents)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Keys = info.GetKeys()
+	out.Contents = info.GetContents()
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *DisplayService) AppendKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayKeys) error {
-	path := "display.appendEntity"
+func (mine *DisplayService) AppendContent(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayContents) error {
+	path := "display.appendContent"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
@@ -361,18 +365,18 @@ func (mine *DisplayService) AppendKey(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendKey(in.Flag)
+	err := info.AppendContent(in.Flag)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Keys = info.GetKeys()
+	out.Contents = info.GetContents()
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *DisplayService) SubtractKey(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayKeys) error {
-	path := "display.subtractEntity"
+func (mine *DisplayService) SubtractContent(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyDisplayContents) error {
+	path := "display.subtractContent"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
@@ -383,12 +387,12 @@ func (mine *DisplayService) SubtractKey(ctx context.Context, in *pb.RequestInfo,
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractKey(in.Flag)
+	err := info.SubtractContent(in.Flag)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Keys = info.GetKeys()
+	out.Contents = info.GetContents()
 	out.Status = outLog(path, out)
 	return nil
 }

@@ -2,7 +2,9 @@ package cache
 
 import (
 	"errors"
+	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"time"
 )
@@ -16,18 +18,17 @@ const (
 
 type DisplayInfo struct {
 	BaseInfo
-	Status uint8
-	Type   uint8  //
-	Owner  string //该展览所属组织机构，scene
-	Cover  string
-	Remark string
-	Origin string //布展数据来源，比如活动
-	Banner string //标语
-	Poster string //海报
-	Meta   string //
-	Tags   []string
-	Keys   []string
-	//Targets []*proxy.ShowingInfo //目标效果配置
+	Status   uint8
+	Type     uint8  //
+	Owner    string //该展览所属组织机构，scene
+	Cover    string
+	Remark   string
+	Origin   string //布展数据来源，比如活动
+	Banner   string //标语
+	Poster   string //海报
+	Meta     string //
+	Tags     []string
+	Contents []proxy.DisplayContent
 }
 
 func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
@@ -50,9 +51,9 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
 	}
-	db.Keys = info.Keys
-	if db.Keys == nil {
-		db.Keys = make([]string, 0, 1)
+	db.Contents = info.Contents
+	if db.Contents == nil {
+		db.Contents = make([]proxy.DisplayContent, 0, 1)
 	}
 	//db.Targets = info.Targets
 	//if db.Targets == nil {
@@ -208,13 +209,13 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 	mine.Owner = db.Owner
 	mine.Origin = db.Origin
 	mine.Tags = db.Tags
-	mine.Keys = db.Keys
+	mine.Contents = db.Contents
 	mine.Status = db.Status
 	mine.Banner = db.Banner
 	mine.Poster = db.Poster
 	//mine.Targets = db.Targets
-	if mine.Keys == nil {
-		mine.Keys = make([]string, 0, 1)
+	if mine.Contents == nil {
+		mine.Contents = make([]proxy.DisplayContent, 0, 1)
 	}
 	//if mine.Targets == nil {
 	//	mine.Targets = make([]*proxy.ShowingInfo, 0, 1)
@@ -222,8 +223,12 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 	//}
 }
 
-func (mine *DisplayInfo) GetKeys() []string {
-	return mine.Keys
+func (mine *DisplayInfo) GetContents() []*pb.DisplayContent {
+	arr := make([]*pb.DisplayContent, 0, len(mine.Contents))
+	for _, content := range mine.Contents {
+		arr = append(arr, &pb.DisplayContent{Uid: content.UID, Events: content.Events, Assets: content.Assets})
+	}
+	return arr
 }
 
 //func (mine *DisplayInfo) GetTargets() []*pb.ShowInfo {
@@ -287,27 +292,31 @@ func (mine *DisplayInfo) UpdateStatus(st uint8, operator string) error {
 	return err
 }
 
-func (mine *DisplayInfo) UpdateEntities(operator string, list []string) error {
+func (mine *DisplayInfo) UpdateEntities(operator string, list []*pb.DisplayContent) error {
 	var err error
 	if list == nil || len(list) < 1 {
-		err = nosql.UpdateDisplayKeys(mine.UID, operator, make([]string, 0, 1))
+		err = nosql.UpdateDisplayKeys(mine.UID, operator, make([]proxy.DisplayContent, 0, 1))
 		if err == nil {
-			mine.Keys = make([]string, 0, 1)
+			mine.Contents = make([]proxy.DisplayContent, 0, 1)
 			mine.Operator = operator
 		}
 	} else {
-		err = nosql.UpdateDisplayKeys(mine.UID, operator, list)
+		arr := make([]proxy.DisplayContent, 0, len(list))
+		for _, s := range list {
+			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Events: s.Events, Assets: s.Assets})
+		}
+		err = nosql.UpdateDisplayKeys(mine.UID, operator, arr)
 		if err == nil {
-			mine.Keys = list
+			mine.Contents = arr
 			mine.Operator = operator
 		}
 	}
 	return err
 }
 
-func (mine *DisplayInfo) HadKey(uid string) bool {
-	for _, item := range mine.Keys {
-		if item == uid {
+func (mine *DisplayInfo) HadContent(uid string) bool {
+	for _, item := range mine.Contents {
+		if item.UID == uid {
 			return true
 		}
 	}
@@ -323,29 +332,32 @@ func (mine *DisplayInfo) HadKey(uid string) bool {
 //	return false
 //}
 
-func (mine *DisplayInfo) AppendKey(uid string) error {
-	if mine.HadKey(uid) {
+func (mine *DisplayInfo) AppendContent(uid string) error {
+	if mine.HadContent(uid) {
 		return nil
 	}
-	er := nosql.AppendDisplayKey(mine.UID, uid)
+	tmp := proxy.DisplayContent{
+		UID: uid, Events: make([]string, 0, 1), Assets: make([]string, 0, 1),
+	}
+	er := nosql.AppendDisplayKey(mine.UID, tmp)
 	if er == nil {
-		mine.Keys = append(mine.Keys, uid)
+		mine.Contents = append(mine.Contents, tmp)
 	}
 	return er
 }
 
-func (mine *DisplayInfo) SubtractKey(uid string) error {
-	if !mine.HadKey(uid) {
+func (mine *DisplayInfo) SubtractContent(uid string) error {
+	if !mine.HadContent(uid) {
 		return nil
 	}
 	er := nosql.SubtractDisplayKey(mine.UID, uid)
 	if er == nil {
-		for i := 0; i < len(mine.Keys); i += 1 {
-			if mine.Keys[i] == uid {
-				if i == len(mine.Keys)-1 {
-					mine.Keys = append(mine.Keys[:i])
+		for i := 0; i < len(mine.Contents); i += 1 {
+			if mine.Contents[i].UID == uid {
+				if i == len(mine.Contents)-1 {
+					mine.Contents = append(mine.Contents[:i])
 				} else {
-					mine.Keys = append(mine.Keys[:i], mine.Keys[i+1:]...)
+					mine.Contents = append(mine.Contents[:i], mine.Contents[i+1:]...)
 				}
 				break
 			}

@@ -1,7 +1,5 @@
 package proxy
 
-import "time"
-
 type EntityInfo struct {
 	UID  string `json:"uid" bson:"uid"`
 	Name string `json:"name" bson:"name"`
@@ -43,15 +41,15 @@ type OpusInfo struct {
 	Remark string `json:"remark" bson:"remark"` //评语
 }
 
-type ShowingInfo struct {
-	//场所
-	string    `json:"target" bson:"target"` //场所
-	Effect    string                        `json:"effect" bson:"effect"` //展览的板式
-	Menu      string                        `json:"menu" bson:"menu"`     //所属目录
-	Alignment string                        `json:"align" bson:"align"`   //目录方向
-	Slots     []string                      `json:"slots" bson:"slots"`
-	UpdatedAt time.Time                     `json:"updatedAt" bson:"updatedAt"`
-}
+//type ShowingInfo struct {
+//	//场所
+//	string    `json:"target" bson:"target"` //场所
+//	Effect    string                        `json:"effect" bson:"effect"` //展览的板式
+//	Menu      string                        `json:"menu" bson:"menu"`     //所属目录
+//	Alignment string                        `json:"align" bson:"align"`   //目录方向
+//	Slots     []string                      `json:"slots" bson:"slots"`
+//	UpdatedAt time.Time                     `json:"updatedAt" bson:"updatedAt"`
+//}
 
 type ShowContent struct {
 	UID       string `json:"uid" bson:"uid"`       //展览UID
@@ -59,4 +57,11 @@ type ShowContent struct {
 	Effect    string `json:"effect" bson:"effect"` //效果
 	Menu      string `json:"menu" bson:"menu"`     //所属目录
 	Alignment string `json:"align" bson:"align"`   //目录方向
+}
+
+type DisplayContent struct {
+	UID string `json:"uid" bson:"uid"` //
+	//Entity string   `json:"entity" bson:"entity"` //实体UID
+	Events []string `json:"events" bson:"events"` //
+	Assets []string `json:"assets" bson:"assets"` //
 }
