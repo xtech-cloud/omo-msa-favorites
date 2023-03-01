@@ -29,6 +29,7 @@ type Display struct {
 	Poster      string                 `json:"poster" bson:"poster"`
 	Tags        []string               `json:"tags" bsonL:"tags"`
 	Contents    []proxy.DisplayContent `json:"contents" bson:"contents"`
+	Keys        []string               `json:"keys" bson:"keys"`
 	//Targets     []*proxy.ShowingInfo `json:"targets" bson:"targets"`
 }
 
@@ -280,6 +281,18 @@ func UpdateDisplayBase(uid, name, remark, operator string) error {
 
 func UpdateDisplayCover(uid, cover, operator string) error {
 	msg := bson.M{"cover": cover, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableDisplay, uid, msg)
+	return err
+}
+
+func UpdateDisplayBanner(uid, cover, operator string) error {
+	msg := bson.M{"banner": cover, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableDisplay, uid, msg)
+	return err
+}
+
+func UpdateDisplayPoster(uid, cover, operator string) error {
+	msg := bson.M{"poster": cover, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }

@@ -55,10 +55,6 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	if db.Contents == nil {
 		db.Contents = make([]proxy.DisplayContent, 0, 1)
 	}
-	//db.Targets = info.Targets
-	//if db.Targets == nil {
-	//	db.Targets = make([]*proxy.ShowingInfo, 0, 1)
-	//}
 
 	err := nosql.CreateDisplay(db)
 	if err == nil {
@@ -217,10 +213,14 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 	if mine.Contents == nil {
 		mine.Contents = make([]proxy.DisplayContent, 0, 1)
 	}
-	//if mine.Targets == nil {
-	//	mine.Targets = make([]*proxy.ShowingInfo, 0, 1)
-	//	_ = nosql.UpdateDisplayTargets(mine.UID, mine.Operator, mine.Targets)
-	//}
+	if len(mine.Contents) < 1 && len(db.Keys) > 0 {
+		arr := make([]proxy.DisplayContent, 0, len(db.Keys))
+		for _, key := range db.Keys {
+			arr = append(arr, proxy.DisplayContent{UID: key, Events: make([]string, 0, 1), Assets: make([]string, 0, 1)})
+		}
+		_ = nosql.UpdateDisplayKeys(mine.UID, "", arr)
+		mine.Contents = arr
+	}
 }
 
 func (mine *DisplayInfo) GetContents() []*pb.DisplayContent {
@@ -280,6 +280,24 @@ func (mine *DisplayInfo) UpdateCover(cover, operator string) error {
 	return err
 }
 
+func (mine *DisplayInfo) UpdateBanner(cover, operator string) error {
+	err := nosql.UpdateDisplayBanner(mine.UID, cover, operator)
+	if err == nil {
+		mine.Banner = cover
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *DisplayInfo) UpdatePoster(cover, operator string) error {
+	err := nosql.UpdateDisplayPoster(mine.UID, cover, operator)
+	if err == nil {
+		mine.Poster = cover
+		mine.Operator = operator
+	}
+	return err
+}
+
 func (mine *DisplayInfo) UpdateStatus(st uint8, operator string) error {
 	err := nosql.UpdateDisplayState(mine.UID, operator, st)
 	if err == nil {
@@ -292,7 +310,7 @@ func (mine *DisplayInfo) UpdateStatus(st uint8, operator string) error {
 	return err
 }
 
-func (mine *DisplayInfo) UpdateEntities(operator string, list []*pb.DisplayContent) error {
+func (mine *DisplayInfo) UpdateContents(operator string, list []*pb.DisplayContent) error {
 	var err error
 	if list == nil || len(list) < 1 {
 		err = nosql.UpdateDisplayKeys(mine.UID, operator, make([]proxy.DisplayContent, 0, 1))

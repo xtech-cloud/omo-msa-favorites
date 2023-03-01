@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -225,7 +226,23 @@ func (mine *DisplayService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	info := cache.Context().GetDisplay(in.Uid)
+	if info == nil {
+		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
+		return nil
+	}
+	var err error
+	if in.Key == "banner" {
+		err = info.UpdateBanner(in.Value, in.Operator)
+	} else if in.Key == "poster" {
+		err = info.UpdatePoster(in.Value, in.Operator)
+	} else {
+		err = errors.New("the key not defined")
+	}
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+		return nil
+	}
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -343,7 +360,7 @@ func (mine *DisplayService) UpdateContents(ctx context.Context, in *pb.ReqDispla
 		return nil
 	}
 	var err error
-	err = info.UpdateEntities(in.Operator, in.Contents)
+	err = info.UpdateContents(in.Operator, in.Contents)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
