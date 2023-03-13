@@ -65,3 +65,9 @@ type DisplayContent struct {
 	Events []string `json:"events" bson:"events"` //
 	Assets []string `json:"assets" bson:"assets"` //
 }
+
+type ProductEffect struct {
+	Pattern string
+	Min     uint32
+	Max     uint32
+}

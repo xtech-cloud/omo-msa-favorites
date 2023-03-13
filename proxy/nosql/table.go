@@ -27,4 +27,5 @@ const (
 	TableSheet      = "display_sheets" // 展览列表
 	TableWords      = "words"
 	TableActRecords = "activity_records" //活动操作记录
+	TableProduct    = "products"         //
 )
