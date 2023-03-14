@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
@@ -143,8 +144,18 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		err = info.UpdateMenus(in.Value, in.Operator)
 	} else if in.Key == "revises" {
 		err = info.UpdateRevises(in.Operator, in.List)
-	} else if in.Key == "effect" {
-		err = info.UpdateCatalogs(in.Value, in.Operator)
+	} else if in.Key == "effects" {
+		if len(in.Value) > 1 {
+			array := make([]*pb.ProductEffect, 0, 10)
+			err = json.Unmarshal([]byte(in.Value), array)
+			if err == nil {
+				arr := make([]*proxy.ProductEffect, 0, 10)
+				for _, effect := range array {
+					arr = append(arr, &proxy.ProductEffect{Pattern: effect.Pattern, Min: effect.Min, Max: effect.Max})
+				}
+				err = info.UpdateEffects(in.Operator, arr)
+			}
+		}
 	} else if in.Key == "catalogs" {
 		err = info.UpdateCatalogs(in.Value, in.Operator)
 	}

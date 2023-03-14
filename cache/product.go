@@ -24,7 +24,7 @@ type ProductInfo struct {
 func (mine *cacheContext) CreateProduct(name, key, entry, menus, templet, remark, operator string, tp uint8, revises []string, effects []*proxy.ProductEffect) (*ProductInfo, error) {
 	db := new(nosql.Product)
 	db.UID = primitive.NewObjectID()
-	db.ID = nosql.GetWordsNextID()
+	db.ID = nosql.GetProductNextID()
 	db.CreatedTime = time.Now()
 	db.Name = name
 	db.Key = key
@@ -107,6 +107,15 @@ func (mine *ProductInfo) UpdateCatalogs(catalogs, operator string) error {
 	err := nosql.UpdateProductCatalog(mine.UID, catalogs, operator)
 	if err == nil {
 		mine.Catalogs = catalogs
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ProductInfo) UpdateEffects(operator string, list []*proxy.ProductEffect) error {
+	err := nosql.UpdateProductEffects(mine.UID, operator, list)
+	if err == nil {
+		mine.Effects = list
 		mine.UpdateTime = time.Now()
 	}
 	return err
