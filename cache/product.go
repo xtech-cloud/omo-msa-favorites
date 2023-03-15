@@ -12,7 +12,7 @@ type ProductInfo struct {
 	Status uint8
 	BaseInfo
 	Key      string
-	Entry    string
+	Entries  []string
 	Menus    string
 	Templet  string
 	Catalogs string
@@ -21,14 +21,14 @@ type ProductInfo struct {
 	Effects  []*proxy.ProductEffect
 }
 
-func (mine *cacheContext) CreateProduct(name, key, entry, menus, templet, remark, operator string, tp uint8, revises []string, effects []*proxy.ProductEffect) (*ProductInfo, error) {
+func (mine *cacheContext) CreateProduct(name, key, menus, templet, remark, operator string, tp uint8, entries, revises []string, effects []*proxy.ProductEffect) (*ProductInfo, error) {
 	db := new(nosql.Product)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetProductNextID()
 	db.CreatedTime = time.Now()
 	db.Name = name
 	db.Key = key
-	db.Entry = entry
+	db.Entries = entries
 	db.Menus = menus
 	db.Type = uint8(tp)
 	db.Creator = operator
@@ -89,7 +89,7 @@ func (mine *ProductInfo) initInfo(db *nosql.Product) {
 	mine.Status = db.Status
 	mine.Menus = db.Menus
 	mine.Key = db.Key
-	mine.Entry = db.Entry
+	mine.Entries = db.Entries
 	mine.Remark = db.Remark
 	mine.Catalogs = db.Catalogs
 	mine.Templet = db.Templet
@@ -148,10 +148,10 @@ func (mine *ProductInfo) UpdateTemplet(msg, operator string) error {
 	return err
 }
 
-func (mine *ProductInfo) UpdateEntry(msg, operator string) error {
-	err := nosql.UpdateProductEntry(mine.UID, msg, operator)
+func (mine *ProductInfo) UpdateEntries(operator string, arr []string) error {
+	err := nosql.UpdateProductEntries(mine.UID, operator, arr)
 	if err == nil {
-		mine.Entry = msg
+		mine.Entries = arr
 		mine.UpdateTime = time.Now()
 	}
 	return err

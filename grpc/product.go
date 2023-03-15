@@ -27,7 +27,7 @@ func switchProduct(info *cache.ProductInfo) *pb.ProductInfo {
 	tmp.Key = info.Key
 	tmp.Templet = info.Templet
 	tmp.Catalogs = info.Catalogs
-	tmp.Entry = info.Entry
+	tmp.Entries = info.Entries
 	tmp.Menus = info.Menus
 	tmp.Revises = info.Revises
 	tmp.Effects = make([]*pb.ProductEffect, 0, len(info.Effects))
@@ -40,15 +40,15 @@ func switchProduct(info *cache.ProductInfo) *pb.ProductInfo {
 func (mine *ProductService) AddOne(ctx context.Context, in *pb.ReqProductAdd, out *pb.ReplyProductInfo) error {
 	path := "product.addOne"
 	inLog(path, in)
-	if len(in.Entry) < 1 {
-		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
+	if len(in.Entries) < 1 {
+		out.Status = outError(path, "the entries is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	effects := make([]*proxy.ProductEffect, 0, len(in.Effects))
 	for _, effect := range in.Effects {
 		effects = append(effects, &proxy.ProductEffect{Pattern: effect.Pattern, Min: effect.Min, Max: effect.Max})
 	}
-	info, err := cache.Context().CreateProduct(in.Name, in.Key, in.Entry, in.Menus, in.Templet, in.Remark, in.Operator, uint8(in.Type), in.Revises, effects)
+	info, err := cache.Context().CreateProduct(in.Name, in.Key, in.Menus, in.Templet, in.Remark, in.Operator, uint8(in.Type), in.Entries, in.Revises, effects)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -138,8 +138,8 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	var err error
 	if in.Key == "templet" {
 		err = info.UpdateTemplet(in.Value, in.Operator)
-	} else if in.Key == "entry" {
-		err = info.UpdateEntry(in.Value, in.Operator)
+	} else if in.Key == "entries" {
+		err = info.UpdateEntries(in.Operator, in.List)
 	} else if in.Key == "menus" {
 		err = info.UpdateMenus(in.Value, in.Operator)
 	} else if in.Key == "revises" {

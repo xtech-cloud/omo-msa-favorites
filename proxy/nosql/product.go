@@ -22,7 +22,7 @@ type Product struct {
 	Status   uint8                  `json:"status" bson:"status"`
 	Type     uint8                  `json:"type" bson:"type"`
 	Key      string                 `json:"key" bson:"key"`
-	Entry    string                 `json:"entry" bson:"entry"`
+	Entries  []string               `json:"entries" bson:"entries"`
 	Menus    string                 `json:"menus" bson:"menus"`
 	Remark   string                 `json:"remark" bson:"remark"`
 	Templet  string                 `json:"templet" bson:"templet"`
@@ -126,8 +126,8 @@ func UpdateProductRevises(uid, operator string, arr []string) error {
 	return err
 }
 
-func UpdateProductEntry(uid, entry, operator string) error {
-	msg := bson.M{"entry": entry, "operator": operator, "updatedAt": time.Now()}
+func UpdateProductEntries(uid, operator string, arr []string) error {
+	msg := bson.M{"entries": arr, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableProduct, uid, msg)
 	return err
 }
