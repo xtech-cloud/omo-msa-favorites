@@ -73,22 +73,23 @@ func (mine *cacheContext) GetSheet(uid string) *SheetInfo {
 	return nil
 }
 
-func (mine *cacheContext) GetSheetBy(owner, quote string, tp uint32) *SheetInfo {
+func (mine *cacheContext) GetSheetBy(owner, quote string) *SheetInfo {
 	var db *nosql.Sheet
 	var err error
-	if tp < 1 {
-		if len(owner) > 1 {
-			db, err = nosql.GetSheetByQuote3(owner, quote)
-		} else {
-			db, err = nosql.GetSheetByQuote4(quote)
-		}
+	if len(owner) > 1 {
+		db, err = nosql.GetSheetByQuote3(owner, quote)
 	} else {
-		if len(owner) > 1 {
-			db, err = nosql.GetSheetByQuote(owner, quote, uint8(tp))
-		} else {
-			db, err = nosql.GetSheetByQuote2(quote, uint8(tp))
-		}
+		db, err = nosql.GetSheetByQuote4(quote)
 	}
+	//if tp < 1 {
+	//
+	//} else {
+	//	if len(owner) > 1 {
+	//		db, err = nosql.GetSheetByQuote(owner, quote, uint8(tp))
+	//	} else {
+	//		db, err = nosql.GetSheetByQuote2(quote, uint8(tp))
+	//	}
+	//}
 
 	if err == nil {
 		info := new(SheetInfo)

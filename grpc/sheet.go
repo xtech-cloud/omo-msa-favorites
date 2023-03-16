@@ -7,7 +7,6 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
-	"strconv"
 )
 
 type SheetService struct{}
@@ -86,12 +85,12 @@ func (mine *SheetService) GetOne(ctx context.Context, in *pb.RequestInfo, out *p
 	if len(in.Uid) > 1 {
 		info = cache.Context().GetSheet(in.Uid)
 	} else {
-		tp, er := strconv.ParseUint(in.Flag, 10, 32)
-		if er != nil {
-			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
-			return nil
-		}
-		info = cache.Context().GetSheetBy(in.Owner, in.Operator, uint32(tp))
+		//tp, er := strconv.ParseUint(in.Flag, 10, 32)
+		//if er != nil {
+		//	out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
+		//	return nil
+		//}
+		info = cache.Context().GetSheetBy(in.Owner, in.Flag)
 	}
 
 	if info == nil {
