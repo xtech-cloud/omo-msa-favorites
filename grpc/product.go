@@ -147,7 +147,7 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	} else if in.Key == "effects" {
 		if len(in.Value) > 1 {
 			array := make([]*pb.ProductEffect, 0, 10)
-			err = json.Unmarshal([]byte(in.Value), array)
+			err = json.Unmarshal([]byte(in.Value), &array)
 			if err == nil {
 				arr := make([]*proxy.ProductEffect, 0, 10)
 				for _, effect := range array {
