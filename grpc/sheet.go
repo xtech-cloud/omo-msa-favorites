@@ -46,10 +46,10 @@ func (mine *SheetService) AddOne(ctx context.Context, in *pb.ReqSheetAdd, out *p
 		return nil
 	}
 
-	if in.Type < 1 {
-		out.Status = outError(path, "the type is 0", pbstatus.ResultStatus_Empty)
-		return nil
-	}
+	//if in.Type < 1 {
+	//	out.Status = outError(path, "the type is 0", pbstatus.ResultStatus_Empty)
+	//	return nil
+	//}
 
 	//if cache.Context().HadSheetByName(in.Owner, in.Name) {
 	//	out.Status = outError(path,"the name is repeated", pbstatus.ResultStatus_Repeated)
@@ -157,6 +157,9 @@ func (mine *SheetService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 	if len(in.Uid) < 1 {
 		out.Status = outError(path, "the sheet uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
+	}
+	if in.Key == "quote" {
+
 	}
 
 	out.Status = outLog(path, out)
