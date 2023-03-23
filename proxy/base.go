@@ -51,6 +51,11 @@ type OpusInfo struct {
 //	UpdatedAt time.Time                     `json:"updatedAt" bson:"updatedAt"`
 //}
 
+type DisplayShow struct {
+	UID    string `json:"uid" bson:"uid"`
+	Effect string `json:"effect" bson:"effect"`
+}
+
 type ShowContent struct {
 	UID       string `json:"uid" bson:"uid"`       //展览UID
 	Weight    uint32 `json:"weight" bson:"weight"` //排序权重

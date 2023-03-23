@@ -30,9 +30,14 @@ func switchProduct(info *cache.ProductInfo) *pb.ProductInfo {
 	tmp.Entries = info.Entries
 	tmp.Menus = info.Menus
 	tmp.Revises = info.Revises
+	tmp.Shows = info.Shows
 	tmp.Effects = make([]*pb.ProductEffect, 0, len(info.Effects))
 	for _, effect := range info.Effects {
 		tmp.Effects = append(tmp.Effects, &pb.ProductEffect{Min: effect.Min, Max: effect.Max, Pattern: effect.Pattern})
+	}
+	tmp.Displays = make([]*pb.DisplayShow, 0, len(info.Displays))
+	for _, display := range info.Displays {
+		tmp.Displays = append(tmp.Displays, &pb.DisplayShow{Uid: display.UID, Effect: display.Effect})
 	}
 	return tmp
 }
@@ -158,6 +163,20 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		}
 	} else if in.Key == "catalogs" {
 		err = info.UpdateCatalogs(in.Value, in.Operator)
+	} else if in.Key == "shows" {
+		err = info.UpdateShows(in.Operator, in.List)
+	} else if in.Key == "displays" {
+		if len(in.Value) > 1 {
+			array := make([]*proxy.DisplayShow, 0, 10)
+			err = json.Unmarshal([]byte(in.Value), &array)
+			if err == nil {
+				arr := make([]*proxy.DisplayShow, 0, 10)
+				for _, item := range array {
+					arr = append(arr, &proxy.DisplayShow{UID: item.UID, Effect: item.Effect})
+				}
+				err = info.UpdateDisplays(in.Operator, arr)
+			}
+		}
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
@@ -186,6 +205,48 @@ func (mine *ProductService) UpdateBase(ctx context.Context, in *pb.ReqProductUpd
 	}
 
 	out.Info = switchProduct(info)
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *ProductService) AppendDisplay(ctx context.Context, in *pb.ReqProductDisplay, out *pb.ReplyProductDisplays) error {
+	path := "product.appendDisplay"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path, "the product uid is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
+	info, err1 := cache.Context().GetProduct(in.Uid)
+	if err1 != nil {
+		out.Status = outError(path, err1.Error(), pbstatus.ResultStatus_NotExisted)
+		return nil
+	}
+
+	out.List = make([]*pb.DisplayShow, 0, len(info.Displays))
+	for _, display := range info.Displays {
+		out.List = append(out.List, &pb.DisplayShow{Uid: display.UID, Effect: display.Effect})
+	}
+	out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *ProductService) SubtractDisplay(ctx context.Context, in *pb.ReqProductDisplay, out *pb.ReplyProductDisplays) error {
+	path := "product.subtractDisplay"
+	inLog(path, in)
+	if len(in.Uid) < 1 {
+		out.Status = outError(path, "the product uid is empty", pbstatus.ResultStatus_Empty)
+		return nil
+	}
+	info, err1 := cache.Context().GetProduct(in.Uid)
+	if err1 != nil {
+		out.Status = outError(path, err1.Error(), pbstatus.ResultStatus_NotExisted)
+		return nil
+	}
+
+	out.List = make([]*pb.DisplayShow, 0, len(info.Displays))
+	for _, display := range info.Displays {
+		out.List = append(out.List, &pb.DisplayShow{Uid: display.UID, Effect: display.Effect})
+	}
 	out.Status = outLog(path, out)
 	return nil
 }

@@ -18,7 +18,9 @@ type ProductInfo struct {
 	Catalogs string
 	Remark   string
 	Revises  []string
-	Effects  []*proxy.ProductEffect
+	Shows    []string               //在展的展览
+	Effects  []*proxy.ProductEffect //效果库
+	Displays []*proxy.DisplayShow   //展览库
 }
 
 func (mine *cacheContext) CreateProduct(name, key, menus, templet, remark, operator string, tp uint8, entries, revises []string, effects []*proxy.ProductEffect) (*ProductInfo, error) {
@@ -39,6 +41,8 @@ func (mine *cacheContext) CreateProduct(name, key, menus, templet, remark, opera
 	db.Status = 1
 	db.Catalogs = ""
 	db.Remark = remark
+	db.Showings = make([]string, 0, 1)
+	db.Displays = make([]*proxy.DisplayShow, 0, 1)
 
 	err := nosql.CreateProduct(db)
 	if err == nil {
@@ -93,6 +97,8 @@ func (mine *ProductInfo) initInfo(db *nosql.Product) {
 	mine.Remark = db.Remark
 	mine.Catalogs = db.Catalogs
 	mine.Templet = db.Templet
+	mine.Shows = db.Showings
+	mine.Displays = db.Displays
 	mine.Revises = db.Revises
 	mine.Effects = db.Effects
 	if mine.Effects == nil {
@@ -100,6 +106,12 @@ func (mine *ProductInfo) initInfo(db *nosql.Product) {
 	}
 	if mine.Revises == nil {
 		mine.Revises = make([]string, 0, 5)
+	}
+	if mine.Shows == nil {
+		mine.Shows = make([]string, 0, 5)
+	}
+	if mine.Displays == nil {
+		mine.Displays = make([]*proxy.DisplayShow, 0, 5)
 	}
 }
 
@@ -116,6 +128,24 @@ func (mine *ProductInfo) UpdateEffects(operator string, list []*proxy.ProductEff
 	err := nosql.UpdateProductEffects(mine.UID, operator, list)
 	if err == nil {
 		mine.Effects = list
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ProductInfo) UpdateShows(operator string, list []string) error {
+	err := nosql.UpdateProductShows(mine.UID, operator, list)
+	if err == nil {
+		mine.Shows = list
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ProductInfo) UpdateDisplays(operator string, list []*proxy.DisplayShow) error {
+	err := nosql.UpdateProductDisplays(mine.UID, operator, list)
+	if err == nil {
+		mine.Displays = list
 		mine.UpdateTime = time.Now()
 	}
 	return err

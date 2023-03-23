@@ -28,8 +28,9 @@ type Product struct {
 	Templet  string                 `json:"templet" bson:"templet"`
 	Catalogs string                 `json:"catalogs" bson:"catalogs"`
 	Revises  []string               `json:"revises" bson:"revises"`
+	Showings []string               `json:"shows" bson:"shows"`
 	Effects  []*proxy.ProductEffect `json:"effects" bson:"effects"`
-	Contents []*proxy.ShowContent   `json:"contents" bson:"contents"`
+	Displays []*proxy.DisplayShow   `json:"displays" bson:"displays"`
 }
 
 func CreateProduct(info *Product) error {
@@ -134,6 +135,18 @@ func UpdateProductEntries(uid, operator string, arr []string) error {
 
 func UpdateProductEffects(uid, operator string, effects []*proxy.ProductEffect) error {
 	msg := bson.M{"effects": effects, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableProduct, uid, msg)
+	return err
+}
+
+func UpdateProductDisplays(uid, operator string, arr []*proxy.DisplayShow) error {
+	msg := bson.M{"displays": arr, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableProduct, uid, msg)
+	return err
+}
+
+func UpdateProductShows(uid, operator string, arr []string) error {
+	msg := bson.M{"shows": arr, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableProduct, uid, msg)
 	return err
 }
