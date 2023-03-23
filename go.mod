@@ -13,7 +13,7 @@ require (
 	github.com/micro/go-plugins/registry/etcdv3/v2 v2.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1
-	github.com/tidwall/gjson v1.6.0
+	github.com/tidwall/gjson v1.9.3
 	github.com/xtech-cloud/omo-msp-favorites v1.10.2
 	github.com/xtech-cloud/omo-msp-status v1.0.1
 	go.mongodb.org/mongo-driver v1.4.6
