@@ -61,7 +61,8 @@ func (mine *SheetService) AddOne(ctx context.Context, in *pb.ReqSheetAdd, out *p
 	info.Creator = in.Operator
 	info.Contents = make([]proxy.ShowContent, 0, len(in.Keys))
 	for _, key := range in.Keys {
-		info.Contents = append(info.Contents, proxy.ShowContent{UID: key.Uid, Weight: key.Weight})
+		info.Contents = append(info.Contents, proxy.ShowContent{UID: key.Uid, Effect: key.Effect,
+			Menu: key.Menu, Alignment: key.Align, Weight: key.Weight})
 	}
 	info.Owner = in.Owner
 	info.ProductType = uint8(in.Type)
