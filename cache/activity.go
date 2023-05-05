@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"github.com/micro/go-micro/v2/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
@@ -48,7 +49,7 @@ type ActivityInfo struct {
 	Date        proxy.DateInfo
 	Place       proxy.PlaceInfo
 	Prize       *proxy.PrizeInfo
-	Participant uint32
+	Participant uint32 //参与人
 
 	Assets  []string
 	Tags    []string
@@ -57,14 +58,14 @@ type ActivityInfo struct {
 	Opuses []proxy.OpusInfo //获奖作品
 }
 
-func (mine *cacheContext) GetActivity(uid string) *ActivityInfo {
+func (mine *cacheContext) GetActivity(uid string) (*ActivityInfo, error) {
 	db, err := nosql.GetActivity(uid)
 	if err == nil {
 		info := new(ActivityInfo)
 		info.initInfo(db)
-		return info
+		return info, nil
 	}
-	return nil
+	return nil, err
 }
 
 func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
@@ -136,6 +137,16 @@ func (mine *cacheContext) RemoveActivity(uid, operator string) error {
 func (mine *cacheContext) GetActivityCount(owner string) uint32 {
 	num := nosql.GetActivityCountByOwner(owner)
 	return uint32(num)
+}
+
+func (mine *cacheContext) GetActivityRatio(uid string) uint32 {
+	activity, err := mine.GetActivity(uid)
+	if err != nil {
+		logger.Warn("the activity not found that err = " + err.Error())
+		return 0
+	}
+	min, max := activity.GetRatio()
+	return min / max
 }
 
 func (mine *cacheContext) GetActivityCloneCount(owner string) uint32 {
@@ -548,6 +559,19 @@ func (mine *ActivityInfo) insertHistory(operator, remark, from, to string, opt O
 	db.Option = uint8(opt)
 	db.Remark = remark
 	return nosql.CreateHistory(db)
+}
+
+func (mine *ActivityInfo) GetRatio() (min, max uint32) {
+
+	return 0, 0
+}
+
+func (mine *ActivityInfo) UpdateParticipant(num uint32) error {
+	err := nosql.UpdateActivityParticipant(mine.UID, num)
+	if err == nil {
+		mine.Participant = num
+	}
+	return err
 }
 
 //func (mine *ActivityInfo)HadParticipant(uid string) bool {

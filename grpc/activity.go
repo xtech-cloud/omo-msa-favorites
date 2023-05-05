@@ -7,7 +7,6 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
-	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
 	"strconv"
 )
@@ -162,9 +161,9 @@ func (mine *ActivityService) GetOne(ctx context.Context, in *pb.RequestInfo, out
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchActivity(in.Owner, info)
@@ -185,6 +184,8 @@ func (mine *ActivityService) GetStatistic(ctx context.Context, in *pb.RequestFil
 		for _, info := range list {
 			out.Count = out.Count + info.Participant
 		}
+	} else if in.Key == "ratio" {
+		out.Count = cache.Context().GetActivityRatio(in.Value)
 	}
 	out.Status = outLog(path, out)
 	return nil
@@ -279,12 +280,11 @@ func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityU
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
 	if len(in.Cover) > 0 && in.Cover != info.Cover {
 		err = info.UpdateCover(in.Cover, in.Operator)
 	}
@@ -324,6 +324,11 @@ func (mine *ActivityService) UpdateByFilter(ctx context.Context, in *pb.RequestU
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	activity, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_Empty)
+		return nil
+	}
 	if in.Key == "participant" {
 		if in.Value == "" {
 			out.Status = outError(path, "the activity participant value is empty", pbstatus.ResultStatus_Empty)
@@ -334,7 +339,8 @@ func (mine *ActivityService) UpdateByFilter(ctx context.Context, in *pb.RequestU
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 			return nil
 		}
-		er = nosql.UpdateActivityParticipant(in.Uid, uint32(num))
+
+		er = activity.UpdateParticipant(uint32(num))
 		if er != nil {
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
@@ -355,12 +361,12 @@ func (mine *ActivityService) UpdateTags(ctx context.Context, in *pb.RequestList,
 		out.Status = outError(path, "the activity tags is nil", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.UpdateTags(in.Operator, in.List)
+	err = info.UpdateTags(in.Operator, in.List)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -377,12 +383,12 @@ func (mine *ActivityService) UpdateAssets(ctx context.Context, in *pb.RequestLis
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
+
 	err = info.UpdateAssets(in.Operator, in.List)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
@@ -404,12 +410,11 @@ func (mine *ActivityService) UpdateTargets(ctx context.Context, in *pb.RequestLi
 		out.Status = outError(path, "the activity targets is nil", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
 	err = info.UpdateTargets(in.Operator, in.List)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
@@ -427,12 +432,11 @@ func (mine *ActivityService) UpdateStatus(ctx context.Context, in *pb.RequestSta
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
 	err = info.UpdateStatus(in.Operator, uint8(in.Status))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
@@ -450,12 +454,11 @@ func (mine *ActivityService) UpdateOpuses(ctx context.Context, in *pb.ReqActivit
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
 	list := make([]proxy.OpusInfo, 0, len(in.List))
 	for _, opus := range in.List {
 		list = append(list, proxy.OpusInfo{Rank: opus.Rank, Asset: opus.Asset, Remark: opus.Remark})
@@ -477,12 +480,11 @@ func (mine *ActivityService) UpdatePrize(ctx context.Context, in *pb.ReqActivity
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
 	list := make([]proxy.RankInfo, 0, len(in.Ranks))
 	for _, rank := range in.Ranks {
 		list = append(list, proxy.RankInfo{Index: rank.Index, Name: rank.Name, Count: rank.Count})
@@ -504,12 +506,11 @@ func (mine *ActivityService) UpdateShow(ctx context.Context, in *pb.RequestState
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetActivity(in.Uid)
-	if info == nil {
-		out.Status = outError(path, "the activity not found", pbstatus.ResultStatus_NotExisted)
+	info, err := cache.Context().GetActivity(in.Uid)
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	var err error
 	err = info.UpdateShowState(in.Operator, uint8(in.Status))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

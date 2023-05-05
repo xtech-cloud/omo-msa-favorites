@@ -62,6 +62,7 @@ type ShowContent struct {
 	Effect    string `json:"effect" bson:"effect"` //效果
 	Menu      string `json:"menu" bson:"menu"`     //所属目录
 	Alignment string `json:"align" bson:"align"`   //目录方向
+	Local     uint32 `json:"local" bson:"local"`   //是否本地展览
 }
 
 type DisplayContent struct {
