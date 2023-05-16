@@ -132,6 +132,10 @@ func (mine *DisplayService) RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	if cache.Context().IsUsed(in.Uid) {
+		out.Status = outError(path, "the display is used", pbstatus.ResultStatus_Prohibition)
+		return nil
+	}
 	err := cache.Context().RemoveDisplay(in.Uid, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

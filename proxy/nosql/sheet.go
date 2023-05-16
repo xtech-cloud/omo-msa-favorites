@@ -209,6 +209,25 @@ func GetSheetsByOwner(owner string) ([]*Sheet, error) {
 	return items, nil
 }
 
+func GetSheetsByDisplay(uid string) ([]*Sheet, error) {
+	def := new(time.Time)
+	filter := bson.M{"contents.uid": uid, "deleteAt": def}
+	cursor, err1 := findMany(TableSheet, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Sheet, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Sheet)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetSheetsByOwnerTP(owner string, tp uint8) ([]*Sheet, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "product": tp, "deleteAt": def}

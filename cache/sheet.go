@@ -63,6 +63,24 @@ func (mine *cacheContext) RemoveSheet(uid, operator string) error {
 	return err
 }
 
+func (mine *cacheContext) IsUsed(display string) bool {
+	list, err := nosql.GetSheetsByDisplay(display)
+	if err != nil {
+		return false
+	}
+	if len(list) > 0 {
+		return true
+	}
+	arr, er := nosql.GetProductsByDisplay(display)
+	if er != nil {
+		return false
+	}
+	if len(arr) > 0 {
+		return true
+	}
+	return false
+}
+
 func (mine *cacheContext) GetSheet(uid string) *SheetInfo {
 	db, err := nosql.GetSheet(uid)
 	if err == nil {

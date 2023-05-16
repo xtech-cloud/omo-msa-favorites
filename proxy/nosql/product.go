@@ -103,6 +103,24 @@ func GetProductByType(tp uint8) (*Product, error) {
 	return model, nil
 }
 
+func GetProductsByDisplay(display string) ([]*Product, error) {
+	filter := bson.M{"displays.uid": display, "deleteAt": new(time.Time)}
+	cursor, err1 := findMany(TableProduct, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Product, 0, 100)
+	for cursor.Next(context.Background()) {
+		var node = new(Product)
+		if err := cursor.Decode(node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func UpdateProductCatalog(uid, catalogs, operator string) error {
 	msg := bson.M{"catalogs": catalogs, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableProduct, uid, msg)
