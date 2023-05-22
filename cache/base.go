@@ -5,7 +5,6 @@ import (
 	"github.com/micro/go-micro/v2/logger"
 	"omo.msa.favorite/config"
 	"omo.msa.favorite/proxy/nosql"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -56,28 +55,54 @@ func Context() *cacheContext {
 	return cacheCtx
 }
 
-func CheckPage(page, number uint32, all interface{}) (uint32, uint32, interface{}) {
+//func CheckPage(page, number uint32, all interface{}) (uint32, uint32, interface{}) {
+//	if number < 1 {
+//		number = 10
+//	}
+//	array := reflect.ValueOf(all)
+//	total := uint32(array.Len())
+//	maxPage := total/number + 1
+//	if page < 1 {
+//		return total, maxPage, all
+//	}
+//
+//	if page > maxPage {
+//		page = maxPage
+//	}
+//	var start = (page - 1) * number
+//	var end = start + number
+//	if end > total {
+//		end = total
+//	}
+//
+//	list := array.Slice(int(start), int(end))
+//	return total, maxPage, list.Interface()
+//}
+
+func CheckPage[T any](page, number uint32, all []T) (uint32, uint32, []T) {
+	if len(all) < 1 {
+		return 0, 0, make([]T, 0, 1)
+	}
 	if number < 1 {
 		number = 10
 	}
-	array := reflect.ValueOf(all)
-	total := uint32(array.Len())
+	total := uint32(len(all))
+	if len(all) <= int(number) {
+		return total, 1, all
+	}
 	maxPage := total/number + 1
 	if page < 1 {
 		return total, maxPage, all
 	}
 
-	if page > maxPage {
-		page = maxPage
-	}
 	var start = (page - 1) * number
 	var end = start + number
 	if end > total {
 		end = total
 	}
-
-	list := array.Slice(int(start), int(end))
-	return total, maxPage, list.Interface()
+	list := make([]T, 0, number)
+	list = append(all[start:end])
+	return total, maxPage, list
 }
 
 func ParseDate(msg string) (year int, month time.Month, day int, err error) {

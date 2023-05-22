@@ -47,6 +47,9 @@ func (mine *cacheContext) CreateWords(words, owner, target, sn, operator, quote 
 	db.Device = sn
 	db.Weight = 0
 	db.Count = 0
+	if db.Assets == nil {
+		db.Assets = make([]string, 0, 1)
+	}
 	err := nosql.CreateWords(db)
 	if err == nil {
 		info := new(WordsInfo)
@@ -178,8 +181,35 @@ func (mine *cacheContext) GetWordsByQuote(owner, quote string) []*WordsInfo {
 	return nil
 }
 
-func (mine *cacheContext) GetWordsByTarget(uid string) []*WordsInfo {
-	array, err := nosql.GetWordsByTarget(uid)
+func (mine *cacheContext) GetWordsByTarget(scene, uid, from, to string) []*WordsInfo {
+	first, er := time.Parse("2006-01-02", from)
+	if er != nil {
+		logger.Error("GetWordsByTarget .... from error that " + er.Error())
+		return nil
+	}
+	second, er := time.Parse("2006-01-02", to)
+	if er != nil {
+		logger.Error("GetWordsByTarget ....to error that " + er.Error())
+		return nil
+	}
+	array, err := nosql.GetWordsByTarget(scene, uid)
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, item := range array {
+			created := item.CreatedTime.Unix()
+			if created > first.Unix() && created < second.Unix() {
+				info := new(WordsInfo)
+				info.initInfo(item)
+				list = append(list, info)
+			}
+		}
+		return list
+	}
+	return nil
+}
+
+func (mine *cacheContext) GetWordsByTarget2(owner, uid string, page, num uint32) (uint32, uint32, []*WordsInfo) {
+	array, err := nosql.GetWordsByTarget(owner, uid)
 	if err == nil {
 		list := make([]*WordsInfo, 0, len(array))
 		for _, item := range array {
@@ -187,9 +217,9 @@ func (mine *cacheContext) GetWordsByTarget(uid string) []*WordsInfo {
 			info.initInfo(item)
 			list = append(list, info)
 		}
-		return list
+		return CheckPage(page, num, list)
 	}
-	return nil
+	return 0, 0, nil
 }
 
 func (mine *cacheContext) GetWordsByUser(uid string) []*WordsInfo {

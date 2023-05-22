@@ -62,7 +62,7 @@ func (mine *MessageService) GetByFilter(ctx context.Context, in *pb.ReqMessageFi
 		}
 	})
 	max, pages, list := cache.CheckPage(in.Page, in.Number, all)
-	out.List = list.([]*pb.MessageInfo)
+	out.List = list
 	out.Total = max
 	out.Pages = pages
 	out.Status = outLog(path, fmt.Sprintf("the length = %d, max = %d", len(out.List), max))

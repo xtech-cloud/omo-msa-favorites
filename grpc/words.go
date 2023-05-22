@@ -124,7 +124,11 @@ func (mine *WordsService) GetByFilter(ctx context.Context, in *pb.RequestFilter,
 	if in.Key == "" {
 		array = cache.Context().GetWordsByOwner(in.Owner)
 	} else if in.Key == "target" {
-		array = cache.Context().GetWordsByTarget(in.Value)
+		if len(in.List) > 1 {
+			array = cache.Context().GetWordsByTarget(in.Owner, in.Value, in.List[0], in.List[1])
+		} else {
+			max, pages, array = cache.Context().GetWordsByTarget2(in.Owner, in.Value, in.Page, in.Number)
+		}
 	} else if in.Key == "type" {
 		tp := parseStringToInt(in.Value)
 		array = cache.Context().GetWordsByOwnerTP(in.Owner, cache.WordsType(tp))

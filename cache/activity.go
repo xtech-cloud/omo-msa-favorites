@@ -201,8 +201,8 @@ func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string, s
 	if len(all) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*ActivityInfo)
+
+	return CheckPage(page, num, all)
 }
 
 func (mine *cacheContext) GetAllActivitiesByTargets(owner string, st uint8, tm uint64, array []string) []*ActivityInfo {
@@ -268,8 +268,7 @@ func (mine *cacheContext) GetActivitiesByStatus(owner string, states []uint8, pa
 	if len(all) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*ActivityInfo)
+	return CheckPage(page, num, all)
 }
 
 func (mine *cacheContext) GetActivitiesByShow(owners []string, st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
@@ -292,8 +291,7 @@ func (mine *cacheContext) GetActivitiesByShow(owners []string, st uint8, page, n
 	if len(all) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*ActivityInfo)
+	return CheckPage(page, num, all)
 }
 
 func (mine *cacheContext) GetActivitiesByTemplate(owner, template string) []*ActivityInfo {

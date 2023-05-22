@@ -257,7 +257,26 @@ func GetWordsByQuote(owner, quote string) ([]*Words, error) {
 	return items, nil
 }
 
-func GetWordsByTarget(target string) ([]*Words, error) {
+func GetWordsByTarget(owner, target string) ([]*Words, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "target": target, "deleteAt": def}
+	cursor, err1 := findMany(TableWords, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Words, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Words)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetWordsByTarget2(target string) ([]*Words, error) {
 	def := new(time.Time)
 	filter := bson.M{"target": target, "deleteAt": def}
 	cursor, err1 := findMany(TableWords, filter, 0)

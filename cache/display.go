@@ -187,8 +187,7 @@ func (mine *cacheContext) GetDisplaysByTargets(owner string, array []string, pag
 	if len(all) < 1 {
 		return 0, 0, make([]*DisplayInfo, 0, 1)
 	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*DisplayInfo)
+	return CheckPage(page, num, all)
 }
 
 func (mine *DisplayInfo) initInfo(db *nosql.Display) {

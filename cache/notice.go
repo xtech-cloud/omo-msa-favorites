@@ -173,8 +173,7 @@ func (mine *cacheContext) GetNoticesByTargets(owner string, array []string, st M
 	if len(all) < 1 {
 		return 0, 0, make([]*NoticeInfo, 0, 1)
 	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*NoticeInfo)
+	return CheckPage(page, num, all)
 }
 
 func (mine *cacheContext) GetAllNoticesByTargets(owner string, st MessageStatus, tm uint64, array []string) []*NoticeInfo {

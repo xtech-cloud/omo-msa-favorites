@@ -10,16 +10,16 @@ import (
 )
 
 const (
-	ArticleLesson = 0 //课件
+	ArticleLesson   = 0 //课件
 	ArticleAnnounce = 1 //校园公告
-	ArticleNews = 2 //区新闻
+	ArticleNews     = 2 //区新闻
 	ArticleResident = 3 //格桑码新闻
 )
 
 const (
-	MessageStatusDraft MessageStatus = 0
-	MessageStatusCheck MessageStatus = 1
-	MessageStatusRefuse  MessageStatus = 2
+	MessageStatusDraft  MessageStatus = 0
+	MessageStatusCheck  MessageStatus = 1
+	MessageStatusRefuse MessageStatus = 2
 	MessageStatusAgree  MessageStatus = 3
 )
 
@@ -38,7 +38,7 @@ type ArticleInfo struct {
 	Assets   []string
 }
 
-func (mine *cacheContext)CreateArticle(info *ArticleInfo) error {
+func (mine *cacheContext) CreateArticle(info *ArticleInfo) error {
 	db := new(nosql.Article)
 	db.UID = primitive.NewObjectID()
 	db.ID = nosql.GetArticleNextID()
@@ -85,13 +85,13 @@ func (mine *cacheContext) GetArticle(uid string) *ArticleInfo {
 	return nil
 }
 
-func (mine *cacheContext)RemoveArticle(uid, operator string) error {
+func (mine *cacheContext) RemoveArticle(uid, operator string) error {
 	err := nosql.RemoveArticle(uid, operator)
 	return err
 }
 
 func (mine *cacheContext) GetArticlesByOwner(uid string) []*ArticleInfo {
-	if uid == ""{
+	if uid == "" {
 		return make([]*ArticleInfo, 0, 1)
 	}
 	array, err := nosql.GetArticlesByOwner(uid)
@@ -163,10 +163,10 @@ func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, st 
 	all := make([]*ArticleInfo, 0, 10)
 	var dbs []*nosql.Article
 	var er error
-	if len(owner) < 1{
-		dbs,er = nosql.GetArticlesByTargets(uint8(st), array)
-	}else{
-		dbs,er = nosql.GetArticlesByOTargets(owner, uint8(st), array)
+	if len(owner) < 1 {
+		dbs, er = nosql.GetArticlesByTargets(uint8(st), array)
+	} else {
+		dbs, er = nosql.GetArticlesByOTargets(owner, uint8(st), array)
 	}
 	if er == nil {
 		for _, db := range dbs {
@@ -181,8 +181,7 @@ func (mine *cacheContext) GetArticlesByTargets(owner string, array []string, st 
 	if len(all) < 1 {
 		return 0, 0, make([]*ArticleInfo, 0, 1)
 	}
-	max, pages, list := CheckPage(page, num, all)
-	return max, pages, list.([]*ArticleInfo)
+	return CheckPage(page, num, all)
 }
 
 func (mine *ArticleInfo) initInfo(db *nosql.Article) {
@@ -202,9 +201,9 @@ func (mine *ArticleInfo) initInfo(db *nosql.Article) {
 	mine.Targets = db.Targets
 	mine.Status = MessageStatus(db.Status)
 	mine.Assets = db.Assets
-	if mine.Targets == nil || len(mine.Targets) < 1{
-		mine.Targets = make([]string, 0 ,15)
-		for i := 0;i < 15;i += 1 {
+	if mine.Targets == nil || len(mine.Targets) < 1 {
+		mine.Targets = make([]string, 0, 15)
+		for i := 0; i < 15; i += 1 {
 			mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
 		}
 		_ = nosql.UpdateArticleTargets(mine.UID, mine.Operator, mine.Targets)
@@ -285,7 +284,7 @@ func (mine *ArticleInfo) UpdateAssets(operator string, list []string) error {
 	return err
 }
 
-func (mine *ArticleInfo)HadTargets(arr []string) bool {
+func (mine *ArticleInfo) HadTargets(arr []string) bool {
 	if mine.Targets == nil || len(mine.Targets) < 1 {
 		return true
 	}
@@ -299,4 +298,3 @@ func (mine *ArticleInfo)HadTargets(arr []string) bool {
 	}
 	return false
 }
-
