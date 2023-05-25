@@ -10,9 +10,10 @@ import (
 
 const (
 	WordsTypeTemplate WordsType = 0 //
-	WordsTypeBless    WordsType = 1 //
+	WordsTypeBless    WordsType = 1 //祝福
 	WordsTypeImage    WordsType = 2
-	WordsTypeOther    WordsType = 3
+	WordsTypeOther    WordsType = 3 //建议
+	WordsTypeComment  WordsType = 4 //评论
 )
 
 type WordsType uint8
