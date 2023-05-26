@@ -96,7 +96,9 @@ func getObserves(list []*pb.TargetInfo) []*pb.MessageInfo {
 				if tmp == nil {
 					all = append(all, switchActivityMessage(info, item.Entity))
 				} else {
-					tmp.Entity = tmp.Entity + ";" + item.Entity
+					if item.Entity != "" {
+						tmp.Entity = tmp.Entity + ";" + item.Entity
+					}
 				}
 			}
 		}
@@ -113,10 +115,11 @@ func getObserves(list []*pb.TargetInfo) []*pb.MessageInfo {
 				if tmp == nil {
 					all = append(all, switchNoticeMessage(info, item.Entity))
 				} else {
-					tmp.Entity = tmp.Entity + ";" + item.Entity
+					if item.Entity != "" {
+						tmp.Entity = tmp.Entity + ";" + item.Entity
+					}
 				}
 			}
-
 		}
 		//logger.Info(fmt.Sprintf("the entity of %s activity count = %d; notice count = %d", item.Entity, len(list1), len(list2)))
 	}
