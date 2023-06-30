@@ -23,6 +23,7 @@ type Display struct {
 	Owner       string                 `json:"owner" bson:"owner"`
 	Status      uint8                  `json:"status" bson:"status"`
 	Type        uint8                  `json:"type" bson:"type"`
+	Access      uint8                  `json:"access" bson:"access"`
 	Origin      string                 `json:"origin" bson:"origin"` //数据来源，可能是某次活动,或者是标准榜样
 	Meta        string                 `json:"meta" bson:"meta"`     //源数据
 	Banner      string                 `json:"banner" bson:"banner"`
@@ -299,6 +300,18 @@ func UpdateDisplayPoster(uid, cover, operator string) error {
 
 func UpdateDisplayState(uid, operator string, st uint8) error {
 	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableDisplay, uid, msg)
+	return err
+}
+
+func UpdateDisplayAccess(uid, operator string, st uint8) error {
+	msg := bson.M{"access": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableDisplay, uid, msg)
+	return err
+}
+
+func UpdateDisplayType(uid, operator string, st uint8) error {
+	msg := bson.M{"type": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }

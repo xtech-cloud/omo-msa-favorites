@@ -30,6 +30,7 @@ func switchDisplay(info *cache.DisplayInfo) *pb.DisplayInfo {
 	tmp.Origin = info.Origin
 	tmp.Banner = info.Banner
 	tmp.Poster = info.Poster
+	tmp.Access = uint32(info.Access)
 	tmp.Status = uint32(info.Status)
 	tmp.Contents = info.GetContents()
 	return tmp
@@ -240,6 +241,21 @@ func (mine *DisplayService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 		err = info.UpdateBanner(in.Value, in.Operator)
 	} else if in.Key == "poster" {
 		err = info.UpdatePoster(in.Value, in.Operator)
+	} else if in.Key == "access" {
+		tp := parseStringToInt(in.Value)
+		if tp < 0 {
+			err = errors.New("the value format error")
+		} else {
+			err = info.UpdateAccess(uint8(tp), in.Operator)
+		}
+
+	} else if in.Key == "type" {
+		tp := parseStringToInt(in.Value)
+		if tp < 0 {
+			err = errors.New("the value format error")
+		} else {
+			err = info.UpdateType(uint8(tp), in.Operator)
+		}
 	} else {
 		err = errors.New("the key not defined")
 	}

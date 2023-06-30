@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/micro/go-micro/v2/logger"
 	"omo.msa.favorite/config"
+	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"strconv"
 	"strings"
@@ -35,6 +36,9 @@ var cacheCtx *cacheContext
 
 func InitData() error {
 	cacheCtx = &cacheContext{}
+
+	//var cstZone = time.FixedZone("CST", 8*3600) // 东八
+	//time.Local = cstZone
 
 	err := nosql.InitDB(config.Schema.Database.IP, config.Schema.Database.Port, config.Schema.Database.Name, config.Schema.Database.Type)
 	if err == nil {
@@ -124,7 +128,7 @@ func ParseDate(msg string) (year int, month time.Month, day int, err error) {
 }
 
 func ParseDate2(msg string) (time.Time, error) {
-	t, er := time.Parse("2006/01/02", msg)
+	t, er := time.ParseInLocation("2006/01/02", msg, time.Local)
 	if er == nil {
 		return t, nil
 	}
@@ -141,4 +145,26 @@ func ParseTime(msg string) int64 {
 		return 0
 	}
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC).Unix()
+}
+
+func SwitchDate(start, stop string) (int64, int64) {
+	//var cstZone = time.FixedZone("CST", 8*3600) // 东八
+	//time.Local = cstZone
+	var begin = proxy.DateToUTC(start)
+	var end int64 = 0
+	var to time.Time
+	now := time.Now()
+	if begin < 2 { //没有正确的开始日期
+		begin = now.Unix()
+		to = now.AddDate(0, 0, 1)
+		end = to.Unix()
+	} else {
+		end = proxy.DateToUTC(stop)
+		if end < 2 { //没有正确的结束日期
+			from, _ := time.ParseInLocation("2006/01/02", start, time.Local)
+			to = from.AddDate(0, 0, 1)
+			end = to.Unix()
+		}
+	}
+	return begin, end
 }

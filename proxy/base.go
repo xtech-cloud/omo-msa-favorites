@@ -1,5 +1,7 @@
 package proxy
 
+import "time"
+
 type EntityInfo struct {
 	UID  string `json:"uid" bson:"uid"`
 	Name string `json:"name" bson:"name"`
@@ -8,6 +10,11 @@ type EntityInfo struct {
 type DateInfo struct {
 	Start string `json:"start" bson:"start"`
 	Stop  string `json:"stop" bson:"stop"`
+}
+
+type DurationInfo struct {
+	Start int64 `json:"start" bson:"start"`
+	Stop  int64 `json:"stop" bson:"stop"`
 }
 
 type PlaceInfo struct {
@@ -66,7 +73,7 @@ type ShowContent struct {
 }
 
 type DisplayContent struct {
-	UID string `json:"uid" bson:"uid"` //
+	UID string `json:"uid" bson:"uid"` //实体UID
 	//Entity string   `json:"entity" bson:"entity"` //实体UID
 	Events []string `json:"events" bson:"events"` //
 	Assets []string `json:"assets" bson:"assets"` //
@@ -76,4 +83,39 @@ type ProductEffect struct {
 	Pattern string
 	Min     uint32
 	Max     uint32
+}
+
+func (mine *DateInfo) BeginUTC() int64 {
+	return DateToUTC(mine.Start)
+}
+
+func (mine *DateInfo) EndUTC() int64 {
+	return DateToUTC(mine.Stop)
+}
+
+func (mine *DurationInfo) Begin() string {
+	return UTCToDate(mine.Start)
+}
+
+func (mine *DurationInfo) End() string {
+	return UTCToDate(mine.Stop)
+}
+
+func DateToUTC(date string) int64 {
+	if date == "" {
+		return 0
+	}
+	t, e := time.ParseInLocation("2006/01/02", date, time.Local)
+	if e != nil {
+		return 0
+	}
+	return t.Unix()
+}
+
+func UTCToDate(utc int64) string {
+	if utc < 1 {
+		return ""
+	}
+	t := time.Unix(utc, 0)
+	return t.Format("2006/01/02")
 }

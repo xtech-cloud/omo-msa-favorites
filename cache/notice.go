@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
 	"sort"
@@ -21,12 +22,16 @@ const (
 type NoticeInfo struct {
 	BaseInfo
 	Type     uint8
+	Interval uint32
+	Showtime uint32
 	Status   MessageStatus
 	Owner    string //该展览所属组织机构，scene
 	Subtitle string
 	Body     string
-	Tags     []string
-	Targets  []string //class, area等虚拟空间引用
+	Duration proxy.DurationInfo
+
+	Tags    []string
+	Targets []string //class, area等虚拟空间引用
 }
 
 func (mine *cacheContext) CreateNotice(info *NoticeInfo) error {
@@ -42,6 +47,9 @@ func (mine *cacheContext) CreateNotice(info *NoticeInfo) error {
 	db.Operator = info.Operator
 	db.Tags = info.Tags
 	db.Type = info.Type
+	db.Interval = info.Interval
+	db.Showtime = info.Showtime
+	db.Duration = info.Duration
 	db.Status = uint8(info.Status)
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
@@ -111,24 +119,28 @@ func (mine *cacheContext) GetNoticesByType(owner string, tp uint32) []*NoticeInf
 	return make([]*NoticeInfo, 0, 1)
 }
 
-func (mine *cacheContext) GetLatestNotice(owner string, tp uint32) *NoticeInfo {
+func (mine *cacheContext) GetLatestNotices(owner string, tp uint32) []*NoticeInfo {
 	if owner == "" {
 		return nil
 	}
-	array, err := nosql.GetNoticesByType(owner, tp)
-	if err == nil && len(array) > 0 {
-		sort.Slice(array, func(i, j int) bool {
-			if array[i].CreatedTime.Unix() > array[j].CreatedTime.Unix() {
-				return true
-			} else {
-				return false
-			}
-		})
-		info := new(NoticeInfo)
-		info.initInfo(array[0])
-		return info
+	array, _ := nosql.GetNoticesByType(owner, tp)
+	list := make([]*NoticeInfo, 0, len(array))
+	sort.Slice(array, func(i, j int) bool {
+		if array[i].CreatedTime.Unix() > array[j].CreatedTime.Unix() {
+			return true
+		} else {
+			return false
+		}
+	})
+	now := time.Now().Unix()
+	for _, db := range array {
+		if now < db.Duration.Stop && now > db.Duration.Start {
+			info := new(NoticeInfo)
+			info.initInfo(db)
+			list = append(list, info)
+		}
 	}
-	return nil
+	return list
 }
 
 func (mine *cacheContext) GetNoticesByStatus(owner string, tp uint8, st MessageStatus) []*NoticeInfo {
@@ -230,6 +242,9 @@ func (mine *NoticeInfo) initInfo(db *nosql.Notice) {
 	mine.Body = db.Body
 	mine.Owner = db.Owner
 	mine.Type = db.Type
+	mine.Interval = db.Interval
+	mine.Showtime = db.Showtime
+	mine.Duration = db.Duration
 	mine.Status = MessageStatus(db.Status)
 	mine.Tags = db.Tags
 	mine.Targets = db.Targets
@@ -246,7 +261,7 @@ func (mine *NoticeInfo) initInfo(db *nosql.Notice) {
 	}
 }
 
-func (mine *NoticeInfo) UpdateBase(name, sub, body, operator string) error {
+func (mine *NoticeInfo) UpdateBase(name, sub, body, operator string, interval, showtime uint32, date proxy.DateInfo) error {
 	if len(name) < 1 {
 		name = mine.Name
 	}
@@ -256,12 +271,16 @@ func (mine *NoticeInfo) UpdateBase(name, sub, body, operator string) error {
 	if len(body) < 1 {
 		body = mine.Body
 	}
-	err := nosql.UpdateNoticeBase(mine.UID, name, sub, body, operator)
+	begin, end := SwitchDate(date.Start, date.Stop)
+	err := nosql.UpdateNoticeBase(mine.UID, name, sub, body, operator, interval, showtime, proxy.DurationInfo{Start: begin, Stop: end})
 	if err == nil {
 		mine.Name = name
 		mine.Subtitle = sub
 		mine.Body = body
 		mine.Operator = operator
+		mine.Interval = interval
+		mine.Showtime = showtime
+		mine.Duration = proxy.DurationInfo{Start: begin, Stop: end}
 	}
 	return err
 }

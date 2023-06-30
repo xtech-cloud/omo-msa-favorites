@@ -6,6 +6,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
+	"omo.msa.favorite/proxy"
 	"strconv"
 )
 
@@ -26,6 +27,9 @@ func switchNotice(info *cache.NoticeInfo) *pb.NoticeInfo {
 	tmp.Owner = info.Owner
 	tmp.Status = uint32(info.Status)
 	tmp.Targets = info.Targets
+	tmp.Interval = info.Interval
+	tmp.Showtime = info.Showtime
+	tmp.Date = &pb.DateInfo{Start: info.Duration.Begin(), Stop: info.Duration.End()}
 	return tmp
 }
 
@@ -46,6 +50,11 @@ func (mine *NoticeService) AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out 
 	info.Targets = in.Targets
 	info.Owner = in.Owner
 	info.Type = uint8(in.Type)
+	info.Interval = in.Interval
+	info.Showtime = in.Showtime
+
+	begin, end := cache.SwitchDate(in.Date.Start, in.Date.Stop)
+	info.Duration = proxy.DurationInfo{Start: begin, Stop: end}
 	info.Status = cache.MessageStatusDraft
 	err := cache.Context().CreateNotice(info)
 	if err != nil {
@@ -128,11 +137,7 @@ func (mine *NoticeService) GetList(ctx context.Context, in *pb.RequestFilter, ou
 	} else if in.Key == "latest" {
 		tp, er := strconv.ParseUint(in.Value, 10, 32)
 		if er == nil {
-			info := cache.Context().GetLatestNotice(in.Owner, uint32(tp))
-			if info != nil {
-				array = make([]*cache.NoticeInfo, 0, 1)
-				array = append(array, info)
-			}
+			array = cache.Context().GetLatestNotices(in.Owner, uint32(tp))
 		} else {
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 			return nil
@@ -175,12 +180,10 @@ func (mine *NoticeService) UpdateBase(ctx context.Context, in *pb.ReqNoticeUpdat
 		return nil
 	}
 	var err error
-	if in.Name != info.Name || in.Subtitle != info.Subtitle || in.Body != info.Body {
-		err = info.UpdateBase(in.Name, in.Subtitle, in.Body, in.Operator)
-		if err != nil {
-			out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
-			return nil
-		}
+	err = info.UpdateBase(in.Name, in.Subtitle, in.Body, in.Operator, in.Interval, in.Showtime, proxy.DateInfo{Start: in.Date.Start, Stop: in.Date.Stop})
+	if err != nil {
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
+		return nil
 	}
 
 	if len(in.Targets) > 1 {

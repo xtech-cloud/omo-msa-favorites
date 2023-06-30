@@ -31,7 +31,7 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Show = uint32(info.ShowResult)
 	tmp.Type = uint32(info.Type)
 	tmp.Status = uint32(info.Status)
-	tmp.Date = &pb.DateInfo{Start: info.Date.Start, Stop: info.Date.Stop}
+	tmp.Date = &pb.DateInfo{Start: info.Duration.Begin(), Stop: info.Duration.End()}
 	tmp.Place = &pb.PlaceInfo{Name: info.Place.Name, Location: info.Place.Location}
 	tmp.Organizer = info.Organizer
 	tmp.Template = info.Template
@@ -126,7 +126,7 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 	info.Status = uint8(in.Status)
 	info.Template = in.Template
 
-	info.Date = proxy.DateInfo{Start: in.Date.Start, Stop: in.Date.Stop}
+	info.Duration = proxy.DurationInfo{Start: proxy.DateToUTC(in.Date.Start), Stop: proxy.DateToUTC(in.Date.Stop)}
 	info.Place = proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location}
 	info.Type = uint8(in.Type)
 	info.Opuses = make([]proxy.OpusInfo, 0, 1)

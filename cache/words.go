@@ -119,7 +119,7 @@ func (mine *cacheContext) GetWordsByOwner(uid string) []*WordsInfo {
 }
 
 func (mine *cacheContext) GetWordsByDate(owner, date string, before bool) []*WordsInfo {
-	now, er := time.Parse("2006-01-02", date)
+	now, er := time.ParseInLocation("2006-01-02", date, time.Local)
 	if er != nil {
 		logger.Error("GetWordsByDate ...." + er.Error())
 		return nil
@@ -145,12 +145,12 @@ func (mine *cacheContext) GetWordsByDate(owner, date string, before bool) []*Wor
 }
 
 func (mine *cacheContext) GetWordsByBetweenDate(owner, from, to string, tp WordsType) []*WordsInfo {
-	first, er := time.Parse("2006-01-02", from)
+	first, er := time.ParseInLocation("2006-01-02", from, time.Local)
 	if er != nil {
 		logger.Error("GetWordsByDate .... from error that " + er.Error())
 		return nil
 	}
-	second, er := time.Parse("2006-01-02", to)
+	second, er := time.ParseInLocation("2006-01-02", to, time.Local)
 	if er != nil {
 		logger.Error("GetWordsByDate ....to error that " + er.Error())
 		return nil
@@ -183,12 +183,12 @@ func (mine *cacheContext) GetWordsByQuote(owner, quote string) []*WordsInfo {
 }
 
 func (mine *cacheContext) GetWordsByTarget(scene, uid, from, to string) []*WordsInfo {
-	first, er := time.Parse("2006-01-02", from)
+	first, er := time.ParseInLocation("2006-01-02", from, time.Local)
 	if er != nil {
 		logger.Error("GetWordsByTarget .... from error that " + er.Error())
 		return nil
 	}
-	second, er := time.Parse("2006-01-02", to)
+	second, er := time.ParseInLocation("2006-01-02", to, time.Local)
 	if er != nil {
 		logger.Error("GetWordsByTarget ....to error that " + er.Error())
 		return nil

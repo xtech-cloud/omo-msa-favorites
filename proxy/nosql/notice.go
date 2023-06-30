@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"omo.msa.favorite/proxy"
 	"time"
 )
 
@@ -18,11 +19,14 @@ type Notice struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Status   uint8  `json:"status" bson:"status"`
-	Type     uint8  `json:"type" bson:"type"`
-	Subtitle string `json:"subtitle" bson:"subtitle"`
-	Body     string `json:"body" bson:"body"`
-	Owner    string `json:"owner" bson:"owner"`
+	Status   uint8              `json:"status" bson:"status"`
+	Type     uint8              `json:"type" bson:"type"`
+	Subtitle string             `json:"subtitle" bson:"subtitle"`
+	Body     string             `json:"body" bson:"body"`
+	Owner    string             `json:"owner" bson:"owner"`
+	Interval uint32             `json:"interval" bson:"interval"`
+	Showtime uint32             `json:"showtime" bson:"showtime"`
+	Duration proxy.DurationInfo `json:"duration" bson:"duration"`
 
 	Targets []string `json:"targets" bson:"targets"`
 	Tags    []string `json:"tags" bson:"tags"`
@@ -170,8 +174,8 @@ func GetNoticesByStatus(owner string, tp, st uint8) ([]*Notice, error) {
 	return items, nil
 }
 
-func UpdateNoticeBase(uid, name, sub, body, operator string) error {
-	msg := bson.M{"name": name, "body": body, "subtitle": sub, "operator": operator, "updatedAt": time.Now()}
+func UpdateNoticeBase(uid, name, sub, body, operator string, interval, showtime uint32, date proxy.DurationInfo) error {
+	msg := bson.M{"name": name, "body": body, "subtitle": sub, "interval": interval, "showtime": showtime, "duration": date, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableNotice, uid, msg)
 	return err
 }

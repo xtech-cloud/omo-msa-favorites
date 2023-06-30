@@ -46,7 +46,8 @@ type ActivityInfo struct {
 
 	Template string //活动模板
 
-	Date        proxy.DateInfo
+	//Date        proxy.DateInfo
+	Duration    proxy.DurationInfo
 	Place       proxy.PlaceInfo
 	Prize       *proxy.PrizeInfo
 	Participant uint32 //参与人
@@ -82,7 +83,7 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db.Organizer = info.Organizer
 	db.Creator = info.Creator
 	db.Operator = info.Operator
-	db.Date = info.Date
+	db.Duration = info.Duration
 	db.Place = info.Place
 	db.Limit = info.SubmitLimit
 	db.Status = info.Status
@@ -336,7 +337,7 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	mine.Require = db.Require
 	mine.Organizer = db.Organizer
 	mine.Template = db.Template
-	mine.Date = db.Date
+	mine.Duration = db.Duration
 	mine.Place = db.Place
 	mine.Prize = db.Prize
 	mine.ShowResult = db.Show
@@ -365,6 +366,14 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 		mine.Opuses = make([]proxy.OpusInfo, 0, 1)
 		_ = nosql.UpdateActivityOpuses(mine.UID, mine.Operator, mine.Opuses)
 	}
+	if db.Date.Start != "" && db.Duration.Start < 1 {
+		duration := proxy.DurationInfo{
+			Start: proxy.DateToUTC(db.Date.Start),
+			Stop:  proxy.DateToUTC(db.Date.Stop),
+		}
+		mine.Duration = duration
+		_ = nosql.UpdateActivityDuration(mine.UID, duration)
+	}
 }
 
 func (mine *ActivityInfo) UpdateBase(name, remark, require, operator string, date proxy.DateInfo, place proxy.PlaceInfo) error {
@@ -374,22 +383,26 @@ func (mine *ActivityInfo) UpdateBase(name, remark, require, operator string, dat
 	if len(remark) < 1 {
 		remark = mine.Remark
 	}
-
+	dur := proxy.DurationInfo{Start: 0, Stop: 0}
 	if len(date.Start) < 1 {
-		date.Start = mine.Date.Start
+		dur.Start = mine.Duration.Start
+	} else {
+		dur.Start = proxy.DateToUTC(date.Start)
 	}
 	if len(date.Stop) < 1 {
-		date.Stop = mine.Date.Stop
+		dur.Stop = mine.Duration.Stop
+	} else {
+		dur.Stop = proxy.DateToUTC(date.Stop)
 	}
 	if len(place.Location) < 1 {
 		place.Location = mine.Place.Location
 	}
-	err := nosql.UpdateActivityBase(mine.UID, name, remark, require, operator, date, place)
+	err := nosql.UpdateActivityBase(mine.UID, name, remark, require, operator, &dur, place)
 	if err == nil {
 		mine.Name = name
 		mine.Remark = remark
 		mine.Operator = operator
-		mine.Date = date
+		mine.Duration = dur
 		mine.Place = place
 		mine.Require = require
 	}
@@ -492,11 +505,7 @@ func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
 }
 
 func (mine *ActivityInfo) IsAlive() bool {
-	end, err := ParseDate2(mine.Date.Stop)
-	if err != nil {
-		return false
-	}
-	if end.Unix() > time.Now().Unix() {
+	if mine.Duration.Stop > time.Now().Unix() {
 		return true
 	}
 	return false

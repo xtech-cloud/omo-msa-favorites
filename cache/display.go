@@ -19,7 +19,8 @@ const (
 type DisplayInfo struct {
 	BaseInfo
 	Status   uint8
-	Type     uint8  //
+	Type     uint8 //
+	Access   uint8
 	Owner    string //该展览所属组织机构，scene
 	Cover    string
 	Remark   string
@@ -48,6 +49,7 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	db.Banner = info.Banner
 	db.Poster = info.Poster
 	db.Tags = info.Tags
+	db.Access = 0
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
 	}
@@ -61,6 +63,7 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 		info.UID = db.UID.Hex()
 		info.CreateTime = db.CreatedTime
 		info.ID = db.ID
+		info.Access = 0
 		info.UpdateTime = db.UpdatedTime
 	}
 	return err
@@ -208,6 +211,7 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 	mine.Status = db.Status
 	mine.Banner = db.Banner
 	mine.Poster = db.Poster
+	mine.Access = db.Access
 	//mine.Targets = db.Targets
 	if mine.Contents == nil {
 		mine.Contents = make([]proxy.DisplayContent, 0, 1)
@@ -292,6 +296,24 @@ func (mine *DisplayInfo) UpdatePoster(cover, operator string) error {
 	err := nosql.UpdateDisplayPoster(mine.UID, cover, operator)
 	if err == nil {
 		mine.Poster = cover
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *DisplayInfo) UpdateAccess(acc uint8, operator string) error {
+	err := nosql.UpdateDisplayAccess(mine.UID, operator, acc)
+	if err == nil {
+		mine.Access = acc
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *DisplayInfo) UpdateType(tp uint8, operator string) error {
+	err := nosql.UpdateDisplayType(mine.UID, operator, tp)
+	if err == nil {
+		mine.Type = tp
 		mine.Operator = operator
 	}
 	return err

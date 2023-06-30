@@ -19,28 +19,29 @@ type Activity struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Cover        string             `json:"cover" bson:"cover"`
-	Remark       string             `json:"remark" bson:"remark"`
-	Require      string             `json:"require" bson:"require"`
-	Owner        string             `json:"owner" bson:"owner"`
-	Type         uint8              `json:"type" bson:"type"`
-	Limit        uint8              `json:"limit" bson:"limit"`
-	Status       uint8              `json:"status" bson:"status"`
-	Show         uint8 				`json:"show" bson:"show"`
+	Cover   string `json:"cover" bson:"cover"`
+	Remark  string `json:"remark" bson:"remark"`
+	Require string `json:"require" bson:"require"`
+	Owner   string `json:"owner" bson:"owner"`
+	Type    uint8  `json:"type" bson:"type"`
+	Limit   uint8  `json:"limit" bson:"limit"`
+	Status  uint8  `json:"status" bson:"status"`
+	Show    uint8  `json:"show" bson:"show"`
 
-	Participant  uint32 `json:"participant" bson:"participant"` //活动参与人数
+	Participant uint32 `json:"participant" bson:"participant"` //活动参与人数
 
 	Organizer    string             `json:"organizer" bson:"organizer"`
-	Template     string 			`json:"template" bson:"template"`
+	Template     string             `json:"template" bson:"template"`
 	Place        proxy.PlaceInfo    `json:"place" bson:"place"`
 	Date         proxy.DateInfo     `json:"date" bson:"date"`
-	Prize        *proxy.PrizeInfo 	`json:"prize" bson:"prize"` //奖项设置
+	Duration     proxy.DurationInfo `json:"duration" bson:"duration"`
+	Prize        *proxy.PrizeInfo   `json:"prize" bson:"prize"` //奖项设置
 	Tags         []string           `json:"tags" bsonL:"tags"`
 	Assets       []string           `json:"assets" bson:"assets"`
 	Targets      []string           `json:"targets" bson:"targets"`
 	Participants []string           `json:"participants" bson:"participants"` //弃用
-	Persons      []proxy.PersonInfo `json:"persons" bson:"persons"` //记录参与人信息
-	Opuses       []proxy.OpusInfo 			`json:"opuses" bson:"opuses"` //获奖作品
+	Persons      []proxy.PersonInfo `json:"persons" bson:"persons"`           //记录参与人信息
+	Opuses       []proxy.OpusInfo   `json:"opuses" bson:"opuses"`             //获奖作品
 }
 
 func CreateActivity(info *Activity) error {
@@ -100,13 +101,13 @@ func GetActivityCount() int64 {
 }
 
 func GetActivityCountByOwner(owner string) int64 {
-	filter := bson.M{"owner": owner, "$or":bson.A{ bson.M{"template":""},bson.M{"template":bson.M{"$exists":false}}}, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "$or": bson.A{bson.M{"template": ""}, bson.M{"template": bson.M{"$exists": false}}}, "deleteAt": new(time.Time)}
 	num, _ := getCount(TableActivity, filter)
 	return num
 }
 
 func GetActivityCountByClone(owner string) int64 {
-	filter := bson.M{"owner": owner, "template":bson.M{"$exists":true, "$ne":""}, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "template": bson.M{"$exists": true, "$ne": ""}, "deleteAt": new(time.Time)}
 	num, _ := getCount(TableActivity, filter)
 	return num
 }
@@ -155,7 +156,7 @@ func GetActivitiesByTargets(st uint8, targets []string) ([]*Activity, error) {
 	for _, target := range targets {
 		in = append(in, target)
 	}
-	filter := bson.M{"status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}} , "deleteAt": def}
+	filter := bson.M{"status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -179,7 +180,7 @@ func GetActivitiesByOTargets(owner string, st uint8, targets []string) ([]*Activ
 		in = append(in, target)
 	}
 	//filter := bson.M{"owner":owner, "status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}},bson.M{"targets":bson.M{"$ne":nil}}} , "deleteAt": def}
-	filter := bson.M{"owner":owner, "status":st, "$or":bson.A{bson.M{"targets": bson.M{"$in":in}}} , "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "$or": bson.A{bson.M{"targets": bson.M{"$in": in}}}, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -200,9 +201,9 @@ func GetActivitiesByStates(owner string, states []uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, st := range states {
-		in = append(in, bson.M{"status":st})
+		in = append(in, bson.M{"status": st})
 	}
-	filter := bson.M{"owner":owner, "$or":in, "deleteAt": def}
+	filter := bson.M{"owner": owner, "$or": in, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -221,7 +222,7 @@ func GetActivitiesByStates(owner string, states []uint8) ([]*Activity, error) {
 
 func GetActivitiesByStatus(owner string, status uint8) ([]*Activity, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "status":status, "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": status, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -242,9 +243,9 @@ func GetActivitiesByShow(owners []string, st uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, ss := range owners {
-		in = append(in, bson.M{"owner":ss})
+		in = append(in, bson.M{"owner": ss})
 	}
-	filter := bson.M{"$or":bson.A{in}, "show":st, "template":"", "deleteAt": def}
+	filter := bson.M{"$or": bson.A{in}, "show": st, "template": "", "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -282,7 +283,7 @@ func GetActivitiesByTemplate(template string) ([]*Activity, error) {
 
 func GetActivitiesByOwnTemplate(owner, template string) ([]*Activity, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner":owner, "template": template, "deleteAt": def}
+	filter := bson.M{"owner": owner, "template": template, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -299,8 +300,14 @@ func GetActivitiesByOwnTemplate(owner, template string) ([]*Activity, error) {
 	return items, nil
 }
 
-func UpdateActivityBase(uid, name, remark, require, operator string, date proxy.DateInfo, place proxy.PlaceInfo) error {
-	msg := bson.M{"name": name, "remark": remark, "require": require, "operator": operator, "date": date, "place": place, "updatedAt": time.Now()}
+func UpdateActivityDuration(uid string, date proxy.DurationInfo) error {
+	msg := bson.M{"duration": date, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityBase(uid, name, remark, require, operator string, date *proxy.DurationInfo, place proxy.PlaceInfo) error {
+	msg := bson.M{"name": name, "remark": remark, "require": require, "operator": operator, "duration": date, "place": place, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }

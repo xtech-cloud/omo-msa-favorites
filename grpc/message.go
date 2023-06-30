@@ -21,7 +21,7 @@ func switchActivityMessage(info *cache.ActivityInfo, entity string) *pb.MessageI
 	tmp.Created = uint64(info.CreateTime.Unix())
 	tmp.Remark = info.Remark
 	tmp.Owner = info.Owner
-	tmp.Date = &pb.DateInfo{Start: info.Date.Start, Stop: info.Date.Stop}
+	tmp.Date = &pb.DateInfo{Start: info.Duration.Begin(), Stop: info.Duration.End()}
 	tmp.Organizer = info.Organizer
 	tmp.Targets = info.Targets
 	tmp.Tags = info.Tags
