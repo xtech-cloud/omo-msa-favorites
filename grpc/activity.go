@@ -39,6 +39,7 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Participant = info.Participant
 	tmp.Limit = uint32(info.SubmitLimit)
 	tmp.Targets = info.Targets
+	tmp.Access = uint32(info.Access)
 	tmp.Prize = switchPrize(info.Prize)
 	tmp.Opuses = switchOpuses(info.Opuses)
 	tmp.Records = switchHistories(info)
@@ -99,17 +100,17 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 		return nil
 	}
 
-	if len(in.Template) > 1 {
-		list := cache.Context().GetActivitiesByTemplate(in.Owner, in.Template)
-		if len(list) > 0 {
-			out.Status = outError(path, "the activity had clone by this owner", pbstatus.ResultStatus_Repeated)
-			return nil
-		}
-	}
-	if in.Targets == nil || len(in.Targets) < 1 {
-		out.Status = outError(path, "the activity targets is not empty", pbstatus.ResultStatus_Empty)
-		return nil
-	}
+	//if len(in.Template) > 1 {
+	//	list := cache.Context().GetActivitiesByTemplate(in.Owner, in.Template)
+	//	if len(list) > 0 {
+	//		out.Status = outError(path, "the activity had clone by this owner", pbstatus.ResultStatus_Repeated)
+	//		return nil
+	//	}
+	//}
+	//if in.Targets == nil || len(in.Targets) < 1 {
+	//	out.Status = outError(path, "the activity targets is not empty", pbstatus.ResultStatus_Empty)
+	//	return nil
+	//}
 
 	info := new(cache.ActivityInfo)
 	info.Name = in.Name
@@ -186,6 +187,15 @@ func (mine *ActivityService) GetStatistic(ctx context.Context, in *pb.RequestFil
 		}
 	} else if in.Key == "ratio" {
 		out.Count = cache.Context().GetActivityRatio(in.Value)
+	} else if in.Key == "template" {
+		out.Count = cache.Context().GetActivityTemplateCount(in.Value)
+	} else if in.Key == "status" {
+		st := parseStringToInt(in.Value)
+		out.Count = cache.Context().GetActivityCountByStatus(in.Owner, uint32(st))
+	} else if in.Key == "participant" {
+		out.Count = cache.Context().GetActivityParticipant(in.Owner)
+	} else if in.Key == "opuses" {
+		out.Count = cache.Context().GetActivityOpusCount(in.Owner, in.Value)
 	}
 	out.Status = outLog(path, out)
 	return nil
@@ -262,6 +272,13 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 			return nil
 		}
 		max, pages, array = cache.Context().GetActivitiesByShow(owners, uint8(st), in.Page, in.Number)
+	} else if in.Key == "type" {
+		st, er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
+		array = cache.Context().GetAllActivitiesByType(in.Owner, uint8(st))
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
@@ -341,6 +358,17 @@ func (mine *ActivityService) UpdateByFilter(ctx context.Context, in *pb.RequestU
 		}
 
 		er = activity.UpdateParticipant(uint32(num))
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
+	} else if in.Key == "access" {
+		num, er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+		er = activity.UpdateAccess(in.Operator, uint8(num))
 		if er != nil {
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
@@ -564,5 +592,16 @@ func (mine *ActivityService) SubtractOne(ctx context.Context, in *pb.RequestInfo
 	//}
 	//out.List = info.GetEntities()
 	//out.Status = outLog(path, out)
+	return nil
+}
+
+func (mine *ActivityService) GetStrings(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyList) error {
+	path := "activity.getStrings"
+	inLog(path, in)
+	if in.Key == "tags" {
+		out.List = cache.Context().GetActivityTags()
+	}
+
+	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
 }

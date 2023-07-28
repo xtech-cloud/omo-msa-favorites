@@ -151,20 +151,16 @@ func (mine *DisplayService) RemoveOne(ctx context.Context, in *pb.RequestInfo, o
 func (mine *DisplayService) GetList(ctx context.Context, in *pb.ReqDisplayList, out *pb.ReplyDisplayList) error {
 	path := "display.getList"
 	inLog(path, in)
-	if len(in.Owner) < 1 {
-		out.List = make([]*pb.DisplayInfo, 0, 1)
+	var array []*cache.DisplayInfo
+	if in.Type > 0 {
+		array = cache.Context().GetDisplaysByType(in.Owner, uint8(in.Type))
 	} else {
-		var array []*cache.DisplayInfo
-		if in.Type > 0 {
-			array = cache.Context().GetDisplaysByType(in.Owner, uint8(in.Type))
-		} else {
-			array = cache.Context().GetDisplaysByOwner(in.Owner)
-		}
+		array = cache.Context().GetDisplaysByOwner(in.Owner)
+	}
 
-		out.List = make([]*pb.DisplayInfo, 0, len(array))
-		for _, val := range array {
-			out.List = append(out.List, switchDisplay(val))
-		}
+	out.List = make([]*pb.DisplayInfo, 0, len(array))
+	for _, val := range array {
+		out.List = append(out.List, switchDisplay(val))
 	}
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))
 	return nil
@@ -213,6 +209,8 @@ func (mine *DisplayService) GetByFilter(ctx context.Context, in *pb.RequestFilte
 			}
 			array = cache.Context().GetDisplaysByStatus(in.Owner, uint8(st))
 		}
+	} else if in.Key == "content" {
+		cache.Context().GetDisplaysByContent(in.Owner, in.Value)
 	}
 	out.List = make([]*pb.DisplayInfo, 0, len(array))
 	for _, val := range array {

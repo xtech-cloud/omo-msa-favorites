@@ -26,7 +26,8 @@ type Activity struct {
 	Type    uint8  `json:"type" bson:"type"`
 	Limit   uint8  `json:"limit" bson:"limit"`
 	Status  uint8  `json:"status" bson:"status"`
-	Show    uint8  `json:"show" bson:"show"`
+	Access  uint8  `json:"access" bson:"access"` //访问权限
+	Show    uint8  `json:"show" bson:"show"`     //显示结果
 
 	Participant uint32 `json:"participant" bson:"participant"` //活动参与人数
 
@@ -102,6 +103,12 @@ func GetActivityCount() int64 {
 
 func GetActivityCountByOwner(owner string) int64 {
 	filter := bson.M{"owner": owner, "$or": bson.A{bson.M{"template": ""}, bson.M{"template": bson.M{"$exists": false}}}, "deleteAt": new(time.Time)}
+	num, _ := getCount(TableActivity, filter)
+	return num
+}
+
+func GetActivityCountByStatus(owner string, st uint8) int64 {
+	filter := bson.M{"owner": owner, "status": st, "deleteAt": new(time.Time)}
 	num, _ := getCount(TableActivity, filter)
 	return num
 }
@@ -239,6 +246,25 @@ func GetActivitiesByStatus(owner string, status uint8) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesByType(owner string, tp uint8) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetActivitiesByShow(owners []string, st uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
@@ -338,6 +364,12 @@ func UpdateActivityParticipant(uid string, count uint32) error {
 
 func UpdateActivityShowState(uid, operator string, st uint8) error {
 	msg := bson.M{"show": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityAccess(uid, operator string, st uint8) error {
+	msg := bson.M{"access": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }

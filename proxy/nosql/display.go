@@ -156,6 +156,44 @@ func GetDisplaysByOwner(owner string) ([]*Display, error) {
 	return items, nil
 }
 
+func GetDisplaysByContent(owner, key string) ([]*Display, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "contents.uid": key, "deleteAt": def}
+	cursor, err1 := findMany(TableDisplay, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Display, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Display)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetDisplaysByContent2(key string) ([]*Display, error) {
+	def := new(time.Time)
+	filter := bson.M{"contents.uid": key, "deleteAt": def}
+	cursor, err1 := findMany(TableDisplay, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Display, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Display)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetDisplaysByStatus(owner string, st uint8) ([]*Display, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "status": st, "deleteAt": def}

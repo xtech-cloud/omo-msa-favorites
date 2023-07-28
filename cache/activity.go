@@ -20,7 +20,8 @@ const (
 )
 
 const (
-	ActivityTypeSchool uint32 = 0
+	ActivityTypeNormal   uint8 = 0 //
+	ActivityTypeTemplate uint8 = 1
 )
 
 const (
@@ -29,34 +30,39 @@ const (
 	OptionSwitch OptionType = 3 //切换关联
 )
 
+const (
+	AccessFree = 0 //自由访问
+	AccessHide = 1 //子场景不可见
+	AccessMust = 2 //子场景可见且必做
+)
+
 type OptionType uint8
 
 type ActivityInfo struct {
 	Type        uint8
 	Status      uint8
+	Access      uint8
 	SubmitLimit uint8 // 参与人提交资源的数量限制
 	ShowResult  uint8 // 是否展示结果
 	BaseInfo
 
-	Owner     string
-	Cover     string //
-	Remark    string // 活动介绍
-	Organizer string // 组织者
-	Require   string // 活动要求
+	Participant uint32 //参与者数量
+	Owner       string
+	Cover       string //
+	Remark      string // 活动介绍
+	Organizer   string // 组织者
+	Require     string // 活动要求
 
-	Template string //活动模板
+	Template string //引用的活动模板
 
-	//Date        proxy.DateInfo
-	Duration    proxy.DurationInfo
-	Place       proxy.PlaceInfo
-	Prize       *proxy.PrizeInfo
-	Participant uint32 //参与人
+	Duration proxy.DurationInfo //持续时间
+	Place    proxy.PlaceInfo
+	Prize    *proxy.PrizeInfo
 
 	Assets  []string
 	Tags    []string
-	Targets []string //具体的班级，场景等
-	//Persons []proxy.PersonInfo
-	Opuses []proxy.OpusInfo //获奖作品
+	Targets []string         //具体的班级，场景等
+	Opuses  []proxy.OpusInfo //获奖作品
 }
 
 func (mine *cacheContext) GetActivity(uid string) (*ActivityInfo, error) {
@@ -89,6 +95,7 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db.Status = info.Status
 	db.Show = info.ShowResult
 	db.Prize = info.Prize
+	db.Access = 0
 	db.Template = info.Template
 	db.Opuses = make([]proxy.OpusInfo, 0, 1)
 	db.Participant = 0
@@ -140,6 +147,20 @@ func (mine *cacheContext) GetActivityCount(owner string) uint32 {
 	return uint32(num)
 }
 
+func (mine *cacheContext) GetActivityCountByStatus(owner string, st uint32) uint32 {
+	num := nosql.GetActivityCountByStatus(owner, uint8(st))
+	return uint32(num)
+}
+
+func (mine *cacheContext) GetActivityParticipant(owner string) uint32 {
+	var num uint32 = 0
+	list, _ := nosql.GetActivitiesByOwner(owner)
+	for _, activity := range list {
+		num = num + activity.Participant
+	}
+	return num
+}
+
 func (mine *cacheContext) GetActivityRatio(uid string) uint32 {
 	activity, err := mine.GetActivity(uid)
 	if err != nil {
@@ -150,9 +171,28 @@ func (mine *cacheContext) GetActivityRatio(uid string) uint32 {
 	return min / max
 }
 
+func (mine *cacheContext) GetActivityTemplateCount(uid string) uint32 {
+	list, err := nosql.GetActivitiesByTemplate(uid)
+	if err != nil {
+		logger.Warn("the activity not found that err = " + err.Error())
+		return 0
+	}
+	return uint32(len(list))
+}
+
 func (mine *cacheContext) GetActivityCloneCount(owner string) uint32 {
 	num := nosql.GetActivityCountByClone(owner)
 	return uint32(num)
+}
+
+func (mine *cacheContext) GetActivityOpusCount(owner, uid string) uint32 {
+	if uid != "" {
+
+	} else {
+
+	}
+
+	return 0
 }
 
 func (mine *cacheContext) GetActivitiesByOwner(uid string, usable bool) []*ActivityInfo {
@@ -249,6 +289,39 @@ func (mine *cacheContext) GetAllActivitiesByStatus(owner string, state uint8) []
 	return all
 }
 
+func (mine *cacheContext) GetAllActivitiesByType(owner string, tp uint8) []*ActivityInfo {
+	if len(owner) < 1 {
+		return make([]*ActivityInfo, 0, 1)
+	}
+	all := make([]*ActivityInfo, 0, 10)
+	db, _ := nosql.GetActivitiesByType(owner, tp)
+	if db != nil {
+		for _, item := range db {
+			info := new(ActivityInfo)
+			info.initInfo(item)
+			all = append(all, info)
+		}
+	}
+
+	return all
+}
+
+func (mine *cacheContext) GetActivityTags() []string {
+	list := make([]string, 0, 30)
+	dbs, _ := nosql.GetActivities()
+	if dbs != nil {
+		for _, db := range dbs {
+			for _, tag := range db.Tags {
+				if !tool.HasItem(list, tag) {
+					list = append(list, tag)
+				}
+			}
+		}
+	}
+
+	return list
+}
+
 func (mine *cacheContext) GetActivitiesByStatus(owner string, states []uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if len(owner) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
@@ -341,20 +414,17 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	mine.Place = db.Place
 	mine.Prize = db.Prize
 	mine.ShowResult = db.Show
+	mine.Access = db.Access
 	mine.Assets = db.Assets
 	mine.Tags = db.Tags
 	mine.Targets = db.Targets
 	mine.SubmitLimit = db.Limit
 	mine.Participant = db.Participant
-	//mine.Persons = db.Persons
 	mine.Status = db.Status
 
 	if mine.Targets == nil || len(mine.Targets) > 16 {
 		mine.Targets = make([]string, 0, 1)
 		mine.Targets = append(mine.Targets, mine.Owner)
-		//for i := 0;i < 15;i += 1 {
-		//	mine.Targets = append(mine.Targets, fmt.Sprintf("%d", i+1))
-		//}
 		_ = nosql.UpdateActivityTargets(mine.UID, mine.Operator, mine.Targets)
 	}
 	if mine.Assets == nil {
@@ -437,6 +507,15 @@ func (mine *ActivityInfo) UpdateShowState(operator string, st uint8) error {
 	err := nosql.UpdateActivityShowState(mine.UID, operator, st)
 	if err == nil {
 		mine.Status = st
+		mine.Operator = operator
+	}
+	return err
+}
+
+func (mine *ActivityInfo) UpdateAccess(operator string, st uint8) error {
+	err := nosql.UpdateActivityAccess(mine.UID, operator, st)
+	if err == nil {
+		mine.Access = st
 		mine.Operator = operator
 	}
 	return err

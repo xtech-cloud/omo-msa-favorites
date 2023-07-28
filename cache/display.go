@@ -19,8 +19,8 @@ const (
 type DisplayInfo struct {
 	BaseInfo
 	Status   uint8
-	Type     uint8 //
-	Access   uint8
+	Type     uint8  //
+	Access   uint8  //=0可访问，>0不可访问
 	Owner    string //该展览所属组织机构，scene
 	Cover    string
 	Remark   string
@@ -107,7 +107,34 @@ func (mine *cacheContext) GetDisplayByOrigin(user, uid string) *DisplayInfo {
 }
 
 func (mine *cacheContext) GetDisplaysByOwner(uid string) []*DisplayInfo {
+	if uid == "" {
+		return make([]*DisplayInfo, 0, 1)
+	}
 	array, err := nosql.GetDisplaysByOwner(uid)
+	if err == nil {
+		list := make([]*DisplayInfo, 0, len(array))
+		for _, item := range array {
+			info := new(DisplayInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
+func (mine *cacheContext) GetDisplaysByContent(owner, uid string) []*DisplayInfo {
+	if uid == "" {
+		return make([]*DisplayInfo, 0, 1)
+	}
+	array := make([]*nosql.Display, 0, 10)
+	var err error
+	if owner == "" {
+		array, err = nosql.GetDisplaysByContent2(uid)
+	} else {
+		array, err = nosql.GetDisplaysByContent(owner, uid)
+	}
+
 	if err == nil {
 		list := make([]*DisplayInfo, 0, len(array))
 		for _, item := range array {
@@ -137,17 +164,28 @@ func (mine *cacheContext) GetDisplaysByStatus(uid string, st uint8) []*DisplayIn
 func (mine *cacheContext) GetDisplaysByType(owner string, kind uint8) []*DisplayInfo {
 	var array []*nosql.Display
 	var err error
-	if kind == 1 {
+	var check = false
+	if owner == "" {
 		array, err = nosql.GetDisplaysByType(kind)
+		check = true
 	} else {
 		array, err = nosql.GetDisplaysByOwnerTP(owner, kind)
 	}
 	if err == nil {
 		list := make([]*DisplayInfo, 0, len(array))
 		for _, item := range array {
-			info := new(DisplayInfo)
-			info.initInfo(item)
-			list = append(list, info)
+			if check {
+				if item.Access < 1 {
+					info := new(DisplayInfo)
+					info.initInfo(item)
+					list = append(list, info)
+				}
+			} else {
+				info := new(DisplayInfo)
+				info.initInfo(item)
+				list = append(list, info)
+			}
+
 		}
 		return list
 	}
