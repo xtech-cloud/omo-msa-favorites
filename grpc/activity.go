@@ -127,7 +127,7 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 	info.Status = uint8(in.Status)
 	info.Template = in.Template
 
-	info.Duration = proxy.DurationInfo{Start: proxy.DateToUTC(in.Date.Start), Stop: proxy.DateToUTC(in.Date.Stop)}
+	info.Duration = proxy.DurationInfo{Start: proxy.DateToUTC(in.Date.Start, 0), Stop: proxy.DateToUTC(in.Date.Stop, 1)}
 	info.Place = proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location}
 	info.Type = uint8(in.Type)
 	info.Opuses = make([]proxy.OpusInfo, 0, 1)

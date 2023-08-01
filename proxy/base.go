@@ -86,11 +86,11 @@ type ProductEffect struct {
 }
 
 func (mine *DateInfo) BeginUTC() int64 {
-	return DateToUTC(mine.Start)
+	return DateToUTC(mine.Start, 0)
 }
 
 func (mine *DateInfo) EndUTC() int64 {
-	return DateToUTC(mine.Stop)
+	return DateToUTC(mine.Stop, 1)
 }
 
 func (mine *DurationInfo) Begin() string {
@@ -101,13 +101,16 @@ func (mine *DurationInfo) End() string {
 	return UTCToDate(mine.Stop)
 }
 
-func DateToUTC(date string) int64 {
+func DateToUTC(date string, delay int) int64 {
 	if date == "" {
 		return 0
 	}
-	t, e := time.ParseInLocation("2006/01/02", date, time.Local)
+	t, e := time.ParseInLocation("2006/01/02", date, time.UTC)
 	if e != nil {
 		return 0
+	}
+	if delay > 0 {
+		t.AddDate(0, 0, 1)
 	}
 	return t.Unix()
 }

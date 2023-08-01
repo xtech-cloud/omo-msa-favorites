@@ -49,7 +49,7 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	db.Banner = info.Banner
 	db.Poster = info.Poster
 	db.Tags = info.Tags
-	db.Access = 0
+	db.Access = 1
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
 	}

@@ -438,8 +438,8 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	}
 	if db.Date.Start != "" && db.Duration.Start < 1 {
 		duration := proxy.DurationInfo{
-			Start: proxy.DateToUTC(db.Date.Start),
-			Stop:  proxy.DateToUTC(db.Date.Stop),
+			Start: proxy.DateToUTC(db.Date.Start, 0),
+			Stop:  proxy.DateToUTC(db.Date.Stop, 1),
 		}
 		mine.Duration = duration
 		_ = nosql.UpdateActivityDuration(mine.UID, duration)
@@ -457,12 +457,12 @@ func (mine *ActivityInfo) UpdateBase(name, remark, require, operator string, dat
 	if len(date.Start) < 1 {
 		dur.Start = mine.Duration.Start
 	} else {
-		dur.Start = proxy.DateToUTC(date.Start)
+		dur.Start = proxy.DateToUTC(date.Start, 0)
 	}
 	if len(date.Stop) < 1 {
 		dur.Stop = mine.Duration.Stop
 	} else {
-		dur.Stop = proxy.DateToUTC(date.Stop)
+		dur.Stop = proxy.DateToUTC(date.Stop, 1)
 	}
 	if len(place.Location) < 1 {
 		place.Location = mine.Place.Location
@@ -595,6 +595,9 @@ func (mine *ActivityInfo) HadTargets(arr []string) bool {
 		return true
 	}
 	if tool.HasItem(mine.Targets, mine.Owner) {
+		return true
+	}
+	if tool.HasItem(arr, mine.Owner) {
 		return true
 	}
 	if arr == nil || len(arr) < 1 {
