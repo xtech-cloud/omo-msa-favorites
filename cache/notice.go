@@ -325,7 +325,11 @@ func (mine *NoticeInfo) HadTargets(arr []string) bool {
 	if mine.Targets == nil || len(mine.Targets) < 1 {
 		return true
 	}
+	//全场景
 	if tool.HasItem(mine.Targets, mine.Owner) {
+		return true
+	}
+	if tool.HasItem(arr, mine.Owner) {
 		return true
 	}
 	if arr == nil || len(arr) < 1 {

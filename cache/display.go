@@ -63,7 +63,7 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 		info.UID = db.UID.Hex()
 		info.CreateTime = db.CreatedTime
 		info.ID = db.ID
-		info.Access = 0
+		info.Access = 1
 		info.UpdateTime = db.UpdatedTime
 	}
 	return err

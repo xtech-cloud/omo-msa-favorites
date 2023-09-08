@@ -591,9 +591,11 @@ func (mine *ActivityInfo) IsAlive() bool {
 }
 
 func (mine *ActivityInfo) HadTargets(arr []string) bool {
+	//全场景
 	if mine.Targets == nil || len(mine.Targets) < 1 {
 		return true
 	}
+	//全场景
 	if tool.HasItem(mine.Targets, mine.Owner) {
 		return true
 	}

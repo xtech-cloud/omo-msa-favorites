@@ -128,7 +128,7 @@ func ParseDate(msg string) (year int, month time.Month, day int, err error) {
 }
 
 func ParseDate2(msg string) (time.Time, error) {
-	t, er := time.ParseInLocation("2006/01/02", msg, time.UTC)
+	t, er := time.ParseInLocation("2006/01/02", msg, time.Local)
 	if er == nil {
 		return t, nil
 	}
@@ -161,7 +161,7 @@ func SwitchDate(start, stop string) (int64, int64) {
 	} else {
 		end = proxy.DateToUTC(stop, 1)
 		if end < 2 { //没有正确的结束日期
-			from, _ := time.ParseInLocation("2006/01/02", start, time.UTC)
+			from, _ := time.ParseInLocation("2006/01/02", start, time.Local)
 			to = from.AddDate(0, 0, 1)
 			end = to.Unix()
 		}

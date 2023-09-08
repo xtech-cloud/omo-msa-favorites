@@ -80,9 +80,10 @@ type DisplayContent struct {
 }
 
 type ProductEffect struct {
-	Pattern string
-	Min     uint32
-	Max     uint32
+	Pattern string `json:"pattern" bson:"pattern"`
+	Access  uint8  `json:"access" bson:"access"`
+	Min     uint32 `json:"min" json:"min"`
+	Max     uint32 `json:"max" json:"max"`
 }
 
 func (mine *DateInfo) BeginUTC() int64 {
@@ -105,12 +106,12 @@ func DateToUTC(date string, delay int) int64 {
 	if date == "" {
 		return 0
 	}
-	t, e := time.ParseInLocation("2006/01/02", date, time.UTC)
+	t, e := time.ParseInLocation("2006/01/02", date, time.Local)
 	if e != nil {
 		return 0
 	}
 	if delay > 0 {
-		t.AddDate(0, 0, 1)
+		t.AddDate(0, 0, delay)
 	}
 	return t.Unix()
 }
