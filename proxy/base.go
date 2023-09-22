@@ -109,10 +109,12 @@ func DateToUTC(date string, delay int) int64 {
 	if e != nil {
 		return 0
 	}
+	var dif int64 = 0
 	if delay > 0 {
+		dif = 60
 		t.AddDate(0, 0, delay)
 	}
-	return t.Unix()
+	return t.Unix() - dif
 }
 
 func UTCToDate(utc int64) string {

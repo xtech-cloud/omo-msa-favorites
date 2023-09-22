@@ -7,6 +7,7 @@ import (
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
+	"strings"
 )
 
 type WordsService struct{}
@@ -39,7 +40,7 @@ func (mine *WordsService) AddOne(ctx context.Context, in *pb.ReqWordsAdd, out *p
 		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	in.Words = strings.TrimSpace(in.Words)
 	info, err := cache.Context().CreateWords(in.Words, in.Owner, in.Target, in.Device, in.Operator, in.Quote, in.Assets, cache.WordsType(in.Type))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

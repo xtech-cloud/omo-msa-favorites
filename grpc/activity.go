@@ -9,6 +9,7 @@ import (
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/tool"
 	"strconv"
+	"strings"
 )
 
 type ActivityService struct{}
@@ -99,7 +100,7 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	in.Name = strings.TrimSpace(in.Name)
 	//if len(in.Template) > 1 {
 	//	list := cache.Context().GetActivitiesByTemplate(in.Owner, in.Template)
 	//	if len(list) > 0 {
@@ -300,6 +301,7 @@ func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityU
 		out.Status = outError(path, "the activity uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info, err := cache.Context().GetActivity(in.Uid)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)

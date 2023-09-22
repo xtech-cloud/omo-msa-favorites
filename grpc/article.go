@@ -7,9 +7,10 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"strconv"
+	"strings"
 )
 
-type ArticleService struct {}
+type ArticleService struct{}
 
 func switchArticle(info *cache.ArticleInfo) *pb.ArticleInfo {
 	tmp := new(pb.ArticleInfo)
@@ -30,14 +31,14 @@ func switchArticle(info *cache.ArticleInfo) *pb.ArticleInfo {
 	return tmp
 }
 
-func (mine *ArticleService)AddOne(ctx context.Context, in *pb.ReqArticleAdd, out *pb.ReplyArticleInfo) error {
+func (mine *ArticleService) AddOne(ctx context.Context, in *pb.ReqArticleAdd, out *pb.ReplyArticleInfo) error {
 	path := "article.addOne"
 	inLog(path, in)
 	if len(in.Owner) < 1 {
-		out.Status = outError(path,"the owner is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	in.Name = strings.TrimSpace(in.Name)
 	info := new(cache.ArticleInfo)
 	info.Name = in.Name
 	info.Subtitle = in.Subtitle
@@ -51,7 +52,7 @@ func (mine *ArticleService)AddOne(ctx context.Context, in *pb.ReqArticleAdd, out
 	info.Type = uint8(in.Type)
 	err := cache.Context().CreateArticle(info)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Info = switchArticle(info)
@@ -59,16 +60,16 @@ func (mine *ArticleService)AddOne(ctx context.Context, in *pb.ReqArticleAdd, out
 	return nil
 }
 
-func (mine *ArticleService)GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyArticleInfo) error {
+func (mine *ArticleService) GetOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyArticleInfo) error {
 	path := "article.getOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetArticle(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the article not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the article not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	out.Info = switchArticle(info)
@@ -76,16 +77,16 @@ func (mine *ArticleService)GetOne(ctx context.Context, in *pb.RequestInfo, out *
 	return nil
 }
 
-func (mine *ArticleService)RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
+func (mine *ArticleService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out *pb.ReplyInfo) error {
 	path := "article.removeOne"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	err := cache.Context().RemoveArticle(in.Uid, in.Operator)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Uid = in.Uid
@@ -94,7 +95,7 @@ func (mine *ArticleService)RemoveOne(ctx context.Context, in *pb.RequestInfo, ou
 	return nil
 }
 
-func (mine *ArticleService)GetList(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyArticleList) error {
+func (mine *ArticleService) GetList(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyArticleList) error {
 	path := "article.getList"
 	inLog(path, in)
 	var array []*cache.ArticleInfo
@@ -104,23 +105,23 @@ func (mine *ArticleService)GetList(ctx context.Context, in *pb.RequestFilter, ou
 		st, er := strconv.ParseUint(in.Value, 10, 32)
 		if er == nil {
 			array = cache.Context().GetArticlesByTP(in.Owner, uint8(st))
-		}else{
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+		} else {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-	}else if in.Key == "status" {
+	} else if in.Key == "status" {
 		st, er := strconv.ParseUint(in.Value, 10, 32)
 		if er == nil {
 			array = cache.Context().GetArticlesByStatus(in.Owner, cache.MessageStatus(st))
-		}else{
-			out.Status = outError(path,er.Error(), pbstatus.ResultStatus_DBException)
+		} else {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-	}else if in.Key == "targets" {
+	} else if in.Key == "targets" {
 		max, pages, array = cache.Context().GetArticlesByTargets(in.Owner, in.List, cache.MessageStatusAgree, in.Page, in.Number)
-	}else if in.Key == "array" {
+	} else if in.Key == "array" {
 		array = cache.Context().GetArticlesByList(in.List)
-	}else{
+	} else {
 		array = cache.Context().GetArticlesByOwner(in.Owner)
 	}
 	out.List = make([]*pb.ArticleInfo, 0, len(array))
@@ -133,7 +134,7 @@ func (mine *ArticleService)GetList(ctx context.Context, in *pb.RequestFilter, ou
 	return nil
 }
 
-func (mine *ArticleService)GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
+func (mine *ArticleService) GetStatistic(ctx context.Context, in *pb.RequestFilter, out *pb.ReplyStatistic) error {
 	path := "article.getStatistic"
 	inLog(path, in)
 
@@ -141,11 +142,11 @@ func (mine *ArticleService)GetStatistic(ctx context.Context, in *pb.RequestFilte
 	return nil
 }
 
-func (mine *ArticleService)UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
+func (mine *ArticleService) UpdateByFilter(ctx context.Context, in *pb.RequestUpdate, out *pb.ReplyInfo) error {
 	path := "article.updateByFilter"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 
@@ -153,38 +154,39 @@ func (mine *ArticleService)UpdateByFilter(ctx context.Context, in *pb.RequestUpd
 	return nil
 }
 
-func (mine *ArticleService)UpdateBase(ctx context.Context, in *pb.ReqArticleUpdate, out *pb.ReplyArticleInfo) error {
+func (mine *ArticleService) UpdateBase(ctx context.Context, in *pb.ReqArticleUpdate, out *pb.ReplyArticleInfo) error {
 	path := "article.updateBase"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info := cache.Context().GetArticle(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the article not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the article not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	if in.Name != info.Name || in.Subtitle != info.Subtitle || in.Body != info.Body {
 		err = info.UpdateBase(in.Name, in.Subtitle, in.Body, in.Operator)
 		if err != nil {
-			out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}
 	if len(in.Tags) > 1 {
 		err = info.UpdateTags(in.Operator, in.Targets)
 		if err != nil {
-			out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}
 
-	if len(in.Targets) > 1{
+	if len(in.Targets) > 1 {
 		err = info.UpdateTargets(in.Operator, in.Targets)
 		if err != nil {
-			out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+			out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
 	}
@@ -194,88 +196,88 @@ func (mine *ArticleService)UpdateBase(ctx context.Context, in *pb.ReqArticleUpda
 	return nil
 }
 
-func (mine *ArticleService)UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
+func (mine *ArticleService) UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "article.updateStatus"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetArticle(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the article not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the article not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateStatus(cache.MessageStatus(in.Status), in.Operator)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *ArticleService)UpdateAssets(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
+func (mine *ArticleService) UpdateAssets(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
 	path := "article.updateAssets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetArticle(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the article not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the article not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateAssets(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *ArticleService)UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
+func (mine *ArticleService) UpdateTags(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
 	path := "article.updateTags"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetArticle(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the article not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the article not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateTags(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)
 	return nil
 }
 
-func (mine *ArticleService)UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
+func (mine *ArticleService) UpdateTargets(ctx context.Context, in *pb.RequestList, out *pb.ReplyInfo) error {
 	path := "article.updateTargets"
 	inLog(path, in)
 	if len(in.Uid) < 1 {
-		out.Status = outError(path,"the article uid is empty", pbstatus.ResultStatus_Empty)
+		out.Status = outError(path, "the article uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
 	info := cache.Context().GetArticle(in.Uid)
 	if info == nil {
-		out.Status = outError(path,"the article not found", pbstatus.ResultStatus_NotExisted)
+		out.Status = outError(path, "the article not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
 	err = info.UpdateTargets(in.Operator, in.List)
 	if err != nil {
-		out.Status = outError(path,err.Error(), pbstatus.ResultStatus_DBException)
+		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
 	out.Status = outLog(path, out)

@@ -8,6 +8,7 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
+	"strings"
 )
 
 type ProductService struct{}
@@ -50,6 +51,7 @@ func (mine *ProductService) AddOne(ctx context.Context, in *pb.ReqProductAdd, ou
 		out.Status = outError(path, "the entries is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	effects := make([]*proxy.ProductEffect, 0, len(in.Effects))
 	for _, effect := range in.Effects {
 		effects = append(effects, &proxy.ProductEffect{Pattern: effect.Pattern, Min: effect.Min, Max: effect.Max})
@@ -197,6 +199,7 @@ func (mine *ProductService) UpdateBase(ctx context.Context, in *pb.ReqProductUpd
 		out.Status = outError(path, "the product uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info, err1 := cache.Context().GetProduct(in.Uid)
 	if err1 != nil {
 		out.Status = outError(path, err1.Error(), pbstatus.ResultStatus_NotExisted)

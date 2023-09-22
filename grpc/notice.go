@@ -8,6 +8,7 @@ import (
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
 	"strconv"
+	"strings"
 )
 
 type NoticeService struct{}
@@ -40,7 +41,7 @@ func (mine *NoticeService) AddOne(ctx context.Context, in *pb.ReqNoticeAdd, out 
 		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	in.Name = strings.TrimSpace(in.Name)
 	info := new(cache.NoticeInfo)
 	info.Name = in.Name
 	info.Subtitle = in.Subtitle
@@ -182,6 +183,7 @@ func (mine *NoticeService) UpdateBase(ctx context.Context, in *pb.ReqNoticeUpdat
 		out.Status = outError(path, "the notice uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info := cache.Context().GetNotice(in.Uid)
 	if info == nil {
 		out.Status = outError(path, "the notice not found", pbstatus.ResultStatus_NotExisted)

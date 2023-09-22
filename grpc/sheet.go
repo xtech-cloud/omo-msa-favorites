@@ -7,6 +7,7 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
+	"strings"
 )
 
 type SheetService struct{}
@@ -45,7 +46,7 @@ func (mine *SheetService) AddOne(ctx context.Context, in *pb.ReqSheetAdd, out *p
 		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	in.Name = strings.TrimSpace(in.Name)
 	//if in.Type < 1 {
 	//	out.Status = outError(path, "the type is 0", pbstatus.ResultStatus_Empty)
 	//	return nil
@@ -174,6 +175,7 @@ func (mine *SheetService) UpdateBase(ctx context.Context, in *pb.ReqSheetUpdate,
 		out.Status = outError(path, "the sheet uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info := cache.Context().GetSheet(in.Uid)
 	if info == nil {
 		out.Status = outError(path, "the sheet not found", pbstatus.ResultStatus_NotExisted)

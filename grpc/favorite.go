@@ -7,6 +7,7 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"strconv"
+	"strings"
 )
 
 type FavoriteService struct{}
@@ -38,7 +39,7 @@ func (mine *FavoriteService) AddOne(ctx context.Context, in *pb.ReqFavoriteAdd, 
 		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-
+	in.Name = strings.TrimSpace(in.Name)
 	if cache.Context().HadFavoriteByName(in.Owner, in.Name, uint8(in.Type)) {
 		out.Status = outError(path, "the name is repeated", pbstatus.ResultStatus_Repeated)
 		return nil
@@ -200,6 +201,7 @@ func (mine *FavoriteService) UpdateBase(ctx context.Context, in *pb.ReqFavoriteU
 		out.Status = outError(path, "the favorite uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info := cache.Context().GetFavorite(in.Uid)
 	if info == nil {
 		out.Status = outError(path, "the favorite not found", pbstatus.ResultStatus_NotExisted)

@@ -9,6 +9,7 @@ import (
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
 	"strconv"
+	"strings"
 )
 
 type DisplayService struct{}
@@ -43,6 +44,7 @@ func (mine *DisplayService) AddOne(ctx context.Context, in *pb.ReqDisplayAdd, ou
 		out.Status = outError(path, "the owner is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	if len(in.Origin) > 0 {
 		tmp := cache.Context().GetDisplayByOrigin(in.Owner, in.Origin)
 		if tmp != nil {
@@ -272,6 +274,7 @@ func (mine *DisplayService) UpdateBase(ctx context.Context, in *pb.ReqDisplayUpd
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	in.Name = strings.TrimSpace(in.Name)
 	info := cache.Context().GetDisplay(in.Uid)
 	if info == nil {
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
