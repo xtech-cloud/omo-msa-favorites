@@ -127,6 +127,12 @@ func UpdateProductCatalog(uid, catalogs, operator string) error {
 	return err
 }
 
+func UpdateProductType(uid, operator string, tp uint32) error {
+	msg := bson.M{"type": tp, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableProduct, uid, msg)
+	return err
+}
+
 func UpdateProductTemplet(uid, templet, operator string) error {
 	msg := bson.M{"templet": templet, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableProduct, uid, msg)

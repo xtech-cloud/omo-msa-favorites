@@ -18,7 +18,7 @@ func switchActivityMessage(info *cache.ActivityInfo, entity string) *pb.MessageI
 	tmp.Uid = info.UID
 	tmp.Type = cache.ObserveActivity
 	tmp.Name = info.Name
-	tmp.Created = uint64(info.CreateTime.Unix())
+	tmp.Created = uint64(info.UpdateTime.Unix())
 	tmp.Remark = info.Remark
 	tmp.Owner = info.Owner
 	tmp.Date = &pb.DateInfo{Start: info.Duration.Begin(), Stop: info.Duration.End()}
@@ -34,7 +34,7 @@ func switchNoticeMessage(info *cache.NoticeInfo, entity string) *pb.MessageInfo 
 	tmp.Uid = info.UID
 	tmp.Type = cache.ObserveNotice
 	tmp.Name = info.Name
-	tmp.Created = uint64(info.CreateTime.Unix())
+	tmp.Created = uint64(info.UpdateTime.Unix())
 	tmp.Remark = info.Body
 	tmp.Owner = info.Owner
 	tmp.Date = &pb.DateInfo{}

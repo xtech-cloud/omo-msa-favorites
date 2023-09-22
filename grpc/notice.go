@@ -142,6 +142,14 @@ func (mine *NoticeService) GetList(ctx context.Context, in *pb.RequestFilter, ou
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
 			return nil
 		}
+	} else if in.Key == "alive" {
+		tp, er := strconv.ParseUint(in.Value, 10, 32)
+		if er == nil {
+			array = cache.Context().GetAliveNotices(in.Owner, uint32(tp))
+		} else {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
 	} else {
 		array = cache.Context().GetNoticesByOwner(in.Owner)
 	}

@@ -22,6 +22,7 @@ const (
 const (
 	ActivityTypeNormal   uint8 = 0 //
 	ActivityTypeTemplate uint8 = 1
+	ActivityTypeOpen     uint8 = 2
 )
 
 const (
@@ -289,6 +290,23 @@ func (mine *cacheContext) GetAllActivitiesByStatus(owner string, state uint8) []
 	return all
 }
 
+//获取所有当前时间可用的活动
+func (mine *cacheContext) GetAliveActivities(owner string) []*ActivityInfo {
+	if len(owner) < 1 {
+		return make([]*ActivityInfo, 0, 1)
+	}
+	dbs, _ := nosql.GetActivitiesByStatus(owner, ActivityStatusPublish)
+	all := make([]*ActivityInfo, 0, len(dbs))
+	for _, db := range dbs {
+		if db.Duration.Stop > time.Now().Unix() {
+			info := new(ActivityInfo)
+			info.initInfo(db)
+			all = append(all, info)
+		}
+	}
+	return all
+}
+
 func (mine *cacheContext) GetAllActivitiesByType(owner string, tp uint8) []*ActivityInfo {
 	if len(owner) < 1 {
 		return make([]*ActivityInfo, 0, 1)
@@ -485,6 +503,7 @@ func (mine *ActivityInfo) UpdateStatus(operator string, st uint8) error {
 		mine.createHistory(operator, "", mine.Status, st)
 		mine.Status = st
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 		if st == ActivityStatusPublish || st == ActivityStatusRelease {
 			_ = cacheCtx.updateRecord(mine.Owner, ObserveActivity, 1)
 		}
@@ -599,11 +618,8 @@ func (mine *ActivityInfo) HadTargets(arr []string) bool {
 	if tool.HasItem(mine.Targets, mine.Owner) {
 		return true
 	}
-	if tool.HasItem(arr, mine.Owner) {
-		return true
-	}
 	if arr == nil || len(arr) < 1 {
-		return false
+		return true
 	}
 	for _, item := range arr {
 		if tool.HasItem(mine.Targets, item) {

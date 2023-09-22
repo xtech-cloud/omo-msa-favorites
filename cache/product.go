@@ -124,6 +124,15 @@ func (mine *ProductInfo) UpdateCatalogs(catalogs, operator string) error {
 	return err
 }
 
+func (mine *ProductInfo) UpdateType(operator string, tp uint32) error {
+	err := nosql.UpdateProductType(mine.UID, operator, tp)
+	if err == nil {
+		mine.Type = uint8(tp)
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
 func (mine *ProductInfo) UpdateEffects(operator string, list []*proxy.ProductEffect) error {
 	err := nosql.UpdateProductEffects(mine.UID, operator, list)
 	if err == nil {

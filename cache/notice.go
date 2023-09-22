@@ -143,6 +143,25 @@ func (mine *cacheContext) GetLatestNotices(owner string, tp uint32) []*NoticeInf
 	return list
 }
 
+func (mine *cacheContext) GetAliveNotices(owner string, tp uint32) []*NoticeInfo {
+	if owner == "" {
+		return nil
+	}
+	array, _ := nosql.GetNoticesByStatus(owner, uint8(tp), uint8(MessageStatusAgree))
+	list := make([]*NoticeInfo, 0, len(array))
+	var secs int64 = -3600 * 24 * 7
+	now := time.Now().Unix()
+	for _, db := range array {
+		dif := db.CreatedTime.Unix() - now
+		if dif > secs {
+			info := new(NoticeInfo)
+			info.initInfo(db)
+			list = append(list, info)
+		}
+	}
+	return list
+}
+
 func (mine *cacheContext) GetNoticesByStatus(owner string, tp uint8, st MessageStatus) []*NoticeInfo {
 	if owner == "" {
 		return make([]*NoticeInfo, 0, 1)
@@ -302,6 +321,7 @@ func (mine *NoticeInfo) UpdateStatus(st MessageStatus, operator string) error {
 	if err == nil {
 		mine.Status = st
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 		if st == MessageStatusAgree {
 			_ = cacheCtx.updateRecord(mine.Owner, ObserveNotice, 1)
 		}

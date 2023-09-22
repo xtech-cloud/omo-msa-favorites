@@ -73,8 +73,7 @@ type ShowContent struct {
 }
 
 type DisplayContent struct {
-	UID string `json:"uid" bson:"uid"` //实体UID
-	//Entity string   `json:"entity" bson:"entity"` //实体UID
+	UID    string   `json:"uid" bson:"uid"`       //实体UID或者asset
 	Events []string `json:"events" bson:"events"` //
 	Assets []string `json:"assets" bson:"assets"` //
 }

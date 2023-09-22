@@ -33,7 +33,8 @@ func switchProduct(info *cache.ProductInfo) *pb.ProductInfo {
 	tmp.Shows = info.Shows
 	tmp.Effects = make([]*pb.ProductEffect, 0, len(info.Effects))
 	for _, effect := range info.Effects {
-		tmp.Effects = append(tmp.Effects, &pb.ProductEffect{Min: effect.Min, Max: effect.Max, Pattern: effect.Pattern})
+		tmp.Effects = append(tmp.Effects, &pb.ProductEffect{Min: effect.Min, Max: effect.Max,
+			Access: uint32(effect.Access), Pattern: effect.Pattern})
 	}
 	tmp.Displays = make([]*pb.DisplayShow, 0, len(info.Displays))
 	for _, display := range info.Displays {
@@ -156,7 +157,7 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 			if err == nil {
 				arr := make([]*proxy.ProductEffect, 0, 10)
 				for _, effect := range array {
-					arr = append(arr, &proxy.ProductEffect{Pattern: effect.Pattern, Min: effect.Min, Max: effect.Max})
+					arr = append(arr, &proxy.ProductEffect{Pattern: effect.Pattern, Min: effect.Min, Max: effect.Max, Access: uint8(effect.Access)})
 				}
 				err = info.UpdateEffects(in.Operator, arr)
 			}
@@ -177,6 +178,9 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 				err = info.UpdateDisplays(in.Operator, arr)
 			}
 		}
+	} else if in.Key == "type" {
+		tp := parseStringToInt(in.Value)
+		err = info.UpdateType(in.Operator, uint32(tp))
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

@@ -279,6 +279,9 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 			return nil
 		}
 		array = cache.Context().GetAllActivitiesByType(in.Owner, uint8(st))
+	} else if in.Key == "alive" {
+		//当下时间未结束的活动数据
+		array = cache.Context().GetAliveActivities(in.Owner)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
