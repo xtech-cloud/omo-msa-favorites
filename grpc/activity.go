@@ -378,6 +378,8 @@ func (mine *ActivityService) UpdateByFilter(ctx context.Context, in *pb.RequestU
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
+	} else if in.Key == "quotes" {
+
 	}
 	out.Status = outLog(path, out)
 	return nil

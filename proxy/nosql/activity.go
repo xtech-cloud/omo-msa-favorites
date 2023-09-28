@@ -40,6 +40,7 @@ type Activity struct {
 	Tags         []string           `json:"tags" bsonL:"tags"`
 	Assets       []string           `json:"assets" bson:"assets"`
 	Targets      []string           `json:"targets" bson:"targets"`
+	Quotes       []string           `json:"quotes" bson:"quotes"`
 	Participants []string           `json:"participants" bson:"participants"` //弃用
 	Persons      []proxy.PersonInfo `json:"persons" bson:"persons"`           //记录参与人信息
 	Opuses       []proxy.OpusInfo   `json:"opuses" bson:"opuses"`             //获奖作品

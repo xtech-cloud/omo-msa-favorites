@@ -60,6 +60,7 @@ type ActivityInfo struct {
 	Place    proxy.PlaceInfo
 	Prize    *proxy.PrizeInfo
 
+	Quotes  []string //引用的实体对象
 	Assets  []string
 	Tags    []string
 	Targets []string         //具体的班级，场景等
