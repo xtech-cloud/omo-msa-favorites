@@ -19,12 +19,13 @@ type Activity struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Cover   string `json:"cover" bson:"cover"`
-	Remark  string `json:"remark" bson:"remark"`
-	Require string `json:"require" bson:"require"`
+	Cover   string `json:"cover" bson:"cover"`     //
+	Remark  string `json:"remark" bson:"remark"`   //活动简介
+	Require string `json:"require" bson:"require"` //活动要求
 	Owner   string `json:"owner" bson:"owner"`
+	Poster  string `json:"poster" bson:"poster"` //海报
 	Type    uint8  `json:"type" bson:"type"`
-	Limit   uint8  `json:"limit" bson:"limit"`
+	Limit   uint8  `json:"limit" bson:"limit"` //限制用户上传图片数量
 	Status  uint8  `json:"status" bson:"status"`
 	Access  uint8  `json:"access" bson:"access"` //访问权限
 	Show    uint8  `json:"show" bson:"show"`     //显示结果
@@ -371,6 +372,18 @@ func UpdateActivityShowState(uid, operator string, st uint8) error {
 
 func UpdateActivityAccess(uid, operator string, st uint8) error {
 	msg := bson.M{"access": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityPoster(uid, operator, poster string) error {
+	msg := bson.M{"poster": poster, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityStop(uid, operator string, stop int64) error {
+	msg := bson.M{"duration.stop": stop, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }

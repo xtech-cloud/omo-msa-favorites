@@ -21,6 +21,7 @@ type Product struct {
 	Name     string                 `json:"name" bson:"name"`
 	Status   uint8                  `json:"status" bson:"status"`
 	Type     uint8                  `json:"type" bson:"type"`
+	Limit    uint32                 `json:"limit" bson:"limit"` //同时展览的数量限制
 	Key      string                 `json:"key" bson:"key"`
 	Entries  []string               `json:"entries" bson:"entries"`
 	Menus    string                 `json:"menus" bson:"menus"`
@@ -129,6 +130,12 @@ func UpdateProductCatalog(uid, catalogs, operator string) error {
 
 func UpdateProductType(uid, operator string, tp uint32) error {
 	msg := bson.M{"type": tp, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableProduct, uid, msg)
+	return err
+}
+
+func UpdateProductLimit(uid, operator string, num uint32) error {
+	msg := bson.M{"limit": num, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableProduct, uid, msg)
 	return err
 }

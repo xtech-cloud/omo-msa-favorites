@@ -14,7 +14,7 @@ import (
 const (
 	NoticeToFamily   = 0 //发送到小程序
 	NoticeToDevice   = 1 //发送到设备
-	NoticeToWebsite  = 2 //发送到网站网站
+	NoticeToWebsite  = 2 //发送到网站
 	NoticeToResident = 3 //对格桑码居民
 	NoticeToRoute    = 4 //对应
 )
@@ -22,16 +22,16 @@ const (
 type NoticeInfo struct {
 	BaseInfo
 	Type     uint8
-	Interval uint32
+	Interval uint32 //每隔多少秒循环一次
 	Showtime uint32
 	Status   MessageStatus
-	Owner    string //该展览所属组织机构，scene
+	Owner    string //所属组织机构，scene
 	Subtitle string
 	Body     string
 	Duration proxy.DurationInfo
 
 	Tags    []string
-	Targets []string //class, area等虚拟空间引用
+	Targets []string //area等虚拟空间引用
 }
 
 func (mine *cacheContext) CreateNotice(info *NoticeInfo) error {

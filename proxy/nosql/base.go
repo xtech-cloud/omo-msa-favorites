@@ -141,31 +141,6 @@ func readFile(path string, table string) error {
 	return analyticDataStructure(table, data)
 }
 
-func BackupDatabase() string {
-	/*timeStr := time.Now().Format("20060102150405")
-	path := "db/"+timeStr+"/"
-	bl := tool.FileIsExist(path)
-	if !bl {
-		err := os.MkdirAll(path, 0666)
-		if err != nil {
-			warn("backup database failed!!!")
-		}
-	}
-
-	tables, _ := noSql.ListCollectionNames(context.Background(), nil)
-	for i := 0; i < len(tables); i++ {
-		if tables[i] == TableAdmin {
-			//cursor,_ := findAll(TableAdmin)
-			//writeFile(path,tables[i],cursor.)
-		}else if tables[i] == TableScene {
-
-			//writeFile(path,tables[i],list)
-		}
-	}
-	return timeStr*/
-	return ""
-}
-
 func ImportDatabase(table string, file multipart.File) error {
 	body, err := ioutil.ReadAll(file)
 	if err != nil {

@@ -20,9 +20,10 @@ const (
 )
 
 const (
-	ActivityTypeNormal   uint8 = 0 //
+	ActivityTypeNormal   uint8 = 0 //默认活动
 	ActivityTypeTemplate uint8 = 1
-	ActivityTypeOpen     uint8 = 2
+	ActivityTypeOpen     uint8 = 2 //开放活动
+	ActivityTypeBeginner uint8 = 3 //新手活动
 )
 
 const (
@@ -53,8 +54,8 @@ type ActivityInfo struct {
 	Remark      string // 活动介绍
 	Organizer   string // 组织者
 	Require     string // 活动要求
-
-	Template string //引用的活动模板
+	Poster      string //生成的活动海报uid
+	Template    string //引用的活动模板
 
 	Duration proxy.DurationInfo //持续时间
 	Place    proxy.PlaceInfo
@@ -98,6 +99,7 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db.Show = info.ShowResult
 	db.Prize = info.Prize
 	db.Access = 0
+	db.Poster = ""
 	db.Template = info.Template
 	db.Opuses = make([]proxy.OpusInfo, 0, 1)
 	db.Participant = 0
@@ -429,23 +431,26 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	mine.Require = db.Require
 	mine.Organizer = db.Organizer
 	mine.Template = db.Template
-	mine.Duration = db.Duration
+
 	mine.Place = db.Place
 	mine.Prize = db.Prize
 	mine.ShowResult = db.Show
 	mine.Access = db.Access
-	mine.Assets = db.Assets
+
 	mine.Tags = db.Tags
-	mine.Targets = db.Targets
+
 	mine.SubmitLimit = db.Limit
 	mine.Participant = db.Participant
 	mine.Status = db.Status
+	mine.Poster = db.Poster
 
+	mine.Targets = db.Targets
 	if mine.Targets == nil || len(mine.Targets) > 16 {
 		mine.Targets = make([]string, 0, 1)
 		mine.Targets = append(mine.Targets, mine.Owner)
 		_ = nosql.UpdateActivityTargets(mine.UID, mine.Operator, mine.Targets)
 	}
+	mine.Assets = db.Assets
 	if mine.Assets == nil {
 		mine.Assets = make([]string, 0, 1)
 		_ = nosql.UpdateActivityAssets(mine.UID, mine.Operator, mine.Assets)
@@ -455,6 +460,7 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 		mine.Opuses = make([]proxy.OpusInfo, 0, 1)
 		_ = nosql.UpdateActivityOpuses(mine.UID, mine.Operator, mine.Opuses)
 	}
+	mine.Duration = db.Duration
 	if db.Date.Start != "" && db.Duration.Start < 1 {
 		duration := proxy.DurationInfo{
 			Start: proxy.DateToUTC(db.Date.Start, 0),
@@ -499,6 +505,9 @@ func (mine *ActivityInfo) UpdateBase(name, remark, require, operator string, dat
 }
 
 func (mine *ActivityInfo) UpdateStatus(operator string, st uint8) error {
+	if mine.Status == st {
+		return nil
+	}
 	err := nosql.UpdateActivityStatus(mine.UID, operator, st)
 	if err == nil {
 		mine.createHistory(operator, "", mine.Status, st)
@@ -519,6 +528,7 @@ func (mine *ActivityInfo) UpdatePrize(operator, name, desc string, ranks []proxy
 	if err == nil {
 		mine.Prize = &prize
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -528,6 +538,7 @@ func (mine *ActivityInfo) UpdateShowState(operator string, st uint8) error {
 	if err == nil {
 		mine.Status = st
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -536,6 +547,29 @@ func (mine *ActivityInfo) UpdateAccess(operator string, st uint8) error {
 	err := nosql.UpdateActivityAccess(mine.UID, operator, st)
 	if err == nil {
 		mine.Access = st
+		mine.Operator = operator
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ActivityInfo) UpdatePoster(operator, poster string) error {
+	err := nosql.UpdateActivityPoster(mine.UID, operator, poster)
+	if err == nil {
+		mine.Poster = poster
+		mine.Operator = operator
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ActivityInfo) UpdateStopDate(operator string, stop int64) error {
+	if stop < mine.Duration.Stop {
+		return errors.New("the new stop date is less than old date")
+	}
+	err := nosql.UpdateActivityStop(mine.UID, operator, stop)
+	if err == nil {
+		mine.Duration.Stop = stop
 		mine.Operator = operator
 	}
 	return err
@@ -546,6 +580,7 @@ func (mine *ActivityInfo) UpdateOpuses(operator string, opuses []proxy.OpusInfo)
 	if err == nil {
 		mine.Opuses = opuses
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -558,6 +593,7 @@ func (mine *ActivityInfo) UpdateTargets(operator string, list []string) error {
 	if err == nil {
 		mine.Targets = list
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -570,6 +606,7 @@ func (mine *ActivityInfo) UpdateTags(operator string, tags []string) error {
 	if err == nil {
 		mine.Tags = tags
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -579,6 +616,7 @@ func (mine *ActivityInfo) UpdateAssetLimit(operator string, num uint8) error {
 	if err == nil {
 		mine.SubmitLimit = num
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -588,6 +626,7 @@ func (mine *ActivityInfo) UpdateCover(cover, operator string) error {
 	if err == nil {
 		mine.Cover = cover
 		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }
@@ -599,6 +638,8 @@ func (mine *ActivityInfo) UpdateAssets(operator string, list []string) error {
 	err := nosql.UpdateActivityAssets(mine.UID, operator, list)
 	if err == nil {
 		mine.Assets = list
+		mine.Operator = operator
+		mine.UpdateTime = time.Now()
 	}
 	return err
 }

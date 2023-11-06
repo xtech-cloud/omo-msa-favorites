@@ -8,16 +8,17 @@ import (
 )
 
 type ProductInfo struct {
-	Type   uint8
-	Status uint8
+	Type       uint8
+	Status     uint8
+	LimitCount uint32 //同时布展的展览数量限制
 	BaseInfo
 	Key      string
-	Entries  []string
-	Menus    string
+	Menus    string //支持的目录类型，可以为空
 	Templet  string
 	Catalogs string
 	Remark   string
-	Revises  []string
+	Entries  []string               //入口模块
+	Revises  []string               //修正模块
 	Shows    []string               //在展的展览
 	Effects  []*proxy.ProductEffect //效果库
 	Displays []*proxy.DisplayShow   //展览库
@@ -39,6 +40,7 @@ func (mine *cacheContext) CreateProduct(name, key, menus, templet, remark, opera
 	db.Templet = templet
 	db.Effects = effects
 	db.Status = 1
+	db.Limit = 0
 	db.Catalogs = ""
 	db.Remark = remark
 	db.Showings = make([]string, 0, 1)
@@ -91,7 +93,8 @@ func (mine *ProductInfo) initInfo(db *nosql.Product) {
 	mine.Operator = db.Operator
 	mine.Type = db.Type
 	mine.Status = db.Status
-	mine.Menus = db.Menus
+	mine.Menus = db.Menus //
+	mine.LimitCount = db.Limit
 	mine.Key = db.Key
 	mine.Entries = db.Entries
 	mine.Remark = db.Remark
@@ -128,6 +131,15 @@ func (mine *ProductInfo) UpdateType(operator string, tp uint32) error {
 	err := nosql.UpdateProductType(mine.UID, operator, tp)
 	if err == nil {
 		mine.Type = uint8(tp)
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ProductInfo) UpdateLimitCount(operator string, num uint32) error {
+	err := nosql.UpdateProductLimit(mine.UID, operator, num)
+	if err == nil {
+		mine.LimitCount = num
 		mine.UpdateTime = time.Now()
 	}
 	return err

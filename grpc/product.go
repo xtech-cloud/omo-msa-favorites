@@ -32,6 +32,7 @@ func switchProduct(info *cache.ProductInfo) *pb.ProductInfo {
 	tmp.Menus = info.Menus
 	tmp.Revises = info.Revises
 	tmp.Shows = info.Shows
+	tmp.Limit = info.LimitCount
 	tmp.Effects = make([]*pb.ProductEffect, 0, len(info.Effects))
 	for _, effect := range info.Effects {
 		tmp.Effects = append(tmp.Effects, &pb.ProductEffect{Min: effect.Min, Max: effect.Max,
@@ -183,6 +184,10 @@ func (mine *ProductService) UpdateByFilter(ctx context.Context, in *pb.RequestUp
 	} else if in.Key == "type" {
 		tp := parseStringToInt(in.Value)
 		err = info.UpdateType(in.Operator, uint32(tp))
+	} else if in.Key == "limit" {
+		//修改展览数量限制
+		tp := parseStringToInt(in.Value)
+		err = info.UpdateLimitCount(in.Operator, uint32(tp))
 	}
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

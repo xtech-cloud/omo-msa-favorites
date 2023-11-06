@@ -105,9 +105,14 @@ func DateToUTC(date string, delay int) int64 {
 	if date == "" {
 		return 0
 	}
-	t, e := time.ParseInLocation("2006/01/02", date, time.Local)
+	var t time.Time
+	var e error
+	t, e = time.ParseInLocation("2006/01/02", date, time.Local)
 	if e != nil {
-		return 0
+		t, e = time.ParseInLocation("2006/1/2", date, time.Local)
+		if e != nil {
+			return 0
+		}
 	}
 	diff := int64(delay)*24*3600 - 60
 	if delay > 0 {

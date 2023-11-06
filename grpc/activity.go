@@ -29,6 +29,7 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Operator = info.Operator
 	tmp.Tags = info.Tags
 	tmp.Owner = info.Owner
+	tmp.Poster = info.Poster
 	tmp.Show = uint32(info.ShowResult)
 	tmp.Type = uint32(info.Type)
 	tmp.Status = uint32(info.Status)
@@ -378,8 +379,21 @@ func (mine *ActivityService) UpdateByFilter(ctx context.Context, in *pb.RequestU
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-	} else if in.Key == "quotes" {
-
+	} else if in.Key == "postpone" {
+		//活动延期
+		stop := proxy.DateToUTC(in.Value, 1)
+		er := activity.UpdateStopDate(in.Operator, stop)
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
+	} else if in.Key == "poster" {
+		//修改活动海报
+		er := activity.UpdatePoster(in.Operator, in.Value)
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
+			return nil
+		}
 	}
 	out.Status = outLog(path, out)
 	return nil
