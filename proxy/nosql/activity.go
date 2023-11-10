@@ -417,39 +417,3 @@ func UpdateActivityTargets(uid, operator string, list []string) error {
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }
-
-func AppendActivityParticipant(uid string, key string) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"participants": key}
-	_, err := appendElement(TableActivity, uid, msg)
-	return err
-}
-
-func SubtractActivityParticipant(uid, key string) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"participants": key}
-	_, err := removeElement(TableActivity, uid, msg)
-	return err
-}
-
-func AppendActivityPerson(uid string, person proxy.PersonInfo) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"persons": person}
-	_, err := appendElement(TableActivity, uid, msg)
-	return err
-}
-
-func SubtractActivityPerson(uid, entity string) error {
-	if len(uid) < 1 {
-		return errors.New("the uid is empty")
-	}
-	msg := bson.M{"persons": bson.M{"entity": entity}}
-	_, err := removeElement(TableActivity, uid, msg)
-	return err
-}

@@ -258,7 +258,7 @@ func (mine *SheetService) AppendContent(ctx context.Context, in *pb.ReqSheetCont
 		out.Status = outError(path, "the sheet not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendContent(in.Content, in.Effect, in.Menu, in.Align, in.Weight)
+	err := info.AppendContent(in.Content, in.Operator, in.Effect, in.Menu, in.Align, in.Weight)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -280,7 +280,7 @@ func (mine *SheetService) SubtractContent(ctx context.Context, in *pb.RequestInf
 		out.Status = outError(path, "the sheet not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractContent(in.Flag)
+	err := info.SubtractContent(in.Flag, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

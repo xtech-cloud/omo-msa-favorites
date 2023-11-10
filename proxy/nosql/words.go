@@ -325,20 +325,20 @@ func UpdateWordsAssets(uid, operator string, list []string) error {
 	return err
 }
 
-func AppendWordsKey(uid string, key string) error {
+func AppendWordsKey(uid, operator, key string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"keys": key}
-	_, err := appendElement(TableWords, uid, msg)
+	_, err := appendElement(TableWords, uid, operator, msg)
 	return err
 }
 
-func SubtractWordsKey(uid, key string) error {
+func SubtractWordsKey(uid, operator, key string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"keys": key}
-	_, err := removeElement(TableWords, uid, msg)
+	_, err := removeElement(TableWords, uid, operator, msg)
 	return err
 }

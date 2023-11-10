@@ -290,20 +290,20 @@ func UpdateSheetDisplay(uid, operator string, list []proxy.ShowContent) error {
 	return err
 }
 
-func AppendSheetContent(uid string, display proxy.ShowContent) error {
+func AppendSheetContent(uid, operator string, display proxy.ShowContent) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"contents": display}
-	_, err := appendElement(TableSheet, uid, msg)
+	_, err := appendElement(TableSheet, uid, operator, msg)
 	return err
 }
 
-func SubtractSheetContent(uid, content string) error {
+func SubtractSheetContent(uid, operator, content string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"contents": bson.M{"uid": content}}
-	_, err := removeElement(TableSheet, uid, msg)
+	_, err := removeElement(TableSheet, uid, operator, msg)
 	return err
 }

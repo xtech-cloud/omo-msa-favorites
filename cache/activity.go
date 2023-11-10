@@ -7,6 +7,7 @@ import (
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
+	"strconv"
 	"time"
 )
 
@@ -27,18 +28,10 @@ const (
 )
 
 const (
-	OptionAgree  OptionType = 1 //审核同意
-	OptionRefuse OptionType = 2 //审核拒绝
-	OptionSwitch OptionType = 3 //切换关联
-)
-
-const (
 	AccessFree = 0 //自由访问
 	AccessHide = 1 //子场景不可见
 	AccessMust = 2 //子场景可见且必做
 )
-
-type OptionType uint8
 
 type ActivityInfo struct {
 	Type        uint8
@@ -115,10 +108,10 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	if db.Targets == nil {
 		db.Targets = make([]string, 0, 1)
 	}
-	//db.Persons = info.Persons
-	//if db.Persons == nil {
-	//	db.Persons = make([]proxy.PersonInfo, 0, 1)
-	//}
+	db.Quotes = info.Quotes
+	if db.Quotes == nil {
+		db.Quotes = make([]string, 0, 1)
+	}
 
 	err := nosql.CreateActivity(db)
 	if err == nil {
@@ -504,13 +497,13 @@ func (mine *ActivityInfo) UpdateBase(name, remark, require, operator string, dat
 	return err
 }
 
-func (mine *ActivityInfo) UpdateStatus(operator string, st uint8) error {
+func (mine *ActivityInfo) UpdateStatus(operator, remark string, st uint8) error {
 	if mine.Status == st {
 		return nil
 	}
 	err := nosql.UpdateActivityStatus(mine.UID, operator, st)
 	if err == nil {
-		mine.createHistory(operator, "", mine.Status, st)
+		mine.createHistory(operator, remark, mine.Status, st)
 		mine.Status = st
 		mine.Operator = operator
 		mine.UpdateTime = time.Now()
@@ -671,18 +664,13 @@ func (mine *ActivityInfo) HadTargets(arr []string) bool {
 	return false
 }
 
-func (mine *ActivityInfo) GetHistories() ([]*nosql.History, error) {
-	dbs, err := nosql.GetHistories(mine.UID)
-	if err != nil {
-		return nil, err
-	}
+func (mine *ActivityInfo) GetHistories() []*nosql.History {
+	dbs, _ := nosql.GetHistories(mine.UID)
 	list := make([]*nosql.History, 0, len(dbs))
 	for _, db := range dbs {
-		if db.Option == uint8(OptionAgree) || db.Option == uint8(OptionRefuse) {
-			list = append(list, db)
-		}
+		list = append(list, db)
 	}
-	return list, nil
+	return list
 }
 
 func (mine *ActivityInfo) createHistory(operator, remark string, from, to uint8) {
@@ -693,21 +681,7 @@ func (mine *ActivityInfo) createHistory(operator, remark string, from, to uint8)
 		opt = OptionRefuse
 	}
 
-	_ = mine.insertHistory(operator, remark, string(from), string(to), opt)
-}
-
-func (mine *ActivityInfo) insertHistory(operator, remark, from, to string, opt OptionType) error {
-	db := new(nosql.History)
-	db.UID = primitive.NewObjectID()
-	db.ID = nosql.GetRecordNextID()
-	db.Creator = operator
-	db.CreatedTime = time.Now()
-	db.Parent = mine.UID
-	db.From = from
-	db.To = to
-	db.Option = uint8(opt)
-	db.Remark = remark
-	return nosql.CreateHistory(db)
+	_ = cacheCtx.insertHistory(mine.UID, operator, remark, "", strconv.Itoa(int(from)), strconv.Itoa(int(to)), uint32(opt), HistoryActivity)
 }
 
 func (mine *ActivityInfo) GetRatio() (min, max uint32) {

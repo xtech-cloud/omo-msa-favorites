@@ -13,18 +13,18 @@ type Favorite struct {
 	ID          uint64             `json:"id" bson:"id"`
 	Name        string             `json:"name" bson:"name"`
 	CreatedTime time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedTime time.Time `json:"updatedAt" bson:"updatedAt"`
-	DeleteTime  time.Time `json:"deleteAt" bson:"deleteAt"`
-	Creator     string    `json:"creator" bson:"creator"`
-	Operator    string    `json:"operator" bson:"operator"`
-	Cover       string    `json:"cover" bson:"cover"`
-	Remark      string    `json:"remark" bson:"remark"`
-	Owner       string    `json:"owner" bson:"owner"`
-	Status       uint8 	  `json:"status" bson:"status"`
-	Type        uint8     `json:"type" bson:"type"`
-	Meta        string 	  `json:"meta" bson:"meta"` //源数据
-	Tags        []string  `json:"tags" bsonL:"tags"`
-	Keys        []string  `json:"keys" bson:"keys"`
+	UpdatedTime time.Time          `json:"updatedAt" bson:"updatedAt"`
+	DeleteTime  time.Time          `json:"deleteAt" bson:"deleteAt"`
+	Creator     string             `json:"creator" bson:"creator"`
+	Operator    string             `json:"operator" bson:"operator"`
+	Cover       string             `json:"cover" bson:"cover"`
+	Remark      string             `json:"remark" bson:"remark"`
+	Owner       string             `json:"owner" bson:"owner"`
+	Status      uint8              `json:"status" bson:"status"`
+	Type        uint8              `json:"type" bson:"type"`
+	Meta        string             `json:"meta" bson:"meta"` //源数据
+	Tags        []string           `json:"tags" bsonL:"tags"`
+	Keys        []string           `json:"keys" bson:"keys"`
 }
 
 func CreateFavorite(info *Favorite) error {
@@ -97,10 +97,10 @@ func GetFavoriteCount() int64 {
 }
 
 func GetFavoriteByName(owner, name string, tp uint8) (*Favorite, error) {
-	if len(owner) < 2 || len(name) < 2{
+	if len(owner) < 2 || len(name) < 2 {
 		return nil, errors.New("db owner or name is empty of GetFavoriteByName")
 	}
-	filter := bson.M{"owner":owner, "name": name, "type":tp, "deleteAt": new(time.Time)}
+	filter := bson.M{"owner": owner, "name": name, "type": tp, "deleteAt": new(time.Time)}
 	result, err := findOneBy(TableFavorite, filter)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func GetFavoritesByOwner(owner string) ([]*Favorite, error) {
 
 func GetFavoritesByStatus(owner string, st uint8) ([]*Favorite, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "status":st, "deleteAt": def}
+	filter := bson.M{"owner": owner, "status": st, "deleteAt": def}
 	cursor, err1 := findMany(TableFavorite, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -153,7 +153,7 @@ func GetFavoritesByStatus(owner string, st uint8) ([]*Favorite, error) {
 
 func GetFavoritesByType(kind uint8) ([]*Favorite, error) {
 	def := new(time.Time)
-	filter := bson.M{"type":kind, "deleteAt": def}
+	filter := bson.M{"type": kind, "deleteAt": def}
 	cursor, err1 := findMany(TableFavorite, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -172,7 +172,7 @@ func GetFavoritesByType(kind uint8) ([]*Favorite, error) {
 
 func GetFavoritesByOwnerTP(owner string, kind uint8) ([]*Favorite, error) {
 	def := new(time.Time)
-	filter := bson.M{"owner": owner, "type":kind, "deleteAt": def}
+	filter := bson.M{"owner": owner, "type": kind, "deleteAt": def}
 	cursor, err1 := findMany(TableFavorite, filter, 0)
 	if err1 != nil {
 		return nil, err1
@@ -196,43 +196,43 @@ func UpdateFavoriteBase(uid, name, remark, operator string) error {
 }
 
 func UpdateFavoriteCover(uid, cover, operator string) error {
-	msg := bson.M{"cover": cover, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"cover": cover, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
 func UpdateFavoriteState(uid, operator string, st uint8) error {
-	msg := bson.M{"status": st, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"status": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
 func UpdateFavoriteTags(uid, operator string, tags []string) error {
-	msg := bson.M{"tags": tags, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"tags": tags, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
 func UpdateFavoriteKeys(uid, operator string, list []string) error {
-	msg := bson.M{"keys": list, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"keys": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableFavorite, uid, msg)
 	return err
 }
 
-func AppendFavoriteKey(uid string, key string) error {
+func AppendFavoriteKey(uid string, key, operator string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"keys": key}
-	_, err := appendElement(TableFavorite, uid, msg)
+	_, err := appendElement(TableFavorite, uid, operator, msg)
 	return err
 }
 
-func SubtractFavoriteKey(uid, key string) error {
+func SubtractFavoriteKey(uid, key, operator string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"keys": key}
-	_, err := removeElement(TableFavorite, uid, msg)
+	_, err := removeElement(TableFavorite, uid, operator, msg)
 	return err
 }

@@ -86,6 +86,23 @@ func InitDB(ip string, port string, db string, kind string) error {
 	}
 }
 
+func MoveTable() {
+	dbs := make([]*History, 0, 5000)
+	dbs = GetAll("activity_records", dbs)
+	for _, db := range dbs {
+		db.Type = 1
+		_ = CreateHistory(db)
+	}
+	_ = dropOne("activity_records")
+
+	dbs1 := make([]*Record, 0, 5000)
+	dbs1 = GetAll("records_msg", dbs1)
+	for _, db := range dbs1 {
+		_ = CreateRecord(db)
+	}
+	_ = dropOne("records_msg")
+}
+
 func tableExist(collection string) bool {
 	c := noSql.Collection(collection)
 	if c == nil {

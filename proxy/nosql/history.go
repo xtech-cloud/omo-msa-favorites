@@ -16,15 +16,17 @@ type History struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Option uint8  `json:"option" bson:"option"`
-	From   string `json:"from" json:"from"`
-	To     string `json:"to" bson:"to"`
-	Parent string `json:"parent" bson:"parent"`
-	Remark string `json:"remark" bson:"remark"`
+	Type    uint8  `json:"type" bson:"type"`
+	Option  uint32 `json:"option" bson:"option"`
+	From    string `json:"from" json:"from"`
+	To      string `json:"to" bson:"to"`
+	Parent  string `json:"parent" bson:"parent"`
+	Remark  string `json:"remark" bson:"remark"`
+	Content string `json:"content" bson:"content"`
 }
 
 func CreateHistory(info *History) error {
-	_, err := insertOne(TableActRecords, info)
+	_, err := insertOne(TableHistory, info)
 	if err != nil {
 		return err
 	}
@@ -32,12 +34,12 @@ func CreateHistory(info *History) error {
 }
 
 func GetHistoryNextID() uint64 {
-	num, _ := getSequenceNext(TableActRecords)
+	num, _ := getSequenceNext(TableHistory)
 	return num
 }
 
 func GetHistory(uid string) (*History, error) {
-	result, err := findOne(TableActRecords, uid)
+	result, err := findOne(TableHistory, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +51,10 @@ func GetHistory(uid string) (*History, error) {
 	return model, nil
 }
 
-func GetHistories(entity string) ([]*History, error) {
+func GetHistories(uid string) ([]*History, error) {
 	var items = make([]*History, 0, 20)
-	filter := bson.M{"parent": entity}
-	cursor, err1 := findMany(TableActRecords, filter, 0)
+	filter := bson.M{"parent": uid}
+	cursor, err1 := findMany(TableHistory, filter, 0)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -68,10 +70,10 @@ func GetHistories(entity string) ([]*History, error) {
 	return items, nil
 }
 
-func GetHistoriesBy(parent, to string, tp uint8) ([]*History, error) {
+func GetHistoriesBy(parent, to string, op uint8) ([]*History, error) {
 	var items = make([]*History, 0, 20)
-	filter := bson.M{"parent": parent, "option": tp, "to": to}
-	cursor, err1 := findMany(TableActRecords, filter, 0)
+	filter := bson.M{"parent": parent, "option": op, "to": to}
+	cursor, err1 := findMany(TableHistory, filter, 0)
 	if err1 != nil {
 		return nil, err1
 	}

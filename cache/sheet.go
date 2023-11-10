@@ -241,7 +241,7 @@ func (mine *SheetInfo) HadContent(uid string) bool {
 	return false
 }
 
-func (mine *SheetInfo) AppendContent(uid, effect, menu, align string, weight uint32) error {
+func (mine *SheetInfo) AppendContent(uid, operator, effect, menu, align string, weight uint32) error {
 	if mine.HadContent(uid) {
 		return nil
 	}
@@ -252,18 +252,18 @@ func (mine *SheetInfo) AppendContent(uid, effect, menu, align string, weight uin
 		Menu:      menu,
 		Alignment: align,
 	}
-	er := nosql.AppendSheetContent(mine.UID, tmp)
+	er := nosql.AppendSheetContent(mine.UID, operator, tmp)
 	if er == nil {
 		mine.Contents = append(mine.Contents, tmp)
 	}
 	return er
 }
 
-func (mine *SheetInfo) SubtractContent(uid string) error {
+func (mine *SheetInfo) SubtractContent(uid, operator string) error {
 	if !mine.HadContent(uid) {
 		return nil
 	}
-	er := nosql.SubtractSheetContent(mine.UID, uid)
+	er := nosql.SubtractSheetContent(mine.UID, operator, uid)
 	if er == nil {
 		for i := 0; i < len(mine.Contents); i += 1 {
 			if mine.Contents[i].UID == uid {

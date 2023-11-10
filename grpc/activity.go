@@ -7,6 +7,7 @@ import (
 	pbstatus "github.com/xtech-cloud/omo-msp-status/proto/status"
 	"omo.msa.favorite/cache"
 	"omo.msa.favorite/proxy"
+	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
 	"strconv"
 	"strings"
@@ -42,9 +43,10 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Limit = uint32(info.SubmitLimit)
 	tmp.Targets = info.Targets
 	tmp.Access = uint32(info.Access)
+	tmp.Quotes = info.Quotes
 	tmp.Prize = switchPrize(info.Prize)
 	tmp.Opuses = switchOpuses(info.Opuses)
-	tmp.Records = switchHistories(info)
+	tmp.Records = switchHistories(info.GetHistories())
 	return tmp
 }
 
@@ -79,8 +81,7 @@ func switchOpuses(list []proxy.OpusInfo) []*pb.OpusInfo {
 	return arr
 }
 
-func switchHistories(info *cache.ActivityInfo) []*pb.RecordInfo {
-	dbs, _ := info.GetHistories()
+func switchHistories(dbs []*nosql.History) []*pb.RecordInfo {
 	arr := make([]*pb.RecordInfo, 0, len(dbs))
 	for _, item := range dbs {
 		tmp := new(pb.RecordInfo)
@@ -88,6 +89,7 @@ func switchHistories(info *cache.ActivityInfo) []*pb.RecordInfo {
 		tmp.From = item.From
 		tmp.To = item.To
 		tmp.Remark = item.Remark
+		tmp.Content = item.Content
 		tmp.Option = uint32(item.Option)
 		arr = append(arr, tmp)
 	}
@@ -134,6 +136,7 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 	info.Type = uint8(in.Type)
 	info.Opuses = make([]proxy.OpusInfo, 0, 1)
 	info.SubmitLimit = uint8(in.Limit)
+	info.Quotes = in.Quotes
 	if in.Prize != nil {
 		info.Prize = &proxy.PrizeInfo{
 			Name:  in.Prize.Name,
@@ -486,7 +489,7 @@ func (mine *ActivityService) UpdateStatus(ctx context.Context, in *pb.RequestSta
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err = info.UpdateStatus(in.Operator, uint8(in.Status))
+	err = info.UpdateStatus(in.Operator, in.Remark, uint8(in.Status))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

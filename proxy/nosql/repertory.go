@@ -18,10 +18,10 @@ type Repertory struct {
 	Creator     string             `json:"creator" bson:"creator"`
 	Operator    string             `json:"operator" bson:"operator"`
 
-	Remark      string             `json:"remark" bson:"remark"`
-	Owner       string             `json:"owner" bson:"owner"`
-	Type        uint8              `json:"type" bson:"type"`
-	Bags      []string `json:"bags" bson:"bags"`
+	Remark string   `json:"remark" bson:"remark"`
+	Owner  string   `json:"owner" bson:"owner"`
+	Type   uint8    `json:"type" bson:"type"`
+	Bags   []string `json:"bags" bson:"bags"`
 }
 
 func CreateRepertory(info *Repertory) error {
@@ -103,25 +103,25 @@ func UpdateRepertoryBase(uid, name, remark, operator string) error {
 }
 
 func UpdateRepertoryBags(uid, operator string, list []string) error {
-	msg := bson.M{"bags": list, "operator":operator, "updatedAt": time.Now()}
+	msg := bson.M{"bags": list, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableRepertory, uid, msg)
 	return err
 }
 
-func AppendRepertoryBag(uid, prop string) error {
+func AppendRepertoryBag(uid, prop, operator string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"bags": prop}
-	_, err := appendElement(TableRepertory, uid, msg)
+	_, err := appendElement(TableRepertory, uid, operator, msg)
 	return err
 }
 
-func SubtractRepertoryBag(uid, key string) error {
+func SubtractRepertoryBag(uid, key, operator string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"bags": key}
-	_, err := removeElement(TableRepertory, uid, msg)
+	_, err := removeElement(TableRepertory, uid, operator, msg)
 	return err
 }

@@ -330,7 +330,7 @@ func (mine *FavoriteService) AppendKey(ctx context.Context, in *pb.RequestInfo, 
 		out.Status = outError(path, "the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendKey(in.Flag)
+	err := info.AppendKey(in.Flag, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -352,7 +352,7 @@ func (mine *FavoriteService) SubtractKey(ctx context.Context, in *pb.RequestInfo
 		out.Status = outError(path, "the favorite not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractKey(in.Flag)
+	err := info.SubtractKey(in.Flag, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

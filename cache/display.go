@@ -6,21 +6,38 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
+	"strconv"
 	"time"
 )
 
 const (
 	FavStatusDraft   uint8 = 0 //草稿
-	FavStatusCheck   uint8 = 1 // 审核中
-	FavStatusPending uint8 = 2 // 审核通过，待发布或者释放
-	FavStatusPublish uint8 = 3 // 发布成功
+	FavStatusPending uint8 = 1 // 审核中，待发布或者释放
+	FavStatusPublish uint8 = 2 // 发布成功
 )
+
+const (
+	DisplayAccessRead  = 0
+	DisplayAccessClose = 1
+	DisplayAccessRW    = 2
+	DisplayAccessWrite = 3
+)
+
+const (
+	ContentOptionStable   ContentOption = 0
+	ContentOptionAppend   ContentOption = 1
+	ContentOptionSubtract ContentOption = 2
+)
+
+const DefaultOwner = "root"
+
+type ContentOption uint8
 
 type DisplayInfo struct {
 	BaseInfo
 	Status   uint8
 	Type     uint8  //
-	Access   uint8  //=0可访问，>0不可访问
+	Access   uint8  //=0只可访问，=1不可访问也不可操作,=2可访问可操作，=3只可操作
 	Owner    string //该展览所属组织机构，scene
 	Cover    string
 	Remark   string
@@ -29,7 +46,9 @@ type DisplayInfo struct {
 	Poster   string //海报
 	Meta     string //
 	Tags     []string
-	Contents []proxy.DisplayContent
+	Targets  []uint32               //目标场景类型
+	Contents []proxy.DisplayContent //正式的内容
+	Pending  []proxy.DisplayContent //待审的内容
 }
 
 func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
@@ -49,7 +68,11 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	db.Banner = info.Banner
 	db.Poster = info.Poster
 	db.Tags = info.Tags
-	db.Access = 1
+	db.Access = DisplayAccessClose
+	db.Scenes = make([]uint32, 0, 1)
+	if db.Owner == "" {
+		db.Owner = DefaultOwner
+	}
 	if db.Tags == nil {
 		db.Tags = make([]string, 0, 1)
 	}
@@ -57,13 +80,17 @@ func (mine *cacheContext) CreateDisplay(info *DisplayInfo) error {
 	if db.Contents == nil {
 		db.Contents = make([]proxy.DisplayContent, 0, 1)
 	}
+	db.Pending = info.Pending
+	if db.Pending == nil {
+		db.Pending = make([]proxy.DisplayContent, 0, 1)
+	}
 
 	err := nosql.CreateDisplay(db)
 	if err == nil {
 		info.UID = db.UID.Hex()
 		info.CreateTime = db.CreatedTime
 		info.ID = db.ID
-		info.Access = 1
+		info.Access = DisplayAccessClose
 		info.UpdateTime = db.UpdatedTime
 	}
 	return err
@@ -147,6 +174,54 @@ func (mine *cacheContext) GetDisplaysByContent(owner, uid string) []*DisplayInfo
 	return nil
 }
 
+func hadTarget(arr []uint32, tp uint32) bool {
+	if len(arr) == 0 {
+		return true
+	}
+	for _, u := range arr {
+		if u == tp {
+			return true
+		}
+	}
+	return false
+}
+
+func (mine *cacheContext) GetAvailableDisplays(arr []string, tp uint32) []*DisplayInfo {
+	list := make([]*DisplayInfo, 0, 100)
+	for _, uid := range arr {
+		dbs, err := nosql.GetDisplaysByOwner(uid)
+		if err == nil {
+			for _, item := range dbs {
+				if hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessWrite) {
+					info := new(DisplayInfo)
+					info.initInfo(item)
+					list = append(list, info)
+				}
+			}
+		}
+	}
+
+	return list
+}
+
+func (mine *cacheContext) GetVisibleDisplays(arr []string, tp uint32) []*DisplayInfo {
+	list := make([]*DisplayInfo, 0, 100)
+	for _, uid := range arr {
+		dbs, err := nosql.GetDisplaysByOwner(uid)
+		if err == nil {
+			for _, item := range dbs {
+				if hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessRead) {
+					info := new(DisplayInfo)
+					info.initInfo(item)
+					list = append(list, info)
+				}
+			}
+		}
+	}
+
+	return list
+}
+
 func (mine *cacheContext) GetDisplaysByStatus(uid string, st uint8) []*DisplayInfo {
 	array, err := nosql.GetDisplaysByStatus(uid, st)
 	if err == nil {
@@ -166,11 +241,10 @@ func (mine *cacheContext) GetDisplaysByType(owner string, kind uint8) []*Display
 	var err error
 	var check = false
 	if owner == "" {
-		array, err = nosql.GetDisplaysByType(kind)
+		owner = DefaultOwner
 		check = true
-	} else {
-		array, err = nosql.GetDisplaysByOwnerTP(owner, kind)
 	}
+	array, err = nosql.GetDisplaysByOwnerTP(owner, kind)
 	if err == nil {
 		list := make([]*DisplayInfo, 0, len(array))
 		for _, item := range array {
@@ -245,22 +319,31 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 	mine.Owner = db.Owner
 	mine.Origin = db.Origin
 	mine.Tags = db.Tags
-	mine.Contents = db.Contents
+
 	mine.Status = db.Status
 	mine.Banner = db.Banner
 	mine.Poster = db.Poster
 	mine.Access = db.Access
-	//mine.Targets = db.Targets
+	mine.Targets = db.Scenes
+	mine.Contents = db.Contents
 	if mine.Contents == nil {
 		mine.Contents = make([]proxy.DisplayContent, 0, 1)
 	}
-	if len(mine.Contents) < 1 && len(db.Keys) > 0 {
-		arr := make([]proxy.DisplayContent, 0, len(db.Keys))
-		for _, key := range db.Keys {
-			arr = append(arr, proxy.DisplayContent{UID: key, Events: make([]string, 0, 1), Assets: make([]string, 0, 1)})
-		}
-		_ = nosql.UpdateDisplayKeys(mine.UID, "", arr)
-		mine.Contents = arr
+	mine.Pending = db.Pending
+	if mine.Pending == nil {
+		mine.Pending = make([]proxy.DisplayContent, 0, 1)
+	}
+	//if len(mine.Contents) < 1 && len(db.Keys) > 0 {
+	//	arr := make([]proxy.DisplayContent, 0, len(db.Keys))
+	//	for _, key := range db.Keys {
+	//		arr = append(arr, proxy.DisplayContent{UID: key, Events: make([]string, 0, 1), Assets: make([]string, 0, 1)})
+	//	}
+	//	_ = nosql.UpdateDisplayContents(mine.UID, "", arr)
+	//	mine.Contents = arr
+	//}
+	if mine.Owner == "" {
+		_ = nosql.UpdateDisplayOwner(mine.UID, DefaultOwner, mine.Operator)
+		mine.Owner = DefaultOwner
 	}
 }
 
@@ -272,13 +355,17 @@ func (mine *DisplayInfo) GetContents() []*pb.DisplayContent {
 	return arr
 }
 
-//func (mine *DisplayInfo) GetTargets() []*pb.ShowInfo {
-//	list := make([]*pb.ShowInfo, 0, len(mine.Targets))
-//	for _, item := range mine.Targets {
-//		list = append(list, &pb.ShowInfo{Target: item.Target, Effect: item.Effect, Skin: item.Alignment, Slots: item.Slots})
-//	}
-//	return list
-//}
+func (mine *DisplayInfo) GetPending() []*pb.DisplayContent {
+	arr := make([]*pb.DisplayContent, 0, len(mine.Pending))
+	for _, content := range mine.Pending {
+		arr = append(arr, &pb.DisplayContent{Uid: content.UID,
+			Option:    content.Option,
+			Submitter: content.Submitter,
+			Events:    content.Events,
+			Assets:    content.Assets})
+	}
+	return arr
+}
 
 func (mine *DisplayInfo) UpdateBase(name, remark, operator string) error {
 	if len(name) < 1 {
@@ -357,9 +444,18 @@ func (mine *DisplayInfo) UpdateType(tp uint8, operator string) error {
 	return err
 }
 
-func (mine *DisplayInfo) UpdateStatus(st uint8, operator string) error {
+func (mine *DisplayInfo) UpdateStatus(st uint8, operator, remark string) error {
 	err := nosql.UpdateDisplayState(mine.UID, operator, st)
 	if err == nil {
+		opt := LogOptNull
+		if mine.Status == FavStatusPending && st == FavStatusDraft {
+			opt = LogOptRefuse
+		} else if mine.Status == FavStatusPending && st == FavStatusPublish {
+			opt = LogOptAgree
+		} else if mine.Status == FavStatusDraft && st == FavStatusPending {
+			opt = LogOptAgree
+		}
+		mine.createHistory(operator, remark, "", mine.Status, st, opt)
 		mine.Status = st
 		mine.Operator = operator
 		if st == FavStatusPublish {
@@ -369,20 +465,34 @@ func (mine *DisplayInfo) UpdateStatus(st uint8, operator string) error {
 	return err
 }
 
+func (mine *DisplayInfo) GetHistories() []*nosql.History {
+	dbs, _ := nosql.GetHistories(mine.UID)
+	list := make([]*nosql.History, 0, len(dbs))
+	for _, db := range dbs {
+		list = append(list, db)
+	}
+	return list
+}
+
+func (mine *DisplayInfo) createHistory(operator, remark, content string, from, to uint8, opt uint32) {
+	_ = cacheCtx.insertHistory(mine.UID, operator, remark, content, strconv.Itoa(int(from)), strconv.Itoa(int(to)), opt, HistoryDisplay)
+}
+
 func (mine *DisplayInfo) UpdateContents(operator string, list []*pb.DisplayContent) error {
 	var err error
 	if list == nil || len(list) < 1 {
-		err = nosql.UpdateDisplayKeys(mine.UID, operator, make([]proxy.DisplayContent, 0, 1))
+		err = nosql.UpdateDisplayContents(mine.UID, operator, make([]proxy.DisplayContent, 0, 1))
 		if err == nil {
 			mine.Contents = make([]proxy.DisplayContent, 0, 1)
 			mine.Operator = operator
 		}
 	} else {
+		utc := time.Now().UTC().Unix()
 		arr := make([]proxy.DisplayContent, 0, len(list))
 		for _, s := range list {
-			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Events: s.Events, Assets: s.Assets})
+			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Submitter: operator, Stamp: utc, Events: s.Events, Assets: s.Assets})
 		}
-		err = nosql.UpdateDisplayKeys(mine.UID, operator, arr)
+		err = nosql.UpdateDisplayContents(mine.UID, operator, arr)
 		if err == nil {
 			mine.Contents = arr
 			mine.Operator = operator
@@ -391,55 +501,145 @@ func (mine *DisplayInfo) UpdateContents(operator string, list []*pb.DisplayConte
 	return err
 }
 
-func (mine *DisplayInfo) HadContent(uid string) bool {
+func (mine *DisplayInfo) UpdatePending(operator string, list []*pb.DisplayContent) error {
+	var err error
+	if list == nil || len(list) < 1 {
+		err = nosql.UpdateDisplayPending(mine.UID, operator, make([]proxy.DisplayContent, 0, 1))
+		if err == nil {
+			mine.Pending = make([]proxy.DisplayContent, 0, 1)
+			mine.Operator = operator
+		}
+	} else {
+		utc := time.Now().UTC().Unix()
+		arr := make([]proxy.DisplayContent, 0, len(list))
+		for _, s := range list {
+			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Submitter: operator, Stamp: utc, Events: s.Events, Assets: s.Assets})
+		}
+		err = nosql.UpdateDisplayPending(mine.UID, operator, arr)
+		if err == nil {
+			mine.Pending = arr
+			mine.Operator = operator
+		}
+	}
+	return err
+}
+
+func (mine *DisplayInfo) HadStableContent(uid string) bool {
 	for _, item := range mine.Contents {
 		if item.UID == uid {
 			return true
 		}
 	}
+
 	return false
 }
 
-//func (mine *DisplayInfo) HadTarget(uid string) bool {
-//	for _, item := range mine.Targets {
-//		if item.Target == uid {
-//			return true
-//		}
-//	}
-//	return false
-//}
-
-func (mine *DisplayInfo) AppendContent(uid string) error {
-	if mine.HadContent(uid) {
-		return nil
+func (mine *DisplayInfo) GetPendContent(uid string) *proxy.DisplayContent {
+	for _, item := range mine.Pending {
+		if item.UID == uid {
+			return &item
+		}
 	}
-	tmp := proxy.DisplayContent{
-		UID: uid, Events: make([]string, 0, 1), Assets: make([]string, 0, 1),
-	}
-	er := nosql.AppendDisplayKey(mine.UID, tmp)
-	if er == nil {
-		mine.Contents = append(mine.Contents, tmp)
-	}
-	return er
+	return nil
 }
 
-func (mine *DisplayInfo) SubtractContent(uid string) error {
-	if !mine.HadContent(uid) {
-		return nil
+func (mine *DisplayInfo) appendContent(remark string, content proxy.DisplayContent, stable bool) error {
+	var err error
+	if stable {
+
+	} else {
+
 	}
-	er := nosql.SubtractDisplayKey(mine.UID, uid)
-	if er == nil {
-		for i := 0; i < len(mine.Contents); i += 1 {
-			if mine.Contents[i].UID == uid {
-				if i == len(mine.Contents)-1 {
-					mine.Contents = append(mine.Contents[:i])
-				} else {
-					mine.Contents = append(mine.Contents[:i], mine.Contents[i+1:]...)
+	return err
+}
+
+func (mine *DisplayInfo) AppendContent(uid, remark, operator string, opt ContentOption) error {
+	pend := opt != ContentOptionStable
+	tmp := proxy.DisplayContent{
+		UID:       uid,
+		Submitter: operator,
+		Option:    uint32(opt),
+		Events:    make([]string, 0, 1),
+		Assets:    make([]string, 0, 1),
+	}
+	var err error
+	if pend {
+		item := mine.GetPendContent(uid)
+		if item != nil {
+			return nil
+		}
+		err = nosql.AppendDisplayPending(mine.UID, operator, tmp)
+		if err == nil {
+			mine.Pending = append(mine.Pending, tmp)
+			op := LogOptNull
+			if tmp.Option == uint32(ContentOptionAppend) {
+				op = LogOptRequestAdd
+			} else {
+				op = LogOptRequestDel
+			}
+			mine.createHistory(operator, remark, uid, FavStatusDraft, FavStatusPending, op)
+		}
+	} else {
+		if mine.HadStableContent(uid) {
+			return nil
+		}
+		err = nosql.AppendDisplayContent(mine.UID, operator, tmp)
+		if err == nil {
+			_ = mine.SubtractContent(uid, remark, operator, false)
+			mine.createHistory(operator, remark, uid, FavStatusPending, FavStatusPublish, LogOptAgreeAdd)
+			mine.Contents = append(mine.Contents, tmp)
+		}
+	}
+	return err
+}
+
+func (mine *DisplayInfo) SubtractContent(uid, remark, operator string, stable bool) error {
+	var er error
+	if stable {
+		if !mine.HadStableContent(uid) {
+			return nil
+		}
+		er = nosql.SubtractDisplayContent(mine.UID, uid, operator)
+		if er == nil {
+			mine.createHistory(operator, remark, uid, FavStatusPublish, FavStatusDraft, LogOptAgreeDel)
+			for i := 0; i < len(mine.Contents); i += 1 {
+				if mine.Contents[i].UID == uid {
+					if i == len(mine.Contents)-1 {
+						mine.Contents = append(mine.Contents[:i])
+					} else {
+						mine.Contents = append(mine.Contents[:i], mine.Contents[i+1:]...)
+					}
+					break
 				}
-				break
+			}
+		}
+	} else {
+		pend := mine.GetPendContent(uid)
+		if pend == nil {
+			return nil
+		}
+		op := LogOptNull
+		if pend.Option == uint32(ContentOptionAppend) {
+			op = LogOptRefuseAdd
+		} else {
+			op = LogOptRefuseDel
+		}
+		er = nosql.SubtractDisplayPending(mine.UID, uid, operator)
+		if er == nil {
+			mine.createHistory(operator, remark, uid, FavStatusPending, FavStatusDraft, op)
+			for i := 0; i < len(mine.Pending); i += 1 {
+				if mine.Pending[i].UID == uid {
+					if i == len(mine.Pending)-1 {
+						mine.Pending = append(mine.Pending[:i])
+					} else {
+						mine.Pending = append(mine.Pending[:i], mine.Pending[i+1:]...)
+					}
+					break
+				}
 			}
 		}
 	}
+
 	return er
 }
 

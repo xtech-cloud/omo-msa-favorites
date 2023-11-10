@@ -73,9 +73,13 @@ type ShowContent struct {
 }
 
 type DisplayContent struct {
-	UID    string   `json:"uid" bson:"uid"`       //实体UID或者asset
-	Events []string `json:"events" bson:"events"` //
-	Assets []string `json:"assets" bson:"assets"` //
+	UID       string   `json:"uid" bson:"uid"`             //实体UID或者asset
+	Submitter string   `json:"submitter" bson:"submitter"` //提交人
+	Reviewer  string   `json:"reviewer" bson:"reviewer"`   //审核人
+	Stamp     int64    `json:"stamp" bson:"stamp"`         //提交的时间
+	Option    uint32   `json:"option" bson:"option"`
+	Events    []string `json:"events" bson:"events"` //
+	Assets    []string `json:"assets" bson:"assets"` //
 }
 
 type ProductEffect struct {

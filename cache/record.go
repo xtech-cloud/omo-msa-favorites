@@ -12,6 +12,7 @@ func (mine *cacheContext) createRecord(owner, begin string, tp uint8, count uint
 	db.ID = nosql.GetRecordNextID()
 	db.CreatedTime = time.Now()
 	db.Owner = owner
+	db.Creator = ""
 	db.Begin = begin
 	db.Type = tp
 	db.Count = count

@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"github.com/micro/go-micro/v2/logger"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"omo.msa.favorite/config"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
@@ -18,6 +19,34 @@ const (
 	ObserveArticle  = 4
 	ObserveClick    = 5
 )
+
+const (
+	HistoryActivity HistoryType = 1
+	HistoryDisplay  HistoryType = 2
+)
+
+const (
+	OptionAgree  OptionType = 1 //同意
+	OptionRefuse OptionType = 2 //拒绝
+	OptionSwitch OptionType = 3 //切换关联
+)
+
+const (
+	LogOptNull       uint32 = 0
+	LogOptRequestAdd uint32 = 1
+	LogOptRequestDel uint32 = 2
+	LogOptAgreeAdd   uint32 = 3
+	LogOptAgreeDel   uint32 = 4
+	LogOptRefuseAdd  uint32 = 5
+	LogOptRefuseDel  uint32 = 6
+	LogOptAgree      uint32 = 7
+	LogOptRefuse     uint32 = 8
+	LogOptPend       uint32 = 9 //
+)
+
+type OptionType uint8
+
+type HistoryType uint8
 
 type BaseInfo struct {
 	ID         uint64 `json:"-"`
@@ -46,11 +75,12 @@ func InitData() error {
 		count := nosql.GetFavoriteCount()
 		logger.Infof("the person favorite count = %d and the display count = %d", count, num)
 
-		db, _ := nosql.GetActivity("616e7f56e1fd51b21c857b26")
-		if db != nil {
-			info := new(ActivityInfo)
-			info.initInfo(db)
-		}
+		//db, _ := nosql.GetActivity("616e7f56e1fd51b21c857b26")
+		//if db != nil {
+		//	info := new(ActivityInfo)
+		//	info.initInfo(db)
+		//}
+		nosql.MoveTable()
 	}
 	return err
 }
@@ -107,6 +137,22 @@ func CheckPage[T any](page, number uint32, all []T) (uint32, uint32, []T) {
 	list := make([]T, 0, number)
 	list = append(all[start:end])
 	return total, maxPage, list
+}
+
+func (mine *cacheContext) insertHistory(parent, operator, remark, content, from, to string, opt uint32, tp HistoryType) error {
+	db := new(nosql.History)
+	db.UID = primitive.NewObjectID()
+	db.ID = nosql.GetRecordNextID()
+	db.Creator = operator
+	db.CreatedTime = time.Now()
+	db.Parent = parent
+	db.From = from
+	db.To = to
+	db.Content = content
+	db.Option = opt
+	db.Type = uint8(tp)
+	db.Remark = remark
+	return nosql.CreateHistory(db)
 }
 
 func ParseDate(msg string) (year int, month time.Month, day int, err error) {

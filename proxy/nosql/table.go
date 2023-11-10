@@ -22,10 +22,10 @@ const (
 
 	TableNotice = "notices"
 
-	TableRecord     = "records_msg"
-	TableDisplay    = "displays"
-	TableSheet      = "display_sheets" // 展览列表
-	TableWords      = "words"
-	TableActRecords = "activity_records" //活动操作记录
-	TableProduct    = "products"         //
+	TableRecord  = "fav_records" //操作计数
+	TableDisplay = "displays"
+	TableSheet   = "display_sheets" // 展览列表
+	TableWords   = "words"
+	TableHistory = "fav_histories" //操作记录
+	TableProduct = "products"      //
 )

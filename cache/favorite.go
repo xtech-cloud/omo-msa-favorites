@@ -9,14 +9,14 @@ import (
 
 type FavoriteInfo struct {
 	BaseInfo
-	Status  uint8
-	Type    uint8  //
-	Owner   string //该展览所属用户等
-	Cover   string
-	Remark  string
-	Meta    string //
-	Tags    []string
-	Keys    []string
+	Status uint8
+	Type   uint8  //
+	Owner  string //该展览所属用户等
+	Cover  string
+	Remark string
+	Meta   string //
+	Tags   []string
+	Keys   []string
 }
 
 func (mine *cacheContext) CreateFavorite(info *FavoriteInfo) error {
@@ -224,13 +224,13 @@ func (mine *FavoriteInfo) UpdateStatus(st uint8, operator string) error {
 
 func (mine *FavoriteInfo) UpdateEntities(operator string, list []string) error {
 	var err error
-	if list == nil || len(list) < 1{
+	if list == nil || len(list) < 1 {
 		err = nosql.UpdateFavoriteKeys(mine.UID, operator, make([]string, 0, 1))
 		if err == nil {
 			mine.Keys = make([]string, 0, 1)
 			mine.Operator = operator
 		}
-	}else{
+	} else {
 		err = nosql.UpdateFavoriteKeys(mine.UID, operator, list)
 		if err == nil {
 			mine.Keys = list
@@ -249,22 +249,22 @@ func (mine *FavoriteInfo) HadKey(uid string) bool {
 	return false
 }
 
-func (mine *FavoriteInfo) AppendKey(uid string) error {
+func (mine *FavoriteInfo) AppendKey(uid, operator string) error {
 	if mine.HadKey(uid) {
 		return nil
 	}
-	er := nosql.AppendFavoriteKey(mine.UID, uid)
+	er := nosql.AppendFavoriteKey(mine.UID, uid, operator)
 	if er == nil {
 		mine.Keys = append(mine.Keys, uid)
 	}
 	return er
 }
 
-func (mine *FavoriteInfo) SubtractKey(uid string) error {
+func (mine *FavoriteInfo) SubtractKey(uid, operator string) error {
 	if !mine.HadKey(uid) {
 		return nil
 	}
-	er := nosql.SubtractFavoriteKey(mine.UID, uid)
+	er := nosql.SubtractFavoriteKey(mine.UID, uid, operator)
 	if er == nil {
 		for i := 0; i < len(mine.Keys); i += 1 {
 			if mine.Keys[i] == uid {

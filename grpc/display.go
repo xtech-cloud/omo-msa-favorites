@@ -34,6 +34,8 @@ func switchDisplay(info *cache.DisplayInfo) *pb.DisplayInfo {
 	tmp.Access = uint32(info.Access)
 	tmp.Status = uint32(info.Status)
 	tmp.Contents = info.GetContents()
+	tmp.Pending = info.GetPending()
+	tmp.Records = switchHistories(info.GetHistories())
 	return tmp
 }
 
@@ -212,7 +214,13 @@ func (mine *DisplayService) GetByFilter(ctx context.Context, in *pb.RequestFilte
 			array = cache.Context().GetDisplaysByStatus(in.Owner, uint8(st))
 		}
 	} else if in.Key == "content" {
-		cache.Context().GetDisplaysByContent(in.Owner, in.Value)
+		array = cache.Context().GetDisplaysByContent(in.Owner, in.Value)
+	} else if in.Key == "available" {
+		tp := parseStringToInt(in.Value)
+		array = cache.Context().GetAvailableDisplays(in.List, uint32(tp))
+	} else if in.Key == "visible" {
+		tp := parseStringToInt(in.Value)
+		array = cache.Context().GetVisibleDisplays(in.List, uint32(tp))
 	}
 	out.List = make([]*pb.DisplayInfo, 0, len(array))
 	for _, val := range array {
@@ -327,13 +335,13 @@ func (mine *DisplayService) UpdateStatus(ctx context.Context, in *pb.RequestStat
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
-	info := cache.Context().GetDisplay(in.Uid)
+	info := cache.Context().GetDisplay(in.Parent)
 	if info == nil {
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
 	var err error
-	err = info.UpdateStatus(uint8(in.Status), in.Operator)
+	err = info.UpdateStatus(uint8(in.Status), in.Operator, in.Remark)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -381,7 +389,12 @@ func (mine *DisplayService) UpdateContents(ctx context.Context, in *pb.ReqDispla
 		return nil
 	}
 	var err error
-	err = info.UpdateContents(in.Operator, in.Contents)
+	if in.Type == 0 {
+		err = info.UpdateContents(in.Operator, in.Contents)
+	} else {
+		err = info.UpdatePending(in.Operator, in.Contents)
+	}
+
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -403,12 +416,16 @@ func (mine *DisplayService) AppendContent(ctx context.Context, in *pb.RequestInf
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendContent(in.Flag)
+	err := info.AppendContent(in.Flag, in.Remark, in.Operator, cache.ContentOption(in.Type))
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Contents = info.GetContents()
+	if cache.ContentOption(in.Type) == cache.ContentOptionStable {
+		out.Contents = info.GetContents()
+	} else {
+		out.Contents = info.GetPending()
+	}
 	out.Status = outLog(path, out)
 	return nil
 }
@@ -425,12 +442,17 @@ func (mine *DisplayService) SubtractContent(ctx context.Context, in *pb.RequestI
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractContent(in.Flag)
+	err := info.SubtractContent(in.Flag, in.Remark, in.Operator, cache.ContentOption(in.Type) == cache.ContentOptionStable)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
-	out.Contents = info.GetContents()
+	if cache.ContentOption(in.Type) == cache.ContentOptionStable {
+		out.Contents = info.GetContents()
+	} else {
+		out.Contents = info.GetPending()
+	}
+
 	out.Status = outLog(path, out)
 	return nil
 }

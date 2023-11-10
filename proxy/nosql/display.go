@@ -29,9 +29,10 @@ type Display struct {
 	Banner      string                 `json:"banner" bson:"banner"`
 	Poster      string                 `json:"poster" bson:"poster"`
 	Tags        []string               `json:"tags" bsonL:"tags"`
-	Contents    []proxy.DisplayContent `json:"contents" bson:"contents"`
 	Keys        []string               `json:"keys" bson:"keys"`
-	//Targets     []*proxy.ShowingInfo `json:"targets" bson:"targets"`
+	Scenes      []uint32               `json:"scenes" bson:"scenes"`
+	Contents    []proxy.DisplayContent `json:"contents" bson:"contents"`
+	Pending     []proxy.DisplayContent `json:"pending" bson:"pending"`
 }
 
 func CreateDisplay(info *Display) error {
@@ -213,25 +214,6 @@ func GetDisplaysByStatus(owner string, st uint8) ([]*Display, error) {
 	return items, nil
 }
 
-func GetDisplaysByProduct(owner string, st uint8) ([]*Display, error) {
-	def := new(time.Time)
-	filter := bson.M{"owner": owner, "status": st, "deleteAt": def}
-	cursor, err1 := findMany(TableDisplay, filter, 0)
-	if err1 != nil {
-		return nil, err1
-	}
-	var items = make([]*Display, 0, 20)
-	for cursor.Next(context.Background()) {
-		var node = new(Display)
-		if err := cursor.Decode(&node); err != nil {
-			return nil, err
-		} else {
-			items = append(items, node)
-		}
-	}
-	return items, nil
-}
-
 func GetDisplaysByOwnerTP(owner string, kind uint8) ([]*Display, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "type": kind, "deleteAt": def}
@@ -348,6 +330,12 @@ func UpdateDisplayAccess(uid, operator string, st uint8) error {
 	return err
 }
 
+func UpdateDisplayOwner(uid, owner, operator string) error {
+	msg := bson.M{"owner": owner, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableDisplay, uid, msg)
+	return err
+}
+
 func UpdateDisplayType(uid, operator string, st uint8) error {
 	msg := bson.M{"type": st, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
@@ -360,27 +348,51 @@ func UpdateDisplayTags(uid, operator string, tags []string) error {
 	return err
 }
 
-func UpdateDisplayKeys(uid, operator string, arr []proxy.DisplayContent) error {
+func UpdateDisplayContents(uid, operator string, arr []proxy.DisplayContent) error {
 	msg := bson.M{"contents": arr, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableDisplay, uid, msg)
 	return err
 }
 
-func AppendDisplayKey(uid string, content proxy.DisplayContent) error {
+func UpdateDisplayPending(uid, operator string, arr []proxy.DisplayContent) error {
+	msg := bson.M{"pending": arr, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableDisplay, uid, msg)
+	return err
+}
+
+func AppendDisplayContent(uid, operator string, content proxy.DisplayContent) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"contents": content}
-	_, err := appendElement(TableDisplay, uid, msg)
+	_, err := appendElement(TableDisplay, uid, operator, msg)
 	return err
 }
 
-func SubtractDisplayKey(uid, key string) error {
+func SubtractDisplayContent(uid, key, operator string) error {
 	if len(uid) < 1 {
 		return errors.New("the uid is empty")
 	}
 	msg := bson.M{"contents": bson.M{"uid": key}}
-	_, err := removeElement(TableDisplay, uid, msg)
+	_, err := removeElement(TableDisplay, uid, operator, msg)
+	return err
+}
+
+func AppendDisplayPending(uid, operator string, content proxy.DisplayContent) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"pending": content}
+	_, err := appendElement(TableDisplay, uid, operator, msg)
+	return err
+}
+
+func SubtractDisplayPending(uid, key, operator string) error {
+	if len(uid) < 1 {
+		return errors.New("the uid is empty")
+	}
+	msg := bson.M{"pending": bson.M{"uid": key}}
+	_, err := removeElement(TableDisplay, uid, operator, msg)
 	return err
 }
 
