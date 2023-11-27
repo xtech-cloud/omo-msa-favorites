@@ -248,6 +248,25 @@ func GetActivitiesByStatus(owner string, status uint8) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesByStatusTP(owner string, status, tp uint8) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "type": tp, "status": status, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetActivitiesByType(owner string, tp uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def}

@@ -208,7 +208,7 @@ func (mine *SheetInfo) UpdateStatus(st uint8, operator string) error {
 		mine.Status = st
 		mine.Operator = operator
 		if st == FavStatusPublish {
-			_ = cacheCtx.updateRecord(mine.Owner, ObserveFav, 1)
+			_ = cacheCtx.updateRecord(mine.Owner, RecodeFav, 1)
 		}
 	}
 	return err

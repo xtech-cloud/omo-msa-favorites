@@ -286,6 +286,23 @@ func (mine *cacheContext) GetAllActivitiesByStatus(owner string, state uint8) []
 	return all
 }
 
+func (mine *cacheContext) GetAllActivitiesByStatusTP(owner string, state, tp uint8) []*ActivityInfo {
+	if len(owner) < 1 {
+		return make([]*ActivityInfo, 0, 1)
+	}
+	all := make([]*ActivityInfo, 0, 10)
+	db, _ := nosql.GetActivitiesByStatusTP(owner, state, tp)
+	if db != nil {
+		for _, item := range db {
+			info := new(ActivityInfo)
+			info.initInfo(item)
+			all = append(all, info)
+		}
+	}
+
+	return all
+}
+
 //获取所有当前时间可用的活动
 func (mine *cacheContext) GetAliveActivities(owner string) []*ActivityInfo {
 	if len(owner) < 1 {
@@ -436,7 +453,7 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	mine.Participant = db.Participant
 	mine.Status = db.Status
 	mine.Poster = db.Poster
-
+	mine.Quotes = db.Quotes
 	mine.Targets = db.Targets
 	if mine.Targets == nil || len(mine.Targets) > 16 {
 		mine.Targets = make([]string, 0, 1)
@@ -508,7 +525,7 @@ func (mine *ActivityInfo) UpdateStatus(operator, remark string, st uint8) error 
 		mine.Operator = operator
 		mine.UpdateTime = time.Now()
 		if st == ActivityStatusPublish || st == ActivityStatusRelease {
-			_ = cacheCtx.updateRecord(mine.Owner, ObserveActivity, 1)
+			_ = cacheCtx.updateRecord(mine.Owner, RecodeActivity, 1)
 		}
 	}
 	return err

@@ -323,7 +323,7 @@ func (mine *NoticeInfo) UpdateStatus(st MessageStatus, operator string) error {
 		mine.Operator = operator
 		mine.UpdateTime = time.Now()
 		if st == MessageStatusAgree {
-			_ = cacheCtx.updateRecord(mine.Owner, ObserveNotice, 1)
+			_ = cacheCtx.updateRecord(mine.Owner, RecodeNotice, 1)
 		}
 	}
 	return err

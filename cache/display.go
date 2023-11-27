@@ -192,7 +192,7 @@ func (mine *cacheContext) GetAvailableDisplays(arr []string, tp uint32) []*Displ
 		dbs, err := nosql.GetDisplaysByOwner(uid)
 		if err == nil {
 			for _, item := range dbs {
-				if hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessWrite) {
+				if item.Status == FavStatusPublish && hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessWrite) {
 					info := new(DisplayInfo)
 					info.initInfo(item)
 					list = append(list, info)
@@ -210,7 +210,7 @@ func (mine *cacheContext) GetVisibleDisplays(arr []string, tp uint32) []*Display
 		dbs, err := nosql.GetDisplaysByOwner(uid)
 		if err == nil {
 			for _, item := range dbs {
-				if hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessRead) {
+				if item.Status == FavStatusPublish && hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessRead) {
 					info := new(DisplayInfo)
 					info.initInfo(item)
 					list = append(list, info)
@@ -249,7 +249,7 @@ func (mine *cacheContext) GetDisplaysByType(owner string, kind uint8) []*Display
 		list := make([]*DisplayInfo, 0, len(array))
 		for _, item := range array {
 			if check {
-				if item.Access < 1 {
+				if item.Access != DisplayAccessClose {
 					info := new(DisplayInfo)
 					info.initInfo(item)
 					list = append(list, info)
@@ -345,6 +345,10 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 		_ = nosql.UpdateDisplayOwner(mine.UID, DefaultOwner, mine.Operator)
 		mine.Owner = DefaultOwner
 	}
+	//if len(mine.Contents) > 0 {
+	//	mine.Status = FavStatusPublish
+	//	_ = nosql.UpdateDisplayState(mine.UID, mine.Operator, FavStatusPublish)
+	//}
 }
 
 func (mine *DisplayInfo) GetContents() []*pb.DisplayContent {
@@ -361,6 +365,7 @@ func (mine *DisplayInfo) GetPending() []*pb.DisplayContent {
 		arr = append(arr, &pb.DisplayContent{Uid: content.UID,
 			Option:    content.Option,
 			Submitter: content.Submitter,
+			Reviewer:  content.Reviewer,
 			Events:    content.Events,
 			Assets:    content.Assets})
 	}
@@ -450,16 +455,28 @@ func (mine *DisplayInfo) UpdateStatus(st uint8, operator, remark string) error {
 		opt := LogOptNull
 		if mine.Status == FavStatusPending && st == FavStatusDraft {
 			opt = LogOptRefuse
+			for _, content := range mine.Contents {
+				if !mine.HadPending(content.UID) {
+					mine.Pending = append(mine.Pending, content)
+				}
+			}
+			mine.Contents = make([]proxy.DisplayContent, 0, 1)
 		} else if mine.Status == FavStatusPending && st == FavStatusPublish {
 			opt = LogOptAgree
+			if len(mine.Contents) < 1 {
+				return errors.New("the stable content is empty")
+			}
 		} else if mine.Status == FavStatusDraft && st == FavStatusPending {
-			opt = LogOptAgree
+			opt = LogOptPend
+			//if len(mine.Pending) < 1 {
+			//	return errors.New("the pending content is empty")
+			//}
 		}
 		mine.createHistory(operator, remark, "", mine.Status, st, opt)
 		mine.Status = st
 		mine.Operator = operator
 		if st == FavStatusPublish {
-			_ = cacheCtx.updateRecord(mine.Owner, ObserveFav, 1)
+			_ = cacheCtx.updateRecord(mine.Owner, RecodeFav, 1)
 		}
 	}
 	return err
@@ -513,7 +530,8 @@ func (mine *DisplayInfo) UpdatePending(operator string, list []*pb.DisplayConten
 		utc := time.Now().UTC().Unix()
 		arr := make([]proxy.DisplayContent, 0, len(list))
 		for _, s := range list {
-			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Submitter: operator, Stamp: utc, Events: s.Events, Assets: s.Assets})
+			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Option: s.Option, Submitter: operator,
+				Stamp: utc, Events: s.Events, Assets: s.Assets})
 		}
 		err = nosql.UpdateDisplayPending(mine.UID, operator, arr)
 		if err == nil {
@@ -534,6 +552,16 @@ func (mine *DisplayInfo) HadStableContent(uid string) bool {
 	return false
 }
 
+func (mine *DisplayInfo) HadPending(uid string) bool {
+	for _, item := range mine.Pending {
+		if item.UID == uid {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (mine *DisplayInfo) GetPendContent(uid string) *proxy.DisplayContent {
 	for _, item := range mine.Pending {
 		if item.UID == uid {
@@ -543,18 +571,36 @@ func (mine *DisplayInfo) GetPendContent(uid string) *proxy.DisplayContent {
 	return nil
 }
 
-func (mine *DisplayInfo) appendContent(remark string, content proxy.DisplayContent, stable bool) error {
-	var err error
-	if stable {
-
-	} else {
-
+func (mine *DisplayInfo) removePending(uid string) {
+	for i := 0; i < len(mine.Pending); i += 1 {
+		if mine.Pending[i].UID == uid {
+			if i == len(mine.Pending)-1 {
+				mine.Pending = append(mine.Pending[:i])
+			} else {
+				mine.Pending = append(mine.Pending[:i], mine.Pending[i+1:]...)
+			}
+			break
+		}
 	}
-	return err
 }
 
-func (mine *DisplayInfo) AppendContent(uid, remark, operator string, opt ContentOption) error {
-	pend := opt != ContentOptionStable
+func (mine *DisplayInfo) AgreePending(uid, remark, operator string) error {
+	item := mine.GetPendContent(uid)
+	if item == nil {
+		return errors.New("the item not found")
+	}
+	if item.Option == uint32(ContentOptionAppend) {
+		return mine.AppendContent(uid, remark, operator, ContentOptionAppend, true)
+	} else {
+		er := mine.SubtractContent(uid, remark, operator, true, true)
+		if er == nil {
+			er = mine.SubtractContent(uid, remark, operator, false, false)
+		}
+		return er
+	}
+}
+
+func (mine *DisplayInfo) AppendContent(uid, remark, operator string, opt ContentOption, stable bool) error {
 	tmp := proxy.DisplayContent{
 		UID:       uid,
 		Submitter: operator,
@@ -563,9 +609,22 @@ func (mine *DisplayInfo) AppendContent(uid, remark, operator string, opt Content
 		Assets:    make([]string, 0, 1),
 	}
 	var err error
-	if pend {
+	if stable {
+		if mine.HadStableContent(uid) {
+			return nil
+		}
+		err = nosql.AppendDisplayContent(mine.UID, operator, tmp)
+		if err == nil {
+			_ = mine.SubtractContent(uid, remark, operator, false, false)
+			mine.createHistory(operator, remark, uid, FavStatusPending, FavStatusPublish, LogOptAgreeAdd)
+			mine.Contents = append(mine.Contents, tmp)
+		}
+	} else {
 		item := mine.GetPendContent(uid)
 		if item != nil {
+			return nil
+		}
+		if opt == ContentOptionAppend && mine.HadStableContent(uid) {
 			return nil
 		}
 		err = nosql.AppendDisplayPending(mine.UID, operator, tmp)
@@ -579,21 +638,11 @@ func (mine *DisplayInfo) AppendContent(uid, remark, operator string, opt Content
 			}
 			mine.createHistory(operator, remark, uid, FavStatusDraft, FavStatusPending, op)
 		}
-	} else {
-		if mine.HadStableContent(uid) {
-			return nil
-		}
-		err = nosql.AppendDisplayContent(mine.UID, operator, tmp)
-		if err == nil {
-			_ = mine.SubtractContent(uid, remark, operator, false)
-			mine.createHistory(operator, remark, uid, FavStatusPending, FavStatusPublish, LogOptAgreeAdd)
-			mine.Contents = append(mine.Contents, tmp)
-		}
 	}
 	return err
 }
 
-func (mine *DisplayInfo) SubtractContent(uid, remark, operator string, stable bool) error {
+func (mine *DisplayInfo) SubtractContent(uid, remark, operator string, stable, log bool) error {
 	var er error
 	if stable {
 		if !mine.HadStableContent(uid) {
@@ -601,7 +650,10 @@ func (mine *DisplayInfo) SubtractContent(uid, remark, operator string, stable bo
 		}
 		er = nosql.SubtractDisplayContent(mine.UID, uid, operator)
 		if er == nil {
-			mine.createHistory(operator, remark, uid, FavStatusPublish, FavStatusDraft, LogOptAgreeDel)
+			if log {
+				mine.createHistory(operator, remark, uid, FavStatusPublish, FavStatusDraft, LogOptAgreeDel)
+			}
+
 			for i := 0; i < len(mine.Contents); i += 1 {
 				if mine.Contents[i].UID == uid {
 					if i == len(mine.Contents)-1 {
@@ -618,25 +670,18 @@ func (mine *DisplayInfo) SubtractContent(uid, remark, operator string, stable bo
 		if pend == nil {
 			return nil
 		}
-		op := LogOptNull
-		if pend.Option == uint32(ContentOptionAppend) {
-			op = LogOptRefuseAdd
-		} else {
-			op = LogOptRefuseDel
-		}
 		er = nosql.SubtractDisplayPending(mine.UID, uid, operator)
 		if er == nil {
-			mine.createHistory(operator, remark, uid, FavStatusPending, FavStatusDraft, op)
-			for i := 0; i < len(mine.Pending); i += 1 {
-				if mine.Pending[i].UID == uid {
-					if i == len(mine.Pending)-1 {
-						mine.Pending = append(mine.Pending[:i])
-					} else {
-						mine.Pending = append(mine.Pending[:i], mine.Pending[i+1:]...)
-					}
-					break
+			if log {
+				op := LogOptNull
+				if pend.Option == uint32(ContentOptionAppend) {
+					op = LogOptRefuseAdd
+				} else {
+					op = LogOptRefuseDel
 				}
+				mine.createHistory(operator, remark, uid, FavStatusPending, FavStatusDraft, op)
 			}
+			mine.removePending(uid)
 		}
 	}
 

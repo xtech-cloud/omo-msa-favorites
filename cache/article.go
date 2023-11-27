@@ -254,7 +254,7 @@ func (mine *ArticleInfo) UpdateStatus(st MessageStatus, operator string) error {
 		mine.Status = st
 		mine.Operator = operator
 		if st == MessageStatusAgree {
-			_ = cacheCtx.updateRecord(mine.Owner, ObserveArticle, 1)
+			_ = cacheCtx.updateRecord(mine.Owner, RecodeArticle, 1)
 		}
 	}
 	return err

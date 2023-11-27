@@ -89,6 +89,7 @@ func switchHistories(dbs []*nosql.History) []*pb.RecordInfo {
 		tmp.From = item.From
 		tmp.To = item.To
 		tmp.Remark = item.Remark
+		tmp.Stamp = item.CreatedTime.Unix()
 		tmp.Content = item.Content
 		tmp.Option = uint32(item.Option)
 		arr = append(arr, tmp)

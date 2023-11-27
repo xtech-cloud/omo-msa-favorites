@@ -331,7 +331,7 @@ func (mine *DisplayService) UpdateMeta(ctx context.Context, in *pb.ReqDisplayMet
 func (mine *DisplayService) UpdateStatus(ctx context.Context, in *pb.RequestState, out *pb.ReplyInfo) error {
 	path := "display.updateStatus"
 	inLog(path, in)
-	if len(in.Uid) < 1 {
+	if len(in.Parent) < 1 {
 		out.Status = outError(path, "the display uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
@@ -416,7 +416,13 @@ func (mine *DisplayService) AppendContent(ctx context.Context, in *pb.RequestInf
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.AppendContent(in.Flag, in.Remark, in.Operator, cache.ContentOption(in.Type))
+	var err error
+	if in.Type == uint32(cache.ContentOptionStable) {
+		err = info.AgreePending(in.Flag, in.Remark, in.Operator)
+	} else {
+		err = info.AppendContent(in.Flag, in.Remark, in.Operator, cache.ContentOption(in.Type), false)
+	}
+
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
@@ -442,7 +448,7 @@ func (mine *DisplayService) SubtractContent(ctx context.Context, in *pb.RequestI
 		out.Status = outError(path, "the display not found", pbstatus.ResultStatus_NotExisted)
 		return nil
 	}
-	err := info.SubtractContent(in.Flag, in.Remark, in.Operator, cache.ContentOption(in.Type) == cache.ContentOptionStable)
+	err := info.SubtractContent(in.Flag, in.Remark, in.Operator, cache.ContentOption(in.Type) == cache.ContentOptionStable, true)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil

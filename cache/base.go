@@ -13,11 +13,16 @@ import (
 )
 
 const (
-	ObserveActivity = 1
-	ObserveNotice   = 2
-	ObserveFav      = 3
-	ObserveArticle  = 4
-	ObserveClick    = 5
+	RecodeActivity = 1
+	RecodeNotice   = 2
+	RecodeFav      = 3
+	RecodeArticle  = 4
+	RecodeClick    = 5
+)
+
+const (
+	MessageActivity = 1
+	MessageNotice   = 99
 )
 
 const (
