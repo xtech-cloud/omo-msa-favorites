@@ -24,7 +24,8 @@ const (
 	ActivityTypeNormal   uint8 = 0 //默认活动
 	ActivityTypeTemplate uint8 = 1
 	ActivityTypeOpen     uint8 = 2 //开放活动
-	ActivityTypeBeginner uint8 = 3 //新手活动
+	ActivityTypeBeginner uint8 = 3 //诵读活动
+	ActivityTypeReading  uint8 = 4 //阅读活动
 )
 
 const (
@@ -337,9 +338,15 @@ func (mine *cacheContext) GetAllActivitiesByType(owner string, tp uint8) []*Acti
 	return all
 }
 
-func (mine *cacheContext) GetActivityTags() []string {
+func (mine *cacheContext) GetActivityTags(scene string) []string {
 	list := make([]string, 0, 30)
-	dbs, _ := nosql.GetActivities()
+	var dbs []*nosql.Activity
+	if scene == "" {
+		dbs, _ = nosql.GetActivities()
+	} else {
+		dbs, _ = nosql.GetActivitiesByOwner(scene)
+	}
+
 	if dbs != nil {
 		for _, db := range dbs {
 			for _, tag := range db.Tags {

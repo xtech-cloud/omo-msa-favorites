@@ -85,7 +85,7 @@ func InitData() error {
 		//	info := new(ActivityInfo)
 		//	info.initInfo(db)
 		//}
-		nosql.MoveTable()
+		//nosql.MoveTable()
 	}
 	return err
 }

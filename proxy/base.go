@@ -78,6 +78,7 @@ type DisplayContent struct {
 	Reviewer  string   `json:"reviewer" bson:"reviewer"`   //审核人
 	Stamp     int64    `json:"stamp" bson:"stamp"`         //提交的时间
 	Option    uint32   `json:"option" bson:"option"`
+	Remark    string   `json:"remark" bson:"remark"`
 	Events    []string `json:"events" bson:"events"` //
 	Assets    []string `json:"assets" bson:"assets"` //
 }

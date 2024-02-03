@@ -624,7 +624,7 @@ func (mine *ActivityService) GetStrings(ctx context.Context, in *pb.RequestFilte
 	path := "activity.getStrings"
 	inLog(path, in)
 	if in.Key == "tags" {
-		out.List = cache.Context().GetActivityTags()
+		out.List = cache.Context().GetActivityTags(in.Value)
 	}
 
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))

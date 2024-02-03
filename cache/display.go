@@ -41,7 +41,7 @@ type DisplayInfo struct {
 	Owner    string //该展览所属组织机构，scene
 	Cover    string
 	Remark   string
-	Origin   string //布展数据来源，比如活动
+	Origin   string //布展数据来源，比如活动,荣誉榜
 	Banner   string //标语
 	Poster   string //海报
 	Meta     string //
@@ -354,7 +354,10 @@ func (mine *DisplayInfo) initInfo(db *nosql.Display) {
 func (mine *DisplayInfo) GetContents() []*pb.DisplayContent {
 	arr := make([]*pb.DisplayContent, 0, len(mine.Contents))
 	for _, content := range mine.Contents {
-		arr = append(arr, &pb.DisplayContent{Uid: content.UID, Events: content.Events, Assets: content.Assets})
+		arr = append(arr, &pb.DisplayContent{Uid: content.UID,
+			Remark: content.Remark,
+			Events: content.Events,
+			Assets: content.Assets})
 	}
 	return arr
 }
@@ -363,6 +366,7 @@ func (mine *DisplayInfo) GetPending() []*pb.DisplayContent {
 	arr := make([]*pb.DisplayContent, 0, len(mine.Pending))
 	for _, content := range mine.Pending {
 		arr = append(arr, &pb.DisplayContent{Uid: content.UID,
+			Remark:    content.Remark,
 			Option:    content.Option,
 			Submitter: content.Submitter,
 			Reviewer:  content.Reviewer,
@@ -507,7 +511,8 @@ func (mine *DisplayInfo) UpdateContents(operator string, list []*pb.DisplayConte
 		utc := time.Now().UTC().Unix()
 		arr := make([]proxy.DisplayContent, 0, len(list))
 		for _, s := range list {
-			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Submitter: operator, Stamp: utc, Events: s.Events, Assets: s.Assets})
+			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Remark: s.Remark, Submitter: operator,
+				Stamp: utc, Events: s.Events, Assets: s.Assets})
 		}
 		err = nosql.UpdateDisplayContents(mine.UID, operator, arr)
 		if err == nil {
@@ -530,8 +535,11 @@ func (mine *DisplayInfo) UpdatePending(operator string, list []*pb.DisplayConten
 		utc := time.Now().UTC().Unix()
 		arr := make([]proxy.DisplayContent, 0, len(list))
 		for _, s := range list {
+			if s.Option == uint32(ContentOptionAppend) && mine.HadStableContent(s.Uid) {
+				continue
+			}
 			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Option: s.Option, Submitter: operator,
-				Stamp: utc, Events: s.Events, Assets: s.Assets})
+				Stamp: utc, Remark: s.Remark, Events: s.Events, Assets: s.Assets})
 		}
 		err = nosql.UpdateDisplayPending(mine.UID, operator, arr)
 		if err == nil {
@@ -620,11 +628,11 @@ func (mine *DisplayInfo) AppendContent(uid, remark, operator string, opt Content
 			mine.Contents = append(mine.Contents, tmp)
 		}
 	} else {
-		item := mine.GetPendContent(uid)
-		if item != nil {
+		if opt == ContentOptionAppend && mine.HadStableContent(uid) {
 			return nil
 		}
-		if opt == ContentOptionAppend && mine.HadStableContent(uid) {
+		item := mine.GetPendContent(uid)
+		if item != nil {
 			return nil
 		}
 		err = nosql.AppendDisplayPending(mine.UID, operator, tmp)
