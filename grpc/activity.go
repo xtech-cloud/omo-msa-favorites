@@ -288,6 +288,8 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 	} else if in.Key == "alive" {
 		//当下时间未结束的活动数据
 		array = cache.Context().GetAliveActivities(in.Owner)
+	} else if in.Key == "quote" {
+		array = cache.Context().GetActivitiesByQuote(in.Value)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
@@ -625,6 +627,13 @@ func (mine *ActivityService) GetStrings(ctx context.Context, in *pb.RequestFilte
 	inLog(path, in)
 	if in.Key == "tags" {
 		out.List = cache.Context().GetActivityTags(in.Value)
+	} else if in.Key == "targets" {
+		tp, er := strconv.ParseUint(in.Value, 10, 32)
+		if er != nil {
+			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_FormatError)
+			return nil
+		}
+		out.List = cache.Context().GetActivityTargetsByType(in.Owner, uint8(tp))
 	}
 
 	out.Status = outLog(path, fmt.Sprintf("the length = %d", len(out.List)))

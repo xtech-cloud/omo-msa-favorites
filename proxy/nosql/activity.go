@@ -40,7 +40,7 @@ type Activity struct {
 	Prize        *proxy.PrizeInfo   `json:"prize" bson:"prize"` //奖项设置
 	Tags         []string           `json:"tags" bsonL:"tags"`
 	Assets       []string           `json:"assets" bson:"assets"`
-	Targets      []string           `json:"targets" bson:"targets"`
+	Targets      []string           `json:"targets" bson:"targets"` //引用的实体对象
 	Quotes       []string           `json:"quotes" bson:"quotes"`
 	Participants []string           `json:"participants" bson:"participants"` //弃用
 	Persons      []proxy.PersonInfo `json:"persons" bson:"persons"`           //记录参与人信息
@@ -270,6 +270,44 @@ func GetActivitiesByStatusTP(owner string, status, tp uint8) ([]*Activity, error
 func GetActivitiesByType(owner string, tp uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetActivitiesByQuote(quote string) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"quotes": quote, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetActivitiesBySceneType(scene string, tp uint8) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": scene, "type": tp, "deleteAt": def}
 	cursor, err1 := findMany(TableActivity, filter, 0)
 	if err1 != nil {
 		return nil, err1

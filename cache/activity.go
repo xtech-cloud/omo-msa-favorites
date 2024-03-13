@@ -26,6 +26,7 @@ const (
 	ActivityTypeOpen     uint8 = 2 //开放活动
 	ActivityTypeBeginner uint8 = 3 //诵读活动
 	ActivityTypeReading  uint8 = 4 //阅读活动
+	ActivityTypePlace    uint8 = 5 //研学活动
 )
 
 const (
@@ -316,6 +317,34 @@ func (mine *cacheContext) GetAliveActivities(owner string) []*ActivityInfo {
 			info := new(ActivityInfo)
 			info.initInfo(db)
 			all = append(all, info)
+		}
+	}
+	return all
+}
+
+func (mine *cacheContext) GetActivitiesByQuote(uid string) []*ActivityInfo {
+	dbs, er := nosql.GetActivitiesByQuote(uid)
+	all := make([]*ActivityInfo, 0, 10)
+	if er == nil {
+		for _, item := range dbs {
+			info := new(ActivityInfo)
+			info.initInfo(item)
+			all = append(all, info)
+		}
+	}
+	return all
+}
+
+func (mine *cacheContext) GetActivityTargetsByType(scene string, tp uint8) []string {
+	dbs, er := nosql.GetActivitiesBySceneType(scene, tp)
+	all := make([]string, 0, 10)
+	if er == nil {
+		for _, item := range dbs {
+			for _, target := range item.Targets {
+				if !tool.HasItem(all, target) {
+					all = append(all, target)
+				}
+			}
 		}
 	}
 	return all
