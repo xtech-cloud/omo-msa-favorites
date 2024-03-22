@@ -131,6 +131,11 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 	info.ShowResult = uint8(in.Show)
 	info.Status = uint8(in.Status)
 	info.Template = in.Template
+	if in.Certify != nil {
+		info.Certificate = proxy.CertifyInfo{Style: in.Certify.Style, Limit: in.Certify.Limit}
+	} else {
+		info.Certificate = proxy.CertifyInfo{Style: "", Limit: 0}
+	}
 
 	info.Duration = proxy.DurationInfo{Start: proxy.DateToUTC(in.Date.Start, 0), Stop: proxy.DateToUTC(in.Date.Stop, 1)}
 	info.Place = proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location}
@@ -263,9 +268,11 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 	} else if in.Key == "opuses" {
 
 	} else if in.Key == "organizer" {
-		array = cache.Context().GetActivitiesByOrganizer(in.Value)
+		acts := cache.Context().GetActivitiesByOrganizer(in.Value)
+		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	} else if in.Key == "template" {
-		array = cache.Context().GetActivitiesByTemplate(in.Owner, in.Value)
+		acts := cache.Context().GetActivitiesByTemplate(in.Owner, in.Value)
+		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	} else if in.Key == "show" {
 		st, er := strconv.ParseUint(in.Value, 10, 32)
 		if er != nil {
@@ -284,12 +291,15 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-		array = cache.Context().GetAllActivitiesByType(in.Owner, uint8(st))
+		acts := cache.Context().GetAllActivitiesByType(in.Owner, uint8(st))
+		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	} else if in.Key == "alive" {
 		//当下时间未结束的活动数据
-		array = cache.Context().GetAliveActivities(in.Owner)
+		acts := cache.Context().GetAliveActivities(in.Owner)
+		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	} else if in.Key == "quote" {
-		array = cache.Context().GetActivitiesByQuote(in.Value)
+		acts := cache.Context().GetActivitiesByQuote(in.Value)
+		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
@@ -323,6 +333,9 @@ func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityU
 	}
 	if uint8(in.Limit) != info.SubmitLimit {
 		err = info.UpdateAssetLimit(in.Operator, uint8(in.Limit))
+	}
+	if in.Certify != nil {
+		err = info.UpdateCertify(in.Operator, proxy.CertifyInfo{Style: in.Certify.Style, Limit: in.Certify.Limit})
 	}
 
 	if !tool.EqualArray(info.Tags, in.Tags) {

@@ -52,6 +52,8 @@ type ActivityInfo struct {
 	Poster      string //生成的活动海报uid
 	Template    string //引用的活动模板
 
+	Certificate proxy.CertifyInfo //证书样式
+
 	Duration proxy.DurationInfo //持续时间
 	Place    proxy.PlaceInfo
 	Prize    *proxy.PrizeInfo
@@ -95,6 +97,7 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db.Prize = info.Prize
 	db.Access = 0
 	db.Poster = ""
+	db.Certify = info.Certificate
 	db.Template = info.Template
 	db.Opuses = make([]proxy.OpusInfo, 0, 1)
 	db.Participant = 0
@@ -477,7 +480,7 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 	mine.Require = db.Require
 	mine.Organizer = db.Organizer
 	mine.Template = db.Template
-
+	mine.Certificate = db.Certify
 	mine.Place = db.Place
 	mine.Prize = db.Prize
 	mine.ShowResult = db.Show
@@ -593,6 +596,16 @@ func (mine *ActivityInfo) UpdateAccess(operator string, st uint8) error {
 	err := nosql.UpdateActivityAccess(mine.UID, operator, st)
 	if err == nil {
 		mine.Access = st
+		mine.Operator = operator
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ActivityInfo) UpdateCertify(operator string, info proxy.CertifyInfo) error {
+	err := nosql.UpdateActivityCertify(mine.UID, operator, info)
+	if err == nil {
+		mine.Certificate = info
 		mine.Operator = operator
 		mine.UpdateTime = time.Now()
 	}

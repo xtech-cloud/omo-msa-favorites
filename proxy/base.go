@@ -22,6 +22,11 @@ type PlaceInfo struct {
 	Location string `json:"location" bson:"location"`
 }
 
+type CertifyInfo struct {
+	Style string `json:"style" bson:"style"`
+	Limit uint32 `json:"limit" bson:"limit"`
+}
+
 type PersonInfo struct {
 	Entity string `json:"entity" bson:"entity"`
 	Event  string `json:"event" bson:"event"`

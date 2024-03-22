@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"omo.msa.favorite/proxy"
 	"time"
 )
@@ -34,6 +35,7 @@ type Activity struct {
 
 	Organizer    string             `json:"organizer" bson:"organizer"`
 	Template     string             `json:"template" bson:"template"`
+	Certify      proxy.CertifyInfo  `json:"certify" bson:"certify"`
 	Place        proxy.PlaceInfo    `json:"place" bson:"place"`
 	Date         proxy.DateInfo     `json:"date" bson:"date"`
 	Duration     proxy.DurationInfo `json:"duration" bson:"duration"`
@@ -143,7 +145,8 @@ func GetActivityByOrganizer(organizer string) ([]*Activity, error) {
 func GetActivitiesByOwner(owner string) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
-	cursor, err1 := findMany(TableActivity, filter, 0)
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(10)
+	cursor, err1 := findManyByOpts(TableActivity, filter, opts)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -270,7 +273,8 @@ func GetActivitiesByStatusTP(owner string, status, tp uint8) ([]*Activity, error
 func GetActivitiesByType(owner string, tp uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def}
-	cursor, err1 := findMany(TableActivity, filter, 0)
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(100)
+	cursor, err1 := findManyByOpts(TableActivity, filter, opts)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -429,6 +433,12 @@ func UpdateActivityShowState(uid, operator string, st uint8) error {
 
 func UpdateActivityAccess(uid, operator string, st uint8) error {
 	msg := bson.M{"access": st, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityCertify(uid, operator string, certify proxy.CertifyInfo) error {
+	msg := bson.M{"certify": certify, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }
