@@ -309,6 +309,25 @@ func GetActivitiesByQuote(quote string) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesBySceneQuote(scene, quote string) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"owner": scene, "quotes": quote, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetActivitiesBySceneType(scene string, tp uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": scene, "type": tp, "deleteAt": def}

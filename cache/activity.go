@@ -325,8 +325,15 @@ func (mine *cacheContext) GetAliveActivities(owner string) []*ActivityInfo {
 	return all
 }
 
-func (mine *cacheContext) GetActivitiesByQuote(uid string) []*ActivityInfo {
-	dbs, er := nosql.GetActivitiesByQuote(uid)
+func (mine *cacheContext) GetActivitiesByQuote(scene, uid string) []*ActivityInfo {
+	var dbs []*nosql.Activity
+	var er error
+	if len(scene) > 0 {
+		dbs, er = nosql.GetActivitiesBySceneQuote(scene, uid)
+	} else {
+		dbs, er = nosql.GetActivitiesByQuote(uid)
+	}
+
 	all := make([]*ActivityInfo, 0, 10)
 	if er == nil {
 		for _, item := range dbs {

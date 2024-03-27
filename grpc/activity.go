@@ -36,6 +36,7 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Status = uint32(info.Status)
 	tmp.Date = &pb.DateInfo{Start: info.Duration.Begin(), Stop: info.Duration.End()}
 	tmp.Place = &pb.PlaceInfo{Name: info.Place.Name, Location: info.Place.Location}
+	tmp.Certify = &pb.CertifyInfo{Style: info.Certificate.Style, Limit: info.Certificate.Limit}
 	tmp.Organizer = info.Organizer
 	tmp.Template = info.Template
 	tmp.Assets = info.Assets
@@ -298,7 +299,7 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 		acts := cache.Context().GetAliveActivities(in.Owner)
 		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	} else if in.Key == "quote" {
-		acts := cache.Context().GetActivitiesByQuote(in.Value)
+		acts := cache.Context().GetActivitiesByQuote(in.Owner, in.Value)
 		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
