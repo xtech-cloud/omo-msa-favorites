@@ -221,6 +221,8 @@ func (mine *DisplayService) GetByFilter(ctx context.Context, in *pb.RequestFilte
 	} else if in.Key == "visible" {
 		tp := parseStringToInt(in.Value)
 		array = cache.Context().GetVisibleDisplays(in.List, uint32(tp))
+	} else if in.Key == "pages" {
+		max, pages, array = cache.Context().GetDisplayPages(in.Page, in.Number)
 	}
 	out.List = make([]*pb.DisplayInfo, 0, len(array))
 	for _, val := range array {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"math"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"strconv"
@@ -281,6 +282,29 @@ func (mine *cacheContext) GetDisplaysByList(array []string) []*DisplayInfo {
 	}
 
 	return list
+}
+
+func (mine *cacheContext) GetDisplayPages(page, number uint32) (uint32, uint32, []*DisplayInfo) {
+	if page < 1 {
+		page = 1
+	}
+	if number < 1 {
+		number = 10
+	}
+	start := (page - 1) * number
+	array, err := nosql.GetDisplaysByPage(FavStatusPublish, int64(start), int64(number))
+	total := nosql.GetDisplaysCount(FavStatusPublish)
+	pages := math.Ceil(float64(total) / float64(number))
+	if err == nil {
+		list := make([]*DisplayInfo, 0, len(array))
+		for _, item := range array {
+			info := new(DisplayInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return uint32(total), uint32(pages), list
+	}
+	return 0, 0, make([]*DisplayInfo, 0, 1)
 }
 
 func (mine *cacheContext) GetDisplaysByTargets(owner string, array []string, page, num uint32) (uint32, uint32, []*DisplayInfo) {

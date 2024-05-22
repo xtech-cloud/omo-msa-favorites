@@ -301,6 +301,11 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 	} else if in.Key == "quote" {
 		acts := cache.Context().GetActivitiesByQuote(in.Owner, in.Value)
 		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
+	} else if in.Key == "quote_scenes" {
+		acts := cache.Context().GetActivitiesByQuoteScenes(in.Value, in.List)
+		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
+	} else if in.Key == "pages" {
+		max, pages, array = cache.Context().GetActivitiesByPage(in.Page, in.Number)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {

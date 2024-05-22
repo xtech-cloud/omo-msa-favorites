@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"omo.msa.favorite/proxy"
 	"time"
 )
@@ -101,6 +102,17 @@ func GetDisplay(uid string) (*Display, error) {
 
 func GetDisplayCount() int64 {
 	num, _ := getTotalCount(TableDisplay)
+	return num
+}
+
+func GetDisplaysCount(st uint8) int64 {
+	def := new(time.Time)
+	filter := bson.M{"status": st, "deleteAt": def}
+	num, err1 := getCount(TableDisplay, filter)
+	if err1 != nil {
+		return num
+	}
+
 	return num
 }
 
@@ -261,6 +273,26 @@ func GetDisplaysByTarget(owner, target string) ([]*Display, error) {
 	}
 	var items = make([]*Display, 0, 20)
 	for cursor.Next(context.Background()) {
+		var node = new(Display)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetDisplaysByPage(st uint8, start, num int64) ([]*Display, error) {
+	def := new(time.Time)
+	filter := bson.M{"status": st, "deleteAt": def}
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(num).SetSkip(start)
+	cursor, err1 := findManyByOpts(TableDisplay, filter, opts)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Display, 0, 20)
+	for cursor.Next(context.TODO()) {
 		var node = new(Display)
 		if err := cursor.Decode(&node); err != nil {
 			return nil, err

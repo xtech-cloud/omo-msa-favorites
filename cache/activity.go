@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/micro/go-micro/v2/logger"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"math"
 	"omo.msa.favorite/proxy"
 	"omo.msa.favorite/proxy/nosql"
 	"omo.msa.favorite/tool"
@@ -219,6 +220,29 @@ func (mine *cacheContext) GetActivitiesByOwner(uid string, usable bool) []*Activ
 	return make([]*ActivityInfo, 0, 1)
 }
 
+func (mine *cacheContext) GetActivitiesByPage(page, number uint32) (uint32, uint32, []*ActivityInfo) {
+	if page < 1 {
+		page = 1
+	}
+	if number < 1 {
+		number = 10
+	}
+	start := (page - 1) * number
+	array, err := nosql.GetActivitiesByPage(ActivityStatusPublish, int64(start), int64(number))
+	total := nosql.GetActivitiesCount(ActivityStatusPublish)
+	pages := math.Ceil(float64(total) / float64(number))
+	if err == nil {
+		list := make([]*ActivityInfo, 0, len(array))
+		for _, item := range array {
+			info := new(ActivityInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return uint32(total), uint32(pages), list
+	}
+	return 0, 0, make([]*ActivityInfo, 0, 1)
+}
+
 func (mine *cacheContext) GetActivitiesByTargets(owner string, array []string, st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if array == nil || len(array) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
@@ -339,6 +363,19 @@ func (mine *cacheContext) GetActivitiesByQuote(scene, uid string) []*ActivityInf
 		for _, item := range dbs {
 			info := new(ActivityInfo)
 			info.initInfo(item)
+			all = append(all, info)
+		}
+	}
+	return all
+}
+
+func (mine *cacheContext) GetActivitiesByQuoteScenes(uid string, scenes []string) []*ActivityInfo {
+	dbs, _ := nosql.GetActivitiesByQuote(uid)
+	all := make([]*ActivityInfo, 0, len(dbs))
+	for _, db := range dbs {
+		if tool.HasItem(scenes, db.Owner) {
+			info := new(ActivityInfo)
+			info.initInfo(db)
 			all = append(all, info)
 		}
 	}

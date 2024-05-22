@@ -162,6 +162,37 @@ func GetActivitiesByOwner(owner string) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesByPage(st uint8, page, num int64) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"status": st, "deleteAt": def}
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(num).SetSkip(page)
+	cursor, err1 := findManyByOpts(TableActivity, filter, opts)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.TODO()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
+func GetActivitiesCount(st uint8) int64 {
+	def := new(time.Time)
+	filter := bson.M{"status": st, "deleteAt": def}
+	num, err1 := getCount(TableActivity, filter)
+	if err1 != nil {
+		return num
+	}
+
+	return num
+}
+
 func GetActivitiesByTargets(st uint8, targets []string) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
