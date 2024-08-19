@@ -35,7 +35,7 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Type = uint32(info.Type)
 	tmp.Status = uint32(info.Status)
 	tmp.Date = &pb.DateInfo{Start: info.Duration.Begin(), Stop: info.Duration.End()}
-	tmp.Place = &pb.PlaceInfo{Name: info.Place.Name, Location: info.Place.Location}
+	tmp.Place = &pb.PlaceInfo{Name: info.Place.Name, Location: info.Place.Location, Asset: info.Place.Asset}
 	tmp.Certify = &pb.CertifyInfo{Style: info.Certificate.Style, Limit: info.Certificate.Limit}
 	tmp.Organizer = info.Organizer
 	tmp.Template = info.Template
@@ -45,9 +45,14 @@ func switchActivity(owner string, info *cache.ActivityInfo) *pb.ActivityInfo {
 	tmp.Targets = info.Targets
 	tmp.Access = uint32(info.Access)
 	tmp.Quotes = info.Quotes
+	tmp.Admins = make([]*pb.PairInfo, 0, len(info.Admins))
+	for _, admin := range info.Admins {
+		tmp.Admins = append(tmp.Admins, &pb.PairInfo{Key: admin.Key, Value: admin.Value})
+	}
 	tmp.Prize = switchPrize(info.Prize)
 	tmp.Opuses = switchOpuses(info.Opuses)
 	tmp.Records = switchHistories(info.GetHistories())
+	tmp.Way = &pb.PairInfo{Key: info.Way.Name, Value: info.Way.Asset}
 	return tmp
 }
 
@@ -139,10 +144,15 @@ func (mine *ActivityService) AddOne(ctx context.Context, in *pb.ReqActivityAdd, 
 	}
 
 	info.Duration = proxy.DurationInfo{Start: proxy.DateToUTC(in.Date.Start, 0), Stop: proxy.DateToUTC(in.Date.Stop, 1)}
-	info.Place = proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location}
+	info.Place = proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location, Asset: in.Place.Asset}
 	info.Type = uint8(in.Type)
+	info.Way = proxy.PlaceInfo{Name: in.Way.Key, Asset: in.Way.Value}
 	info.Opuses = make([]proxy.OpusInfo, 0, 1)
 	info.SubmitLimit = uint8(in.Limit)
+	info.Admins = make([]proxy.PairInfo, 0, 2)
+	for _, kv := range in.Admins {
+		info.Admins = append(info.Admins, proxy.PairInfo{Key: kv.Key, Value: kv.Value})
+	}
 	info.Quotes = in.Quotes
 	if in.Prize != nil {
 		info.Prize = &proxy.PrizeInfo{
@@ -239,7 +249,7 @@ func (mine *ActivityService) GetList(ctx context.Context, in *pb.RequestInfo, ou
 		if len(in.Flag) > 0 {
 			used = true
 		}
-		array := cache.Context().GetActivitiesByOwner(in.Owner, used)
+		_, _, array := cache.Context().GetActivitiesByOwner(in.Owner, used, 0, 0)
 		out.List = make([]*pb.ActivityInfo, 0, len(array))
 		for _, val := range array {
 			out.List = append(out.List, switchActivity(in.Owner, val))
@@ -265,7 +275,7 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 			out.Status = outError(path, er.Error(), pbstatus.ResultStatus_DBException)
 			return nil
 		}
-		max, pages, array = cache.Context().GetActivitiesByStatus(in.Owner, arr, in.Page, in.Number)
+		max, pages, array = cache.Context().GetActivitiesByStates(in.Owner, arr, in.Page, in.Number)
 	} else if in.Key == "opuses" {
 
 	} else if in.Key == "organizer" {
@@ -305,7 +315,13 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 		acts := cache.Context().GetActivitiesByQuoteScenes(in.Value, in.List)
 		max, pages, array = cache.CheckPage(in.Page, in.Number, acts)
 	} else if in.Key == "pages" {
-		max, pages, array = cache.Context().GetActivitiesByPage(in.Page, in.Number)
+		max, pages, array = cache.Context().GetPublicActivitiesByPage(in.Page, in.Number)
+	} else if in.Key == "publish" {
+		max, pages, array = cache.Context().GetActivitiesByOwner(in.Value, true, in.Page, in.Number)
+	} else if in.Key == "array" {
+		array = cache.Context().GetActivitiesByArray(in.List)
+	} else if in.Key == "admin" {
+		array = cache.Context().GetActivitiesByAdmin(in.Value)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
@@ -337,6 +353,8 @@ func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityU
 		err = info.UpdateBase(in.Name, in.Remark, in.Require, in.Operator, proxy.DateInfo{Start: in.Date.Start, Stop: in.Date.Stop},
 			proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location})
 	}
+	err = info.UpdateAdmins(in.Operator, in.Admins)
+
 	if uint8(in.Limit) != info.SubmitLimit {
 		err = info.UpdateAssetLimit(in.Operator, uint8(in.Limit))
 	}

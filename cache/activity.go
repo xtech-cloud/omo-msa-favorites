@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"github.com/micro/go-micro/v2/logger"
+	pb "github.com/xtech-cloud/omo-msp-favorites/proto/favorite"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
 	"omo.msa.favorite/proxy"
@@ -28,6 +29,7 @@ const (
 	ActivityTypeBeginner uint8 = 3 //诵读活动
 	ActivityTypeReading  uint8 = 4 //阅读活动
 	ActivityTypePlace    uint8 = 5 //研学活动
+	ActivityTypeCustom   uint8 = 6 //自定义活动
 )
 
 const (
@@ -56,14 +58,18 @@ type ActivityInfo struct {
 	Certificate proxy.CertifyInfo //证书样式
 
 	Duration proxy.DurationInfo //持续时间
-	Place    proxy.PlaceInfo
+	Place    proxy.PlaceInfo    //地址
 	Prize    *proxy.PrizeInfo
+
+	Way proxy.PlaceInfo //参与方式
 
 	Quotes  []string //引用的实体对象
 	Assets  []string
 	Tags    []string
 	Targets []string         //具体的班级，场景等
-	Opuses  []proxy.OpusInfo //获奖作品
+	Admins  []proxy.PairInfo //
+
+	Opuses []proxy.OpusInfo //获奖作品
 }
 
 func (mine *cacheContext) GetActivity(uid string) (*ActivityInfo, error) {
@@ -98,6 +104,7 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db.Prize = info.Prize
 	db.Access = 0
 	db.Poster = ""
+	db.Way = info.Way
 	db.Certify = info.Certificate
 	db.Template = info.Template
 	db.Opuses = make([]proxy.OpusInfo, 0, 1)
@@ -117,6 +124,10 @@ func (mine *cacheContext) CreateActivity(info *ActivityInfo) error {
 	db.Quotes = info.Quotes
 	if db.Quotes == nil {
 		db.Quotes = make([]string, 0, 1)
+	}
+	db.Admins = info.Admins
+	if db.Admins == nil {
+		db.Admins = make([]proxy.PairInfo, 0, 1)
 	}
 
 	err := nosql.CreateActivity(db)
@@ -157,7 +168,7 @@ func (mine *cacheContext) GetActivityCountByStatus(owner string, st uint32) uint
 
 func (mine *cacheContext) GetActivityParticipant(owner string) uint32 {
 	var num uint32 = 0
-	list, _ := nosql.GetActivitiesByOwner(owner)
+	list, _ := nosql.GetActivitiesByOwner(owner, 0, 0)
 	for _, activity := range list {
 		num = num + activity.Participant
 	}
@@ -198,39 +209,68 @@ func (mine *cacheContext) GetActivityOpusCount(owner, uid string) uint32 {
 	return 0
 }
 
-func (mine *cacheContext) GetActivitiesByOwner(uid string, usable bool) []*ActivityInfo {
-	array, err := nosql.GetActivitiesByOwner(uid)
-	if err == nil {
-		list := make([]*ActivityInfo, 0, len(array))
-		for _, item := range array {
-			if usable {
-				if item.Status > ActivityStatusPending {
-					info := new(ActivityInfo)
-					info.initInfo(item)
-					list = append(list, info)
-				}
-			} else {
-				info := new(ActivityInfo)
-				info.initInfo(item)
-				list = append(list, info)
-			}
+func (mine *cacheContext) GetActivitiesByArray(arr []string) []*ActivityInfo {
+	list := make([]*ActivityInfo, 0, len(arr))
+	for _, s := range arr {
+		info, _ := nosql.GetActivity(s)
+		if info != nil {
+			tmp := new(ActivityInfo)
+			tmp.initInfo(info)
+			list = append(list, tmp)
 		}
-		return list
 	}
-	return make([]*ActivityInfo, 0, 1)
+	return list
 }
 
-func (mine *cacheContext) GetActivitiesByPage(page, number uint32) (uint32, uint32, []*ActivityInfo) {
-	if page < 1 {
-		page = 1
+func (mine *cacheContext) GetActivitiesByAdmin(phone string) []*ActivityInfo {
+	dbs, err := nosql.GetActivitiesByAdmin(phone)
+	if err != nil {
+		return nil
 	}
-	if number < 1 {
-		number = 10
+	list := make([]*ActivityInfo, 0, len(dbs))
+	for _, db := range dbs {
+		tmp := new(ActivityInfo)
+		tmp.initInfo(db)
+		list = append(list, tmp)
 	}
-	start := (page - 1) * number
-	array, err := nosql.GetActivitiesByPage(ActivityStatusPublish, int64(start), int64(number))
+	return list
+}
+
+func (mine *cacheContext) GetActivitiesByOwner(uid string, usable bool, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+	var start uint32
+	start, num = getPageStart(page, num)
+	var total int64 = 0
+	var array []*nosql.Activity
+	var err error
+	if usable {
+		states := []uint8{ActivityStatusRelease, ActivityStatusPublish}
+		total = nosql.GetActivitiesCountByStates(uid, states)
+		array, err = nosql.GetActivitiesByStates(uid, states, int64(start), int64(num))
+	} else {
+		total = nosql.GetActivitiesCountByOwner(uid)
+		array, err = nosql.GetActivitiesByOwner(uid, int64(start), int64(num))
+	}
+
+	pages := math.Ceil(float64(total) / float64(num))
+	if err != nil {
+		return 0, 0, make([]*ActivityInfo, 0, 1)
+	}
+
+	list := make([]*ActivityInfo, 0, len(array))
+	for _, item := range array {
+		info := new(ActivityInfo)
+		info.initInfo(item)
+		list = append(list, info)
+	}
+	return uint32(total), uint32(pages), list
+}
+
+func (mine *cacheContext) GetPublicActivitiesByPage(page, num uint32) (uint32, uint32, []*ActivityInfo) {
+	var start uint32
+	start, num = getPageStart(page, num)
+	array, err := nosql.GetActivitiesByPage(ActivityStatusPublish, int64(start), int64(num))
 	total := nosql.GetActivitiesCount(ActivityStatusPublish)
-	pages := math.Ceil(float64(total) / float64(number))
+	pages := math.Ceil(float64(total) / float64(num))
 	if err == nil {
 		list := make([]*ActivityInfo, 0, len(array))
 		for _, item := range array {
@@ -420,7 +460,7 @@ func (mine *cacheContext) GetActivityTags(scene string) []string {
 	if scene == "" {
 		dbs, _ = nosql.GetActivities()
 	} else {
-		dbs, _ = nosql.GetActivitiesByOwner(scene)
+		dbs, _ = nosql.GetActivitiesByOwner(scene, 0, 0)
 	}
 
 	if dbs != nil {
@@ -436,12 +476,16 @@ func (mine *cacheContext) GetActivityTags(scene string) []string {
 	return list
 }
 
-func (mine *cacheContext) GetActivitiesByStatus(owner string, states []uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
+func (mine *cacheContext) GetActivitiesByStates(owner string, states []uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	if len(owner) < 1 {
 		return 0, 0, make([]*ActivityInfo, 0, 1)
 	}
-	all := make([]*ActivityInfo, 0, 10)
-	db, _ := nosql.GetActivitiesByStates(owner, states)
+	var start uint32
+	start, num = getPageStart(page, num)
+	all := make([]*ActivityInfo, 0, num)
+	total := nosql.GetActivitiesCountByStates(owner, states)
+	pages := math.Ceil(float64(total) / float64(num))
+	db, _ := nosql.GetActivitiesByStates(owner, states, int64(start), int64(num))
 	if db != nil {
 		for _, item := range db {
 			info := new(ActivityInfo)
@@ -449,14 +493,7 @@ func (mine *cacheContext) GetActivitiesByStatus(owner string, states []uint8, pa
 			all = append(all, info)
 		}
 	}
-
-	if num < 1 {
-		num = 10
-	}
-	if len(all) < 1 {
-		return 0, 0, make([]*ActivityInfo, 0, 1)
-	}
-	return CheckPage(page, num, all)
+	return uint32(total), uint32(pages), all
 }
 
 func (mine *cacheContext) GetActivitiesByShow(owners []string, st uint8, page, num uint32) (uint32, uint32, []*ActivityInfo) {
@@ -534,9 +571,14 @@ func (mine *ActivityInfo) initInfo(db *nosql.Activity) {
 
 	mine.SubmitLimit = db.Limit
 	mine.Participant = db.Participant
+	mine.Way = db.Way
 	mine.Status = db.Status
 	mine.Poster = db.Poster
 	mine.Quotes = db.Quotes
+	mine.Admins = db.Admins
+	if mine.Admins == nil {
+		mine.Admins = make([]proxy.PairInfo, 0, 1)
+	}
 	mine.Targets = db.Targets
 	if mine.Targets == nil || len(mine.Targets) > 16 {
 		mine.Targets = make([]string, 0, 1)
@@ -718,6 +760,20 @@ func (mine *ActivityInfo) UpdateAssetLimit(operator string, num uint8) error {
 	err := nosql.UpdateActivityLimit(mine.UID, operator, num)
 	if err == nil {
 		mine.SubmitLimit = num
+		mine.Operator = operator
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *ActivityInfo) UpdateAdmins(operator string, admins []*pb.PairInfo) error {
+	arr := make([]proxy.PairInfo, 0, len(admins))
+	for _, admin := range admins {
+		arr = append(arr, proxy.PairInfo{Key: admin.Key, Value: admin.Value})
+	}
+	err := nosql.UpdateActivityAdmins(mine.UID, operator, arr)
+	if err == nil {
+		mine.Admins = arr
 		mine.Operator = operator
 		mine.UpdateTime = time.Now()
 	}

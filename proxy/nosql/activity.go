@@ -40,13 +40,15 @@ type Activity struct {
 	Date         proxy.DateInfo     `json:"date" bson:"date"`
 	Duration     proxy.DurationInfo `json:"duration" bson:"duration"`
 	Prize        *proxy.PrizeInfo   `json:"prize" bson:"prize"` //奖项设置
+	Way          proxy.PlaceInfo    `json:"way" bson:"way"`
 	Tags         []string           `json:"tags" bsonL:"tags"`
 	Assets       []string           `json:"assets" bson:"assets"`
 	Targets      []string           `json:"targets" bson:"targets"` //引用的实体对象
 	Quotes       []string           `json:"quotes" bson:"quotes"`
 	Participants []string           `json:"participants" bson:"participants"` //弃用
-	Persons      []proxy.PersonInfo `json:"persons" bson:"persons"`           //记录参与人信息
-	Opuses       []proxy.OpusInfo   `json:"opuses" bson:"opuses"`             //获奖作品
+	Admins       []proxy.PairInfo   `json:"admins" bson:"admins"`
+	Persons      []proxy.PersonInfo `json:"persons" bson:"persons"` //记录参与人信息
+	Opuses       []proxy.OpusInfo   `json:"opuses" bson:"opuses"`   //获奖作品
 }
 
 func CreateActivity(info *Activity) error {
@@ -142,10 +144,10 @@ func GetActivityByOrganizer(organizer string) ([]*Activity, error) {
 	return items, nil
 }
 
-func GetActivitiesByOwner(owner string) ([]*Activity, error) {
+func GetActivitiesByOwner(owner string, page, num int64) ([]*Activity, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "deleteAt": def}
-	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(10)
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(num).SetSkip(page)
 	cursor, err1 := findManyByOpts(TableActivity, filter, opts)
 	if err1 != nil {
 		return nil, err1
@@ -185,6 +187,32 @@ func GetActivitiesByPage(st uint8, page, num int64) ([]*Activity, error) {
 func GetActivitiesCount(st uint8) int64 {
 	def := new(time.Time)
 	filter := bson.M{"status": st, "deleteAt": def}
+	num, err1 := getCount(TableActivity, filter)
+	if err1 != nil {
+		return num
+	}
+
+	return num
+}
+
+func GetActivitiesCountByStates(owner string, states []uint8) int64 {
+	def := new(time.Time)
+	in := bson.A{}
+	for _, st := range states {
+		in = append(in, bson.M{"status": st})
+	}
+	filter := bson.M{"owner": owner, "$or": in, "deleteAt": def}
+	num, err1 := getCount(TableActivity, filter)
+	if err1 != nil {
+		return num
+	}
+
+	return num
+}
+
+func GetActivitiesCountByOwner(owner string) int64 {
+	def := new(time.Time)
+	filter := bson.M{"owner": owner, "deleteAt": def}
 	num, err1 := getCount(TableActivity, filter)
 	if err1 != nil {
 		return num
@@ -240,14 +268,15 @@ func GetActivitiesByOTargets(owner string, st uint8, targets []string) ([]*Activ
 	return items, nil
 }
 
-func GetActivitiesByStates(owner string, states []uint8) ([]*Activity, error) {
+func GetActivitiesByStates(owner string, states []uint8, page, num int64) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
 	for _, st := range states {
 		in = append(in, bson.M{"status": st})
 	}
 	filter := bson.M{"owner": owner, "$or": in, "deleteAt": def}
-	cursor, err1 := findMany(TableActivity, filter, 0)
+	opts := options.Find().SetSort(bson.D{{"createdAt", -1}}).SetLimit(num).SetSkip(page)
+	cursor, err1 := findManyByOpts(TableActivity, filter, opts)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -378,6 +407,25 @@ func GetActivitiesBySceneType(scene string, tp uint8) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesByAdmin(key string) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"admins.key": key, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetActivitiesByShow(owners []string, st uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
@@ -489,6 +537,12 @@ func UpdateActivityAccess(uid, operator string, st uint8) error {
 
 func UpdateActivityCertify(uid, operator string, certify proxy.CertifyInfo) error {
 	msg := bson.M{"certify": certify, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityAdmins(uid, operator string, admins []proxy.PairInfo) error {
+	msg := bson.M{"admins": admins, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }

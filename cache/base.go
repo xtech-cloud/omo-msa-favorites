@@ -118,6 +118,21 @@ func Context() *cacheContext {
 //	return total, maxPage, list.Interface()
 //}
 
+func getPageStart(page, num uint32) (uint32, uint32) {
+	var start uint32
+	if page < 1 {
+		page = 0
+		num = 0
+		start = 0
+	} else {
+		if num < 1 {
+			num = 10
+		}
+		start = (page - 1) * num
+	}
+	return start, num
+}
+
 func CheckPage[T any](page, number uint32, all []T) (uint32, uint32, []T) {
 	if len(all) < 1 {
 		return 0, 0, make([]T, 0, 1)

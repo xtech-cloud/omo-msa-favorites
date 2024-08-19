@@ -7,6 +7,11 @@ type EntityInfo struct {
 	Name string `json:"name" bson:"name"`
 }
 
+type PairInfo struct {
+	Key   string `json:"key" bson:"key"`
+	Value string `json:"value" bson:"value"`
+}
+
 type DateInfo struct {
 	Start string `json:"start" bson:"start"`
 	Stop  string `json:"stop" bson:"stop"`
@@ -20,6 +25,7 @@ type DurationInfo struct {
 type PlaceInfo struct {
 	Name     string `json:"name" bson:"name"`
 	Location string `json:"location" bson:"location"`
+	Asset    string `json:"asset" bson:"asset"`
 }
 
 type CertifyInfo struct {

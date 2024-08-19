@@ -30,6 +30,11 @@ func switchWords(info *cache.WordsInfo) *pb.WordsInfo {
 	tmp.Count = info.Count
 	tmp.Type = uint32(info.Type)
 	tmp.Device = info.Device
+	tmp.States = make([]uint32, 0, len(info.States))
+	for _, state := range info.States {
+		tmp.States = append(tmp.States, uint32(state))
+	}
+	tmp.Remark = info.Remark
 	return tmp
 }
 
@@ -134,7 +139,12 @@ func (mine *WordsService) GetByFilter(ctx context.Context, in *pb.RequestFilter,
 		tp := parseStringToInt(in.Value)
 		array = cache.Context().GetWordsByOwnerTP(in.Owner, cache.WordsType(tp))
 	} else if in.Key == "user" {
-		array = cache.Context().GetWordsByUser(in.Value)
+		if len(in.List) == 1 {
+			tp := parseStringToInt(in.List[0])
+			array = cache.Context().GetWordsByUserType(in.Value, uint32(tp))
+		} else {
+			array = cache.Context().GetWordsByUser(in.Value)
+		}
 	} else if in.Key == "quote" {
 		array = cache.Context().GetWordsByQuote(in.Owner, in.Value)
 	} else if in.Key == "date_before" {
@@ -146,6 +156,9 @@ func (mine *WordsService) GetByFilter(ctx context.Context, in *pb.RequestFilter,
 			tp := cache.WordsType(parseStringToInt(in.Value))
 			array = cache.Context().GetWordsByBetweenDate(in.Owner, in.List[0], in.List[1], tp)
 		}
+	} else if in.Key == "latest" {
+		tp := parseStringToInt(in.Value)
+		array = cache.Context().GetWordsByPage(in.Owner, cache.WordsType(tp), in.Page, in.Number)
 	}
 	out.List = make([]*pb.WordsInfo, 0, len(array))
 	for _, val := range array {
@@ -180,11 +193,22 @@ func (mine *WordsService) UpdateByFilter(ctx context.Context, in *pb.RequestUpda
 	} else if in.Key == "assets" {
 		err = info.UpdateAssets(in.List, in.Operator)
 	} else if in.Key == "words" {
-		err = info.UpdateBase(in.Value, in.Operator)
+		err = info.UpdateContent(in.Value, in.Operator)
 	} else if in.Key == "click" {
 		//设置点击数量
 		num := parseStringToInt(in.Value)
 		err = cache.Context().UpdateClickCount(in.Owner, in.Uid, uint32(num))
+	} else if in.Key == "states" {
+		arr := make([]uint8, 0, len(in.List))
+		for _, msg := range in.List {
+			st := parseStringToInt(msg)
+			arr = append(arr, uint8(st))
+		}
+		err = info.UpdateStates(arr, in.Value, in.Operator)
+	} else if in.Key == "base" {
+		if len(in.List) == 3 {
+			err = info.UpdateBase(in.List[0], in.List[1], in.List[2], in.Operator)
+		}
 	} else {
 		err = errors.New("not defined the field key")
 	}

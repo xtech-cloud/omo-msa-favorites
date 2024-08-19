@@ -14,6 +14,7 @@ const (
 	WordsTypeImage    WordsType = 2
 	WordsTypeOther    WordsType = 3 //建议
 	WordsTypeComment  WordsType = 4 //评论
+	WordsTypeMessage  WordsType = 5 //留言
 )
 
 type WordsType uint8
@@ -21,13 +22,15 @@ type WordsType uint8
 type WordsInfo struct {
 	BaseInfo
 	Type   WordsType
-	Owner  string //
+	Owner  string //场景
 	Words  string
 	Target string //
 	Device string
 	Weight int32
 	Quote  string
 	Count  uint32
+	Remark string
+	States []uint8
 	Assets []string
 }
 
@@ -48,6 +51,8 @@ func (mine *cacheContext) CreateWords(words, owner, target, sn, operator, quote 
 	db.Device = sn
 	db.Weight = 0
 	db.Count = 0
+	db.States = make([]uint8, 0, 1)
+	db.States = append(db.States, 0)
 	if db.Assets == nil {
 		db.Assets = make([]string, 0, 1)
 	}
@@ -97,6 +102,27 @@ func (mine *cacheContext) GetWordsByOwnerTP(owner string, tp WordsType) []*Words
 		for _, item := range array {
 			info := new(WordsInfo)
 			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
+func (mine *cacheContext) GetWordsByPage(owner string, tp WordsType, page, num uint32) []*WordsInfo {
+	if page < 1 {
+		page = 1
+	}
+	if num < 1 {
+		num = 10
+	}
+	start := (page - 1) * num
+	array, err := nosql.GetWordsByPage(owner, uint8(tp), int64(start), int64(num))
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, db := range array {
+			info := new(WordsInfo)
+			info.initInfo(db)
 			list = append(list, info)
 		}
 		return list
@@ -237,6 +263,20 @@ func (mine *cacheContext) GetWordsByUser(uid string) []*WordsInfo {
 	return nil
 }
 
+func (mine *cacheContext) GetWordsByUserType(uid string, tp uint32) []*WordsInfo {
+	array, err := nosql.GetWordsByUserType(uid, uint8(tp))
+	if err == nil {
+		list := make([]*WordsInfo, 0, len(array))
+		for _, item := range array {
+			info := new(WordsInfo)
+			info.initInfo(item)
+			list = append(list, info)
+		}
+		return list
+	}
+	return nil
+}
+
 func (mine *cacheContext) GetWordsCountByDevice(device string) (uint32, error) {
 	count, err := nosql.GetWordsCountByDevice(device)
 	return uint32(count), err
@@ -303,6 +343,8 @@ func (mine *WordsInfo) initInfo(db *nosql.Words) {
 	mine.Assets = db.Assets
 	mine.Weight = db.Weight
 	mine.Count = db.Count
+	mine.States = db.States
+	mine.Remark = db.Remark
 	mine.Type = WordsType(db.Type)
 }
 
@@ -327,10 +369,31 @@ func (mine *WordsInfo) UpdateCount(count uint32, operator string) error {
 	return err
 }
 
-func (mine *WordsInfo) UpdateBase(words, operator string) error {
-	err := nosql.UpdateWordsBase(mine.UID, words, operator)
+func (mine *WordsInfo) UpdateContent(words, operator string) error {
+	err := nosql.UpdateWordsContent(mine.UID, words, operator)
 	if err == nil {
 		mine.Words = words
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *WordsInfo) UpdateBase(words, target, quote, operator string) error {
+	err := nosql.UpdateWordsBase(mine.UID, words, target, quote, operator)
+	if err == nil {
+		mine.Words = words
+		mine.Target = target
+		mine.Quote = quote
+		mine.UpdateTime = time.Now()
+	}
+	return err
+}
+
+func (mine *WordsInfo) UpdateStates(arr []uint8, remark, operator string) error {
+	err := nosql.UpdateWordsStates(mine.UID, remark, operator, arr)
+	if err == nil {
+		mine.States = arr
+		mine.Remark = remark
 		mine.UpdateTime = time.Now()
 	}
 	return err
