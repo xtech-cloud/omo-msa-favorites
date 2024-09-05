@@ -322,6 +322,8 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 		array = cache.Context().GetActivitiesByArray(in.List)
 	} else if in.Key == "admin" {
 		array = cache.Context().GetActivitiesByAdmin(in.Value)
+	} else if in.Key == "creator" {
+		array = cache.Context().GetActivitiesByCreator(in.Value)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {
@@ -351,8 +353,10 @@ func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityU
 	}
 	if len(in.Name) > 0 || len(in.Remark) > 0 {
 		err = info.UpdateBase(in.Name, in.Remark, in.Require, in.Operator, proxy.DateInfo{Start: in.Date.Start, Stop: in.Date.Stop},
-			proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location})
+			proxy.PlaceInfo{Name: in.Place.Name, Location: in.Place.Location, Asset: in.Place.Asset})
 	}
+
+	_ = info.UpdateWay(in.Operator, in.Way.Key, in.Way.Value)
 	err = info.UpdateAdmins(in.Operator, in.Admins)
 
 	if uint8(in.Limit) != info.SubmitLimit {
@@ -370,9 +374,7 @@ func (mine *ActivityService) UpdateBase(ctx context.Context, in *pb.ReqActivityU
 		err = info.UpdateTargets(in.Operator, in.Targets)
 	}
 
-	if !tool.EqualArray(info.Assets, in.Assets) {
-		err = info.UpdateAssets(in.Operator, in.Assets)
-	}
+	err = info.UpdateAssets(in.Operator, in.Assets)
 
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)

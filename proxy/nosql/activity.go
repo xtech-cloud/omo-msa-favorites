@@ -426,6 +426,25 @@ func GetActivitiesByAdmin(key string) ([]*Activity, error) {
 	return items, nil
 }
 
+func GetActivitiesByCreator(user string) ([]*Activity, error) {
+	def := new(time.Time)
+	filter := bson.M{"creator": user, "deleteAt": def}
+	cursor, err1 := findMany(TableActivity, filter, 0)
+	if err1 != nil {
+		return nil, err1
+	}
+	var items = make([]*Activity, 0, 20)
+	for cursor.Next(context.Background()) {
+		var node = new(Activity)
+		if err := cursor.Decode(&node); err != nil {
+			return nil, err
+		} else {
+			items = append(items, node)
+		}
+	}
+	return items, nil
+}
+
 func GetActivitiesByShow(owners []string, st uint8) ([]*Activity, error) {
 	def := new(time.Time)
 	in := bson.A{}
@@ -573,6 +592,12 @@ func UpdateActivityOpuses(uid, operator string, list []proxy.OpusInfo) error {
 
 func UpdateActivityTags(uid, operator string, tags []string) error {
 	msg := bson.M{"tags": tags, "operator": operator, "updatedAt": time.Now()}
+	_, err := updateOne(TableActivity, uid, msg)
+	return err
+}
+
+func UpdateActivityWay(uid, operator string, way proxy.PlaceInfo) error {
+	msg := bson.M{"way": way, "operator": operator, "updatedAt": time.Now()}
 	_, err := updateOne(TableActivity, uid, msg)
 	return err
 }

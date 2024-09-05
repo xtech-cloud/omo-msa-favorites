@@ -110,14 +110,8 @@ func (mine *cacheContext) GetWordsByOwnerTP(owner string, tp WordsType) []*Words
 }
 
 func (mine *cacheContext) GetWordsByPage(owner string, tp WordsType, page, num uint32) []*WordsInfo {
-	if page < 1 {
-		page = 1
-	}
-	if num < 1 {
-		num = 10
-	}
-	start := (page - 1) * num
-	array, err := nosql.GetWordsByPage(owner, uint8(tp), int64(start), int64(num))
+	start, number := getPageStart(page, num)
+	array, err := nosql.GetWordsByPage(owner, uint8(tp), start, number)
 	if err == nil {
 		list := make([]*WordsInfo, 0, len(array))
 		for _, db := range array {
