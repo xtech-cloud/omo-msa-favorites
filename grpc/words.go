@@ -137,7 +137,7 @@ func (mine *WordsService) GetByFilter(ctx context.Context, in *pb.RequestFilter,
 		}
 	} else if in.Key == "type" {
 		tp := parseStringToInt(in.Value)
-		array = cache.Context().GetWordsByOwnerTP(in.Owner, cache.WordsType(tp))
+		array = cache.Context().GetWordsByOwnerTP(in.Owner, cache.WordsType(tp), in.Number)
 	} else if in.Key == "user" {
 		if len(in.List) == 1 {
 			tp := parseStringToInt(in.List[0])

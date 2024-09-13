@@ -324,6 +324,8 @@ func (mine *ActivityService) GetByFilter(ctx context.Context, in *pb.RequestFilt
 		array = cache.Context().GetActivitiesByAdmin(in.Value)
 	} else if in.Key == "creator" {
 		array = cache.Context().GetActivitiesByCreator(in.Value)
+	} else if in.Key == "shown" {
+		array = cache.Context().GetShownActivitiesByOwner(in.Value)
 	}
 	out.List = make([]*pb.ActivityInfo, 0, len(array))
 	for _, val := range array {

@@ -12,9 +12,9 @@ const (
 	WordsTypeTemplate WordsType = 0 //
 	WordsTypeBless    WordsType = 1 //祝福
 	WordsTypeImage    WordsType = 2
-	WordsTypeOther    WordsType = 3 //建议
+	WordsTypeOther    WordsType = 3 //图文留言
 	WordsTypeComment  WordsType = 4 //评论
-	WordsTypeMessage  WordsType = 5 //留言
+	WordsTypeMessage  WordsType = 5 //需求建议
 )
 
 type WordsType uint8
@@ -95,8 +95,8 @@ func (mine *cacheContext) GetWordsByToday(owner, user, device string) *WordsInfo
 	return nil
 }
 
-func (mine *cacheContext) GetWordsByOwnerTP(owner string, tp WordsType) []*WordsInfo {
-	array, err := nosql.GetWordsByOwnerType(owner, uint8(tp))
+func (mine *cacheContext) GetWordsByOwnerTP(owner string, tp WordsType, num uint32) []*WordsInfo {
+	array, err := nosql.GetWordsByOwnerType(owner, uint8(tp), int64(num))
 	if err == nil {
 		list := make([]*WordsInfo, 0, len(array))
 		for _, item := range array {

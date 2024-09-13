@@ -250,6 +250,22 @@ func (mine *cacheContext) GetActivitiesByCreator(user string) []*ActivityInfo {
 	return list
 }
 
+func (mine *cacheContext) GetShownActivitiesByOwner(owner string) []*ActivityInfo {
+	dbs, err := nosql.GetActivitiesByOwner(owner, 0, 0)
+	if err != nil {
+		return nil
+	}
+	list := make([]*ActivityInfo, 0, len(dbs))
+	for _, db := range dbs {
+		if db.Show > 0 {
+			tmp := new(ActivityInfo)
+			tmp.initInfo(db)
+			list = append(list, tmp)
+		}
+	}
+	return list
+}
+
 func (mine *cacheContext) GetActivitiesByOwner(uid string, usable bool, page, num uint32) (uint32, uint32, []*ActivityInfo) {
 	start, count := getPageStart(page, num)
 	var total int64 = 0

@@ -72,10 +72,11 @@ func GetWordsCount() int64 {
 	return num
 }
 
-func GetWordsByOwnerType(owner string, tp uint8) ([]*Words, error) {
+func GetWordsByOwnerType(owner string, tp uint8, num int64) ([]*Words, error) {
 	def := new(time.Time)
 	filter := bson.M{"owner": owner, "type": tp, "deleteAt": def}
-	cursor, err1 := findMany(TableWords, filter, 0)
+	opts := options.Find().SetSort(bson.M{"createdAt": -1}).SetLimit(num)
+	cursor, err1 := findManyByOpts(TableWords, filter, opts)
 	if err1 != nil {
 		return nil, err1
 	}
