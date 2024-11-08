@@ -110,11 +110,22 @@ func (mine *WordsService) RemoveOne(ctx context.Context, in *pb.RequestInfo, out
 		out.Status = outError(path, "the words uid is empty", pbstatus.ResultStatus_Empty)
 		return nil
 	}
+	info := cache.Context().GetWords(in.Uid)
+	if info == nil {
+		return nil
+	}
 	err := cache.Context().RemoveWords(in.Uid, in.Operator)
 	if err != nil {
 		out.Status = outError(path, err.Error(), pbstatus.ResultStatus_DBException)
 		return nil
 	}
+	if info.Type == 0 {
+		arr := cache.Context().GetWordsByContent(info.Owner, info.Words)
+		for _, tmp := range arr {
+			_ = cache.Context().RemoveWords(tmp.UID, in.Operator)
+		}
+	}
+
 	out.Uid = in.Uid
 	out.Parent = in.Owner
 	out.Status = outLog(path, out)
@@ -159,6 +170,8 @@ func (mine *WordsService) GetByFilter(ctx context.Context, in *pb.RequestFilter,
 	} else if in.Key == "latest" {
 		tp := parseStringToInt(in.Value)
 		array = cache.Context().GetWordsByPage(in.Owner, cache.WordsType(tp), in.Page, in.Number)
+	} else if in.Key == "content" {
+		array = cache.Context().GetWordsByContent(in.Owner, in.Value)
 	}
 	out.List = make([]*pb.WordsInfo, 0, len(array))
 	for _, val := range array {

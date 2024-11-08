@@ -300,9 +300,9 @@ func GetWordsByTarget(owner, target string) ([]*Words, error) {
 	return items, nil
 }
 
-func GetWordsByTarget2(target string) ([]*Words, error) {
+func GetWordsByContent(owner, msg string) ([]*Words, error) {
 	def := new(time.Time)
-	filter := bson.M{"target": target, "deleteAt": def}
+	filter := bson.M{"owner": owner, "words": msg, "deleteAt": def}
 	cursor, err1 := findMany(TableWords, filter, 0)
 	if err1 != nil {
 		return nil, err1
