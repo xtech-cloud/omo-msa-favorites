@@ -211,7 +211,7 @@ func (mine *cacheContext) GetVisibleDisplays(arr []string, tp uint32) []*Display
 		dbs, err := nosql.GetDisplaysByOwner(uid)
 		if err == nil {
 			for _, item := range dbs {
-				if item.Status == FavStatusPublish && hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessRead) {
+				if hadTarget(item.Scenes, tp) && (item.Access == DisplayAccessRW || item.Access == DisplayAccessRead) {
 					info := new(DisplayInfo)
 					info.initInfo(item)
 					list = append(list, info)

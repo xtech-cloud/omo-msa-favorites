@@ -41,7 +41,7 @@ const (
 type ActivityInfo struct {
 	Type        uint8
 	Status      uint8
-	Access      uint8
+	Access      uint8 //
 	SubmitLimit uint8 // 参与人提交资源的数量限制
 	ShowResult  uint8 // 是否展示结果
 	BaseInfo
