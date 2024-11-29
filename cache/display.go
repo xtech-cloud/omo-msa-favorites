@@ -557,13 +557,15 @@ func (mine *DisplayInfo) UpdatePending(operator string, list []*pb.DisplayConten
 		}
 	} else {
 		utc := time.Now().UTC().Unix()
-		arr := make([]proxy.DisplayContent, 0, len(list))
+		arr := make([]proxy.DisplayContent, 0, len(mine.Pending))
+		for _, content := range mine.Pending {
+			arr = append(arr, content)
+		}
 		for _, s := range list {
-			if s.Option == uint32(ContentOptionAppend) && mine.HadStableContent(s.Uid) {
-				continue
+			if s.Option == uint32(ContentOptionAppend) && !mine.HadStableContent(s.Uid) && !mine.HadPending(s.Uid) {
+				arr = append(arr, proxy.DisplayContent{UID: s.Uid, Option: s.Option, Submitter: operator,
+					Stamp: utc, Remark: s.Remark, Events: s.Events, Assets: s.Assets})
 			}
-			arr = append(arr, proxy.DisplayContent{UID: s.Uid, Option: s.Option, Submitter: operator,
-				Stamp: utc, Remark: s.Remark, Events: s.Events, Assets: s.Assets})
 		}
 		err = nosql.UpdateDisplayPending(mine.UID, operator, arr)
 		if err == nil {
